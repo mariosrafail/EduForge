@@ -10,11 +10,13 @@ import { compileUltimateB2ComponentReleaseV2, ultimateB2PublicationV2Compatibili
 import { validateBuilderNativeAssetReferences } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-activity-store.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
-import { assessNativeSingleChoiceReadiness, defaultNativeSingleChoiceHighlightArea } from "../src/data/native-activities/nativeSingleChoice.js";
+import { assessNativeSingleChoiceReadiness } from "../src/data/native-activities/nativeSingleChoice.js";
 import { logicalAreaStyle } from "../src/components/builder-studio/stageGeometry.js";
 import {
   addUnansweredNativeSingleChoiceQuestion,
+  createNativeSingleChoiceHotspotArea,
   removeNativeSingleChoiceOption,
+  setNativeSingleChoiceHotspotArea,
   setNativeSingleChoiceCorrectAnswer,
 } from "../src/data/native-activities/nativeSingleChoiceAuthoring.js";
 import { selectNativeSingleChoiceResponse, updateNativeSingleChoiceVisualNavigation, visibleNativeSingleChoicePanelIndexes } from "../src/data/native-activities/nativeSingleChoiceRuntime.js";
@@ -102,16 +104,39 @@ test("visual Single Choice normalizes strict student-safe panels and source-pixe
   assert.equal(Object.hasOwn(normalized.parts[0].interaction.presentation.panels[0].hotspots[0], "highlightArea"), false, "old records stay byte-stable and the runtime deterministically falls back to area");
 });
 
-test("new visual hotspots keep a smaller source-pixel highlight inside the click target", () => {
+test("legacy optional highlight geometry remains accepted without changing canonical area", () => {
   const pair = visualPair();
   const hotspot = pair.publicDocument.parts[0].interaction.presentation.panels[0].hotspots[0];
-  hotspot.highlightArea = defaultNativeSingleChoiceHighlightArea(hotspot.area);
+  hotspot.highlightArea = { x: 150, y: 225, width: 100, height: 50 };
   const normalized = kind.normalizePublic(pair.publicDocument, activityId);
   const current = normalized.parts[0].interaction.presentation.panels[0].hotspots[0];
-  assert.ok(current.highlightArea.width < current.area.width && current.highlightArea.height < current.area.height);
+  assert.deepEqual(current.area, hotspot.area);
+  assert.deepEqual(current.highlightArea, hotspot.highlightArea);
   const invalid = structuredClone(pair.publicDocument);
   invalid.parts[0].interaction.presentation.panels[0].hotspots[0].highlightArea = { x: 0, y: 0, width: 50, height: 50 };
   assert.throws(() => kind.normalizePublic(invalid, activityId), /inside its click area/);
+});
+
+test("new hotspot area is deterministic, integral, positive, and fully source-bounded", () => {
+  const cases = [
+    { random: 0, expected: { x: 0, y: 0, width: 25, height: 25 } },
+    { random: .5, expected: { x: 488, y: 279, width: 25, height: 25 } },
+    { random: 1 - Number.EPSILON, expected: { x: 975, y: 557, width: 25, height: 25 } },
+  ];
+  for (const entry of cases) assert.deepEqual(createNativeSingleChoiceHotspotArea(1000, 582, () => entry.random), entry.expected);
+  assert.deepEqual(createNativeSingleChoiceHotspotArea(12, 8, () => 1), { x: 0, y: 0, width: 12, height: 8 });
+  assert.deepEqual(createNativeSingleChoiceHotspotArea(25, 25, () => -.5), { x: 0, y: 0, width: 25, height: 25 });
+  assert.throws(() => createNativeSingleChoiceHotspotArea(0, 25), /positive integers/);
+});
+
+test("moving or resizing a legacy hotspot canonicalizes only the touched hotspot", () => {
+  const pair = visualPair();
+  const [touched, untouched] = pair.publicDocument.parts[0].interaction.presentation.panels[0].hotspots;
+  touched.highlightArea = { x: 150, y: 225, width: 100, height: 50 };
+  untouched.highlightArea = { x: 550, y: 225, width: 100, height: 50 };
+  setNativeSingleChoiceHotspotArea(touched, { x: 120, y: 210, width: 280, height: 100 });
+  assert.deepEqual(touched, { id: ids.hotspots[0], questionId: ids.questions[0], optionId: ids.options[0][0], area: { x: 120, y: 210, width: 280, height: 100 } });
+  assert.deepEqual(untouched.highlightArea, { x: 550, y: 225, width: 100, height: 50 });
 });
 
 test("visual contract rejects unknown fields, invalid identities, dimensions, geometry, and semantic bindings", () => {
@@ -138,6 +163,22 @@ test("visual topology requires exact unambiguous option coverage and keeps each 
     presentation.panels[1].hotspots.push(moved);
   });
   assert.throws(() => kind.validatePair(split.publicDocument, split.teacherDocument), /cannot span visual panels/);
+});
+
+test("an additional managed image-only panel is valid while global option coverage remains exact", () => {
+  const pair = visualPair();
+  pair.publicDocument.parts[0].interaction.presentation.panels.push({
+    id: nativeChildIdFromUuid("panel", "20000000-0000-4000-8000-000000000023"),
+    backgroundAssetSlot: visualAsset.slot,
+    sourceWidth: 1200,
+    sourceHeight: 800,
+    hotspots: [],
+  });
+  assert.equal(assessNativeSingleChoiceReadiness(pair.publicDocument, pair.teacherDocument).ready, true);
+  assert.equal(kind.validatePair(pair.publicDocument, pair.teacherDocument), true);
+  pair.publicDocument.parts[0].interaction.presentation.panels[0].hotspots.pop();
+  assert.equal(assessNativeSingleChoiceReadiness(pair.publicDocument, pair.teacherDocument).ready, false);
+  assert.throws(() => kind.validatePair(pair.publicDocument, pair.teacherDocument), /visual options must have exactly one hotspot/);
 });
 
 test("local unanswered authoring never guesses option one and strict persisted topology remains enforced", () => {
@@ -186,6 +227,7 @@ test("student surface keeps text radios unchanged and renders accessible managed
   try {
     const { NativeSingleChoiceStudentSurface } = await vite.ssrLoadModule("/src/components/native-single-choice/NativeSingleChoiceStudentSurface.jsx");
     const pair = visualPair();
+    pair.publicDocument.parts[0].interaction.presentation.panels[0].hotspots[0].highlightArea = { x: 150, y: 225, width: 100, height: 50 };
     const visual = renderToStaticMarkup(React.createElement(NativeSingleChoiceStudentSurface, { document: pair.publicDocument, assetUrl: () => "/published/background.png", responses: { [ids.questions[0]]: ids.options[0][1] } }));
     assert.match(visual, /published\/background\.png/);
     assert.match(visual, /native-single-choice-hotspot/);
@@ -194,6 +236,8 @@ test("student surface keeps text radios unchanged and renders accessible managed
     assert.match(visual, /Question 1\?: Option 1\.1/);
     assert.match(visual, /Show All/);
     assert.match(visual, />Next</);
+    assert.equal((visual.match(/left:8\.333333333333332%;top:25%;width:25%;height:15%/g) || []).length, 2, "click targeting and feedback both use area");
+    assert.doesNotMatch(visual, /left:12\.5%;top:28\.125%;width:8\.333333333333332%;height:6\.25%/);
     assert.doesNotMatch(visual, /correctAnswers|correctOptionId/);
     const readOnly = renderToStaticMarkup(React.createElement(NativeSingleChoiceStudentSurface, { document: pair.publicDocument, assetUrl: () => "/published/background.png", initialResponses: { [ids.questions[0]]: ids.options[0][0] }, readOnly: true }));
     assert.match(readOnly, /aria-pressed="true"/);
@@ -370,16 +414,14 @@ test("Student and Teacher share a public classroom renderer while only Teacher o
   assert.match(editor, /NativeSingleChoiceHotspotCanvas/);
   assert.match(editor, /Needs answer/);
   assert.match(canvas, /StageSelectionFrame/);
-  assert.match(canvas, /onPointerDown=\{beginDraw\}/);
-  assert.match(canvas, /if \(!drawingEnabled && !drawingHighlightEnabled\)/);
-  assert.match(canvas, /event\.target !== event\.currentTarget/);
-  assert.match(canvas, /onPointerMove=\{moveDraw\}/);
+  assert.match(canvas, /label="Hotspot"/);
+  assert.match(canvas, /geometry=\{selected\.area\}/);
   assert.match(canvas, /onDelete=\{onDelete\}/);
-  assert.match(canvas, /onRedrawHighlight/);
-  assert.match(canvas, /bounds, kind: drawingHighlightEnabled/);
-  assert.match(editor, /Draw Highlight|Redraw Highlight/);
-  assert.match(editor, /Edit Click Target/);
-  assert.match(editor, /Edit Highlight/);
+  assert.match(editor, /createNativeSingleChoiceHotspotArea/);
+  assert.match(editor, />New hotspot<\/StudioButton>/);
+  assert.match(editor, /setNativeSingleChoiceHotspotArea/);
+  assert.doesNotMatch(canvas, /beginDraw|moveDraw|draftArea|highlightArea|selectedGeometry|drawingHighlight/);
+  assert.doesNotMatch(editor, /Draw Highlight|Redraw Highlight|Edit Click Target|Edit Highlight|Draw hotspot|selectedGeometry|drawingHighlight|drawingEnabled/);
   assert.match(hostedRunner, /NativeSingleChoiceTeacherSurface publicDocument=\{document\} teacherDocument=\{state\.teacher\.entry\.document\} assetUrl=\{assetUrl\}/);
   assert.match(publishedStudentRunner, /NativeSingleChoiceStudentSurface document=\{document\} assetUrl=\{assetUrl\}/);
   assert.doesNotMatch(publishedStudentRunner, /NativeSingleChoiceTeacherSurface|teacherState|teacherDocument/);
@@ -393,17 +435,19 @@ test("Student and Teacher share a public classroom renderer while only Teacher o
   assert.doesNotMatch(teacherSurface, /NativeSingleChoiceEditor|Front|Back|HotspotCanvas/);
 });
 
-test("visual Viewer sizing is width-first, aspect-safe, scrollable, and keeps image and hotspots on one stage", async () => {
+test("visual Viewer uses maximal contain sizing, transparent loaded chrome, and one registered stage", async () => {
   const [css, readableCss, presentation] = await Promise.all([
     readFile(new URL("../src/components/native-single-choice/nativeSingleChoice.css", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-readable-text/nativeReadableText.css", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-single-choice/NativeSingleChoicePresentation.jsx", import.meta.url), "utf8"),
   ]);
-  assert.match(css, /\.native-single-choice-visual-stage\s*\{[^}]*width:\s*100%/s);
-  assert.match(css, /\.native-single-choice-student,[\s\S]*max-width:\s*1200px/);
+  assert.match(css, /\.native-single-choice-stage-slot\s*\{[^}]*container-type:\s*size/s);
+  assert.match(css, /\.native-single-choice-visual-stage\s*\{[^}]*background:\s*transparent[^}]*width:\s*min\(100cqw, calc\(100cqh \* var\(--native-single-choice-stage-aspect\)\)\)/s);
   assert.match(css, /\.native-single-choice-visual-stage > img,[\s\S]*object-fit:\s*contain/);
-  assert.doesNotMatch(css, /100cqh|container-type:\s*size|object-fit:\s*fill/);
-  assert.match(readableCss, /:has\(\.native-single-choice-visual-stage\):not\(\.is-audio-focus\)[^{]*\{[^}]*overflow:\s*auto/s);
+  assert.doesNotMatch(css, /object-fit:\s*fill/);
+  assert.match(readableCss, /:has\(\.native-single-choice-visual-stage\):not\(\.is-audio-focus\)[^{]*\{[^}]*overflow:\s*hidden/s);
+  assert.match(readableCss, /\[data-audio-focus\]::after[^}]*height:\s*7px[^}]*background:\s*#000[^}]*pointer-events:\s*none/s);
   assert.match(presentation, /style=\{\{ aspectRatio: `\$\{panel\.sourceWidth\} \/ \$\{panel\.sourceHeight\}` \}\}/);
   assert.match(presentation, /style=\{logicalAreaStyle\(hotspot\.area, \{ width: panel\.sourceWidth, height: panel\.sourceHeight \}\)\}/);
+  assert.doesNotMatch(presentation, /hotspot\.highlightArea/);
 });

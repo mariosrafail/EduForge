@@ -33,7 +33,7 @@ function VisualPanel({ panel, panelIndex, document, assetUrl, responses, update,
   const panelQuestionIds = [...new Set(panel.hotspots.map((hotspot) => hotspot.questionId))];
   return <section className={`native-single-choice-visual-panel${headingVisible ? " has-heading" : ""}`} style={{ "--native-single-choice-stage-aspect": panel.sourceWidth / panel.sourceHeight }} aria-labelledby={headingVisible ? `${panel.id}-title` : undefined} aria-label={headingVisible ? undefined : `Panel ${panelIndex + 1}`}>
     {headingVisible ? <h3 id={`${panel.id}-title`}>Panel {panelIndex + 1}</h3> : null}
-    <div className="native-single-choice-visual-stage" style={{ aspectRatio: `${panel.sourceWidth} / ${panel.sourceHeight}` }}>
+    <div className="native-single-choice-stage-slot"><div className={`native-single-choice-visual-stage${reference ? "" : " is-missing-background"}`} style={{ aspectRatio: `${panel.sourceWidth} / ${panel.sourceHeight}` }}>
       {reference ? <img src={assetUrl(reference.assetId)} alt="" /> : <p role="status">Panel background is unavailable.</p>}
       {panel.hotspots.map((hotspot) => {
         const question = questionById.get(hotspot.questionId);
@@ -43,7 +43,7 @@ function VisualPanel({ panel, panelIndex, document, assetUrl, responses, update,
         const feedback = feedbackText(answerState);
         const stateProps = { "data-selected": selected || undefined, "data-answer-state": answerState || undefined };
         return <div key={hotspot.id}>
-          <span className="native-single-choice-highlight" style={logicalAreaStyle(hotspot.highlightArea || hotspot.area, { width: panel.sourceWidth, height: panel.sourceHeight })} {...stateProps} aria-hidden="true" />
+          <span className="native-single-choice-highlight" style={logicalAreaStyle(hotspot.area, { width: panel.sourceWidth, height: panel.sourceHeight })} {...stateProps} aria-hidden="true" />
           <button
           type="button"
           className="native-single-choice-hotspot"
@@ -57,7 +57,7 @@ function VisualPanel({ panel, panelIndex, document, assetUrl, responses, update,
         </div>;
       })}
       <NativeAudioTextHotspotButtons panelId={panel.id} surface={{ width: panel.sourceWidth, height: panel.sourceHeight }} presentation={audioHotspotPresentation} />
-    </div>
+    </div></div>
     <div className="native-single-choice-sr-only">
       {panelQuestionIds.map((questionId) => {
         const question = questionById.get(questionId);
@@ -78,7 +78,7 @@ function VisualSingleChoice({ document, assetUrl, responses, update, readOnly, d
     if (!normalized.showAll) audioHotspotPresentation?.onPanelChange(panels[normalized.panelIndex]?.id || null);
   }, [audioHotspotPresentation, normalized.panelIndex, normalized.showAll, panels]);
   if (!panels.length) return <p role="status">No visual panels are available.</p>;
-  return <div className="native-single-choice-visual" aria-live={navigationMode === "external" ? "polite" : undefined} aria-label={navigationMode === "external" ? `Panel ${normalized.panelIndex + 1} of ${panels.length}` : undefined}>
+  return <div className="native-single-choice-visual" data-navigation-mode={navigationMode} aria-live={navigationMode === "external" ? "polite" : undefined} aria-label={navigationMode === "external" ? `Panel ${normalized.panelIndex + 1} of ${panels.length}` : undefined}>
     {navigationMode === "inline" ? <div className="native-single-choice-visual-navigation" role="group" aria-label="Visual panel navigation">
       <button type="button" aria-pressed={normalized.showAll} onClick={() => setNavigation((current) => updateNativeSingleChoiceVisualNavigation(current, panels.length, "toggle-all"))}>{normalized.showAll ? "Paged View" : "Show All"}</button>
       {!normalized.showAll ? <button type="button" disabled={normalized.panelIndex >= panels.length - 1} onClick={() => setNavigation((current) => updateNativeSingleChoiceVisualNavigation(current, panels.length, "next"))}>Next</button> : null}

@@ -48,28 +48,6 @@ function normalizeHotspotArea(value, panel, label) {
   return area;
 }
 
-export function constrainNativeSingleChoiceHighlightArea(value, parentArea) {
-  const width = Math.max(1, Math.min(Math.round(Number(value?.width) || 1), parentArea.width));
-  const height = Math.max(1, Math.min(Math.round(Number(value?.height) || 1), parentArea.height));
-  return {
-    x: Math.max(parentArea.x, Math.min(Math.round(Number(value?.x) || 0), parentArea.x + parentArea.width - width)),
-    y: Math.max(parentArea.y, Math.min(Math.round(Number(value?.y) || 0), parentArea.y + parentArea.height - height)),
-    width,
-    height,
-  };
-}
-
-export function defaultNativeSingleChoiceHighlightArea(area) {
-  const horizontalInset = Math.min(Math.floor(area.width / 4), Math.max(0, Math.round(area.width * .12)));
-  const verticalInset = Math.min(Math.floor(area.height / 4), Math.max(0, Math.round(area.height * .2)));
-  return {
-    x: area.x + horizontalInset,
-    y: area.y + verticalInset,
-    width: Math.max(1, area.width - horizontalInset * 2),
-    height: Math.max(1, area.height - verticalInset * 2),
-  };
-}
-
 function normalizeNativeSingleChoicePresentation(input, { questions, assets }) {
   const value = structuredClone(object(input, "Native Single Choice presentation"));
   exactKeys(value, ["kind", "panels"], "Native Single Choice presentation");
@@ -185,7 +163,6 @@ export function validateNativeSingleChoiceTopology(publicDocument, teacherDocume
     const actualBindings = new Set();
     const questionPanels = new Map();
     for (const panel of presentation.panels) {
-      if (!panel.hotspots.length) throw new Error("Native Single Choice visual panels must contain at least one hotspot.");
       for (const hotspot of panel.hotspots) {
         const binding = `${hotspot.questionId}\0${hotspot.optionId}`;
         if (actualBindings.has(binding)) throw new Error("Native Single Choice visual options must have exactly one hotspot.");
@@ -230,7 +207,7 @@ export function assessNativeSingleChoiceReadiness(publicDocument, teacherDocumen
       else ids.add(panel.id);
       if (!assets.has(panel?.backgroundAssetSlot)) issues.push(`${panelLabel} needs a managed background image.`);
       if (![panel?.sourceWidth, panel?.sourceHeight].every((dimension) => Number.isSafeInteger(dimension) && dimension > 0 && dimension <= NATIVE_SINGLE_CHOICE_LIMITS.sourceDimension)) issues.push(`${panelLabel} needs valid source image dimensions.`);
-      if (!Array.isArray(panel?.hotspots) || !panel.hotspots.length) issues.push(`${panelLabel} needs at least one hotspot.`);
+      if (!Array.isArray(panel?.hotspots)) issues.push(`${panelLabel} needs a hotspot list.`);
       for (const [hotspotIndex, hotspot] of (panel?.hotspots || []).entries()) {
         const hotspotLabel = `${panelLabel}, hotspot ${hotspotIndex + 1}`;
         if (!isNativeChildId(hotspot?.id, "hot")) issues.push(`${hotspotLabel} needs a stable identity.`);

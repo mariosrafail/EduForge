@@ -3,6 +3,7 @@ import sharp from "sharp";
 export const onePixelPng = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGP4z8DwHwAFgAI/ScL4WQAAAABJRU5ErkJggg==", "base64");
 export const secondPixelPng = Buffer.concat([onePixelPng, Buffer.from([0])]);
 export const landscapeChoicePng = await sharp({ create: { width: 1200, height: 700, channels: 4, background: { r: 225, g: 239, b: 248, alpha: 1 } } }).png().toBuffer();
+export const halfHeightChoicePng = await sharp({ create: { width: 1024, height: 291, channels: 4, background: { r: 225, g: 239, b: 248, alpha: 1 } } }).png().toBuffer();
 export const portraitChoicePng = await sharp({ create: { width: 700, height: 1200, channels: 4, background: { r: 245, g: 229, b: 238, alpha: 1 } } }).png().toBuffer();
 export const smallFourThreeChoicePng = await sharp({ create: { width: 320, height: 240, channels: 4, background: { r: 235, g: 242, b: 219, alpha: 1 } } }).png().toBuffer();
 export const tallReadablePng = await sharp({ create: { width: 1000, height: 1800, channels: 4, background: { r: 247, g: 244, b: 232, alpha: 1 } } }).png().toBuffer();

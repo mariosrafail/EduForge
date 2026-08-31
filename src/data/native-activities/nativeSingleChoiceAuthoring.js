@@ -10,6 +10,31 @@ function solution(teacherDocument) {
   return teacherDocument.parts[0].solution;
 }
 
+export function createNativeSingleChoiceHotspotArea(sourceWidth, sourceHeight, random = Math.random) {
+  if (!Number.isSafeInteger(sourceWidth) || sourceWidth < 1 || !Number.isSafeInteger(sourceHeight) || sourceHeight < 1) {
+    throw new Error("Native Single Choice hotspot source dimensions must be positive integers.");
+  }
+  const width = Math.min(25, sourceWidth);
+  const height = Math.min(25, sourceHeight);
+  const coordinate = (maximum) => {
+    const value = Number(random());
+    const bounded = Number.isFinite(value) ? Math.min(Math.max(value, 0), 1) : 0;
+    return Math.min(maximum, Math.floor(bounded * (maximum + 1)));
+  };
+  return {
+    x: coordinate(sourceWidth - width),
+    y: coordinate(sourceHeight - height),
+    width,
+    height,
+  };
+}
+
+export function setNativeSingleChoiceHotspotArea(hotspot, area) {
+  hotspot.area = { x: area.x, y: area.y, width: area.width, height: area.height };
+  delete hotspot.highlightArea;
+  return hotspot;
+}
+
 export function alignNativeSingleChoiceAnswers(publicDocument, teacherDocument) {
   const answers = new Map(solution(teacherDocument).correctAnswers.map((answer) => [answer.questionId, answer]));
   solution(teacherDocument).correctAnswers = interaction(publicDocument).questions.flatMap((question) => {

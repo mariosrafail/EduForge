@@ -1,24 +1,24 @@
 .native-readable-text-presentation { position: relative; width: 100%; height: 100%; min-height: 0; }
 .native-readable-text-presentation[data-audio-focus] { display: grid; width: auto; max-width: 100%; margin-inline: auto; aspect-ratio: 1024 / 582; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 0; overflow: hidden; }
+.native-readable-text-presentation[data-audio-focus]::after { content: ""; position: absolute; z-index: 80; top: 50%; left: 0; width: 100%; height: 7px; transform: translateY(-3.5px); background: #000; pointer-events: none; }
 .native-readable-text-activity-view { width: 100%; height: 100%; }
 .native-readable-text-activity-view[hidden] { display: none !important; }
 .native-readable-text-activity-view.is-audio-focus { display: grid; min-height: 0; place-items: center; overflow: hidden; }
 .native-readable-text-activity-view.is-audio-focus > article { display: grid; width: 100%; height: 100%; min-height: 0; place-items: center; overflow: hidden; }
 .native-readable-text-activity-view.is-audio-focus .native-or-surface { width: auto; height: 100%; max-width: 100%; max-height: 100%; }
-.native-readable-text-activity-view:has(.native-single-choice-visual-stage):not(.is-audio-focus) { display: grid; min-height: 0; place-items: center; overflow: auto; overscroll-behavior: contain; }
-.native-readable-text-activity-view:has(.native-single-choice-visual-stage):not(.is-audio-focus) > article { display: grid; width: 100%; min-height: 100%; place-items: center; }
+.native-readable-text-activity-view:has(.native-single-choice-visual-stage):not(.is-audio-focus) { display: grid; min-height: 0; place-items: center; overflow: hidden; }
+.native-readable-text-activity-view:has(.native-single-choice-visual-stage):not(.is-audio-focus) > article { display: grid; width: 100%; height: 100%; min-height: 0; place-items: center; overflow: hidden; }
 .native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-visual,
 .native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-visual-panels,
 .native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-visual-panel { width: 100%; min-height: 0; }
 .native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-student,
-.native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-teacher { width: 100%; min-height: 0; max-width: 1200px; }
+.native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-teacher { width: 100%; height: 100%; min-height: 0; max-width: none; margin: 0; gap: 0; }
 .native-readable-text-activity-view:has(.native-single-choice-visual-stage) .native-single-choice-visual-panel { place-items: center; }
 .native-readable-text-activity-view.is-audio-focus:has(.native-single-choice-visual-stage) .native-single-choice-student,
 .native-readable-text-activity-view.is-audio-focus:has(.native-single-choice-visual-stage) .native-single-choice-teacher,
 .native-readable-text-activity-view.is-audio-focus:has(.native-single-choice-visual-stage) .native-single-choice-visual,
 .native-readable-text-activity-view.is-audio-focus:has(.native-single-choice-visual-stage) .native-single-choice-visual-panels,
 .native-readable-text-activity-view.is-audio-focus:has(.native-single-choice-visual-stage) .native-single-choice-visual-panel { height: 100%; min-height: 0; }
-.native-readable-text-activity-view.is-audio-focus:has(.native-single-choice-visual-stage) .native-single-choice-visual-stage { width: auto; height: 100%; max-width: 100%; max-height: 100%; }
 .native-audio-text-focus-slot { min-height: 0; overflow: hidden; }
 .native-audio-text-focus { box-sizing: border-box; display: grid; width: 100%; height: 100%; min-height: 0; overflow: hidden; place-items: center; }
 .native-audio-text-focus-crop { display: grid; min-height: 0; overflow: hidden; place-items: center; }

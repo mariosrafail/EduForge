@@ -7,15 +7,17 @@ import { NativeSingleChoiceStudentSurface } from "../../../components/native-sin
 import { NativeSingleChoiceTeacherSurface } from "../../../components/native-single-choice/NativeSingleChoiceTeacherSurface.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
-import { assessNativeSingleChoiceReadiness, constrainNativeSingleChoiceHighlightArea, defaultNativeSingleChoiceHighlightArea, NATIVE_SINGLE_CHOICE_LIMITS } from "../../../data/native-activities/nativeSingleChoice.js";
+import { assessNativeSingleChoiceReadiness, NATIVE_SINGLE_CHOICE_LIMITS } from "../../../data/native-activities/nativeSingleChoice.js";
 import {
   addUnansweredNativeSingleChoiceQuestion,
   alignNativeSingleChoiceAnswers,
+  createNativeSingleChoiceHotspotArea,
   createNativeSingleChoiceVisualPanel,
   enableNativeSingleChoiceVisualPresentation,
   removeNativeSingleChoiceOption,
   removeNativeSingleChoiceQuestion,
   removeNativeSingleChoiceVisualPresentation,
+  setNativeSingleChoiceHotspotArea,
   setNativeSingleChoiceCorrectAnswer,
 } from "../../../data/native-activities/nativeSingleChoiceAuthoring.js";
 import { getBuilderContent } from "./builderContentApi.js";
@@ -46,10 +48,7 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
   const [selectedQuestionId, setSelectedQuestionId] = useState(null);
   const [selectedPanelId, setSelectedPanelId] = useState(null);
   const [selectedHotspotId, setSelectedHotspotId] = useState(null);
-  const [selectedGeometry, setSelectedGeometry] = useState("area");
-  const [drawBinding, setDrawBinding] = useState("");
-  const [drawing, setDrawing] = useState(false);
-  const [drawingHighlight, setDrawingHighlight] = useState(false);
+  const [hotspotBinding, setHotspotBinding] = useState("");
   const [uploading, setUploading] = useState(false);
   const [readableTextIncomplete, setReadableTextIncomplete] = useState(false);
   const [videoIncomplete, setVideoIncomplete] = useState(false);
@@ -73,8 +72,6 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
     }).catch((error) => { if (!controller.signal.aborted) setState({ kind: "error", message: error.message }); });
     return () => controller.abort();
   }, [activityId, bookSlug, componentSlug]);
-  useEffect(() => { setDrawingHighlight(false); }, [selectedPanelId]);
-
   const changed = () => { setDirty(true); onDirtyChange(true); };
   const mutatePublic = (mutator) => { setPublicDraft((current) => { const next = clone(current); mutator(next); return next; }); changed(); };
   const mutatePair = (mutator) => {
@@ -137,7 +134,7 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
   const disableVisual = () => {
     if (!globalThis.confirm("Remove the visual panels and hotspots? Semantic questions and private answers will remain.")) return;
     mutatePublic(removeNativeSingleChoiceVisualPresentation);
-    setSelectedPanelId(null); setSelectedHotspotId(null); setDrawing(false); setDrawingHighlight(false);
+    setSelectedPanelId(null); setSelectedHotspotId(null);
   };
   const addPanel = () => {
     const panel = createNativeSingleChoiceVisualPanel();
@@ -180,15 +177,14 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
     finally { setUploading(false); }
   };
 
-  const parsedBinding = drawBinding.split(":");
-  const createHotspot = (area) => {
-    const [questionId, optionId] = parsedBinding;
+  const createHotspot = () => {
+    const [questionId, optionId] = hotspotBinding.split(":");
     if (!selectedPanel || !questionId || !optionId) return;
     const duplicate = panels.some((panel) => panel.hotspots.some((hotspot) => hotspot.questionId === questionId && hotspot.optionId === optionId));
     if (duplicate) { setState((current) => ({ ...current, message: "That option already has a hotspot." })); return; }
-    const hotspot = { id: createNativeChildId("hot"), questionId, optionId, area, highlightArea: defaultNativeSingleChoiceHighlightArea(area) };
+    const hotspot = { id: createNativeChildId("hot"), questionId, optionId, area: createNativeSingleChoiceHotspotArea(selectedPanel.sourceWidth, selectedPanel.sourceHeight) };
     mutatePublic((next) => next.parts[0].interaction.presentation.panels.find((panel) => panel.id === selectedPanel.id).hotspots.push(hotspot));
-    setSelectedHotspotId(hotspot.id); setDrawing(false); setDrawingHighlight(false);
+    setSelectedHotspotId(hotspot.id); setHotspotBinding("");
   };
   const updateHotspot = (mutator) => mutatePublic((next) => {
     const hotspot = next.parts[0].interaction.presentation.panels.find((panel) => panel.id === selectedPanelId)?.hotspots.find((entry) => entry.id === selectedHotspotId);
@@ -205,23 +201,15 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
   const updateHotspotArea = (key, raw) => {
     const value = Math.round(Number(raw)); if (!Number.isFinite(value) || !selectedHotspot || !selectedPanel) return;
     updateHotspot((hotspot) => {
-      hotspot.area[key] = key === "x" ? clamp(value, 0, selectedPanel.sourceWidth - hotspot.area.width)
+      const area = { ...hotspot.area };
+      area[key] = key === "x" ? clamp(value, 0, selectedPanel.sourceWidth - hotspot.area.width)
         : key === "y" ? clamp(value, 0, selectedPanel.sourceHeight - hotspot.area.height)
           : key === "width" ? clamp(value, 1, selectedPanel.sourceWidth - hotspot.area.x)
             : clamp(value, 1, selectedPanel.sourceHeight - hotspot.area.y);
-      hotspot.highlightArea = constrainNativeSingleChoiceHighlightArea(hotspot.highlightArea || hotspot.area, hotspot.area);
+      setNativeSingleChoiceHotspotArea(hotspot, area);
     });
   };
-  const updateClickArea = (area) => updateHotspot((hotspot) => {
-    hotspot.area = area;
-    hotspot.highlightArea = constrainNativeSingleChoiceHighlightArea(hotspot.highlightArea || area, area);
-  });
-  const updateHighlightArea = (area) => updateHotspot((hotspot) => { hotspot.highlightArea = constrainNativeSingleChoiceHighlightArea(area, hotspot.area); });
-  const redrawHighlight = (area) => {
-    updateHighlightArea(area);
-    setDrawingHighlight(false);
-    setSelectedGeometry("highlight");
-  };
+  const updateHotspotGeometry = (area) => updateHotspot((hotspot) => setNativeSingleChoiceHotspotArea(hotspot, area));
 
   const save = async () => {
     if (!readiness.ready) { setState((current) => ({ ...current, message: "Resolve all authoring issues before saving." })); return; }
@@ -253,10 +241,9 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
 
       {mode === "visual" ?
       <section className="native-single-choice-visual-authoring"><header><div><span className="studio-section-icon"><LayoutPanelTop aria-hidden="true" /></span><div><h3>Visual presentation</h3><p>Optional managed backgrounds with option-bound source-pixel hotspots.</p></div></div>{presentation ? <StudioButton variant="danger-ghost" onClick={disableVisual}>Remove visual mode</StudioButton> : <StudioButton variant="primary" onClick={enableVisual}><ImagePlus aria-hidden="true" />Enable visual mode</StudioButton>}</header>
-      {presentation && selectedHotspot ? <div className="native-single-choice-highlight-actions" role="group" aria-label="Selected hotspot rectangle workflow"><strong>Selected hotspot</strong><StudioButton selected={selectedGeometry === "area" && !drawingHighlight} onClick={() => { setSelectedGeometry("area"); setDrawingHighlight(false); }}>Edit Click Target</StudioButton><StudioButton selected={selectedGeometry === "highlight" && !drawingHighlight} onClick={() => { setSelectedGeometry("highlight"); setDrawingHighlight(false); }}>Edit Highlight</StudioButton><StudioButton variant="primary" selected={drawingHighlight} onClick={() => { setSelectedGeometry("highlight"); setDrawing(false); setDrawingHighlight((current) => !current); }}>{drawingHighlight ? "Cancel Draw Highlight" : "Draw / Redraw Highlight"}</StudioButton></div> : null}
-      {presentation ? <div className="studio-visual-workspace"><aside className="studio-navigator"><header><div><LayoutPanelTop aria-hidden="true" /><div><h3>Panels</h3><p>Visual pages inside part-1.</p></div></div><span className="studio-count">{panels.length}</span></header><div className="studio-layer-list">{panels.map((panel, index) => <button type="button" key={panel.id} aria-current={panel.id === selectedPanelId ? "true" : undefined} onClick={() => { setSelectedPanelId(panel.id); setSelectedHotspotId(null); setDrawing(false); }}><span><strong>Panel {index + 1}</strong><small>{panel.backgroundAssetSlot ? `${panel.sourceWidth} × ${panel.sourceHeight}` : "Needs background"}</small></span></button>)}</div><StudioButton onClick={addPanel} disabled={panels.length >= NATIVE_SINGLE_CHOICE_LIMITS.panels}><Plus aria-hidden="true" />Add Panel</StudioButton>{selectedPanel ? <><StudioButton onClick={() => movePanel(-1)} disabled={panels.indexOf(selectedPanel) === 0}>Move Up</StudioButton><StudioButton onClick={() => movePanel(1)} disabled={panels.indexOf(selectedPanel) === panels.length - 1}>Move Down</StudioButton><StudioButton variant="danger-ghost" onClick={deletePanel}><Trash2 aria-hidden="true" />Delete Panel</StudioButton></> : null}</aside>
-      <section className="studio-canvas-column"><StudioCanvasToolbar zoom={zoom} onZoomChange={setZoom} /><p className="studio-draw-mode" role="status">{drawingHighlight ? "Draw the green highlight inside the selected orange click target." : drawing ? "Draw the orange click target over the full option text." : "Select a rectangle to edit it, or choose a draw action."}</p><div className="studio-canvas-viewport"><div className="studio-artboard-wrap" style={{ width: `${zoom * 100}%` }}>{selectedPanel ? <NativeSingleChoiceHotspotCanvas panel={selectedPanel} assetUrl={assetUrlForSlot(selectedPanel.backgroundAssetSlot)} questions={questions} selectedHotspotId={selectedHotspotId} selectedGeometry={selectedGeometry} onSelectedGeometryChange={setSelectedGeometry} onSelect={(id) => { setSelectedHotspotId(id); setSelectedGeometry("area"); setDrawing(false); setDrawingHighlight(false); }} onCreate={createHotspot} onChangeArea={updateClickArea} onChangeHighlightArea={updateHighlightArea} onRedrawHighlight={redrawHighlight} onDelete={deleteHotspot} drawingEnabled={drawing} drawingHighlightEnabled={drawingHighlight} /> : <p>Select a panel.</p>}</div></div><p className="studio-canvas-hint">Orange is the full transparent click target. Green is the smaller feedback highlight. Both remain independently movable and resizable.</p></section>
-      <aside className="studio-inspector"><header><span className="studio-section-icon"><ImagePlus aria-hidden="true" /></span><div><h3>{selectedHotspot ? "Hotspot properties" : "Panel properties"}</h3><p>{selectedPanel ? `Panel ${panels.indexOf(selectedPanel) + 1}` : "Select a panel."}</p></div></header>{selectedPanel ? <><label className="studio-upload-action"><Upload aria-hidden="true" /><span><strong>{uploading ? "Uploading…" : selectedPanel.backgroundAssetSlot ? "Change background" : "Upload background"}</strong><small>PNG, JPEG or WebP</small></span><input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={(event) => { uploadBackground(event.target.files?.[0]); event.target.value = ""; }} /></label><StudioField label="Option to map"><select value={drawBinding} onChange={(event) => { setDrawBinding(event.target.value); setDrawing(false); }}><option value="">Choose question and option</option>{questions.flatMap((question, questionIndex) => question.options.map((option, optionIndex) => { const value = bindingValue(question.id, option.id); return <option key={value} value={value} disabled={mappedBindings.has(value) && (!selectedHotspot || value !== bindingValue(selectedHotspot.questionId, selectedHotspot.optionId))}>Question {questionIndex + 1}, option {optionIndex + 1}: {option.text || "Untitled"}</option>; }))}</select></StudioField><StudioButton variant="primary" selected={drawing} disabled={!drawBinding || !selectedPanel.backgroundAssetSlot || Boolean(selectedHotspot)} reason={!drawBinding ? "Choose an option first" : !selectedPanel.backgroundAssetSlot ? "Upload a background first" : selectedHotspot ? "Clear the selected hotspot first" : ""} onClick={() => setDrawing((current) => !current)}>Draw hotspot</StudioButton>{selectedHotspot ? <><StudioField label="Hotspot binding"><select value={bindingValue(selectedHotspot.questionId, selectedHotspot.optionId)} onChange={(event) => { const [questionId, optionId] = event.target.value.split(":"); updateHotspot((hotspot) => { hotspot.questionId = questionId; hotspot.optionId = optionId; }); setDrawBinding(event.target.value); }}>{questions.flatMap((question, questionIndex) => question.options.map((option, optionIndex) => { const value = bindingValue(question.id, option.id); return <option key={value} value={value} disabled={mappedBindings.has(value) && value !== bindingValue(selectedHotspot.questionId, selectedHotspot.optionId)}>Question {questionIndex + 1}, option {optionIndex + 1}: {option.text || "Untitled"}</option>; }))}</select></StudioField><div className="studio-number-grid">{["x", "y", "width", "height"].map((key) => <StudioField key={key} label={key[0].toUpperCase() + key.slice(1)}><input type="number" min={["width", "height"].includes(key) ? 1 : 0} step="1" value={selectedHotspot.area[key]} onChange={(event) => updateHotspotArea(key, event.target.value)} /></StudioField>)}</div><StudioButton variant="danger-ghost" onClick={deleteHotspot}><Trash2 aria-hidden="true" />Delete Hotspot</StudioButton></> : null}</> : <p>Select or add a panel.</p>}</aside></div> : null}
+      {presentation ? <div className="studio-visual-workspace"><aside className="studio-navigator"><header><div><LayoutPanelTop aria-hidden="true" /><div><h3>Panels</h3><p>Visual pages inside part-1.</p></div></div><span className="studio-count">{panels.length}</span></header><div className="studio-layer-list">{panels.map((panel, index) => <button type="button" key={panel.id} aria-current={panel.id === selectedPanelId ? "true" : undefined} onClick={() => { setSelectedPanelId(panel.id); setSelectedHotspotId(null); }}><span><strong>Panel {index + 1}</strong><small>{panel.backgroundAssetSlot ? `${panel.sourceWidth} × ${panel.sourceHeight}` : "Needs background"}</small></span></button>)}</div><StudioButton onClick={addPanel} disabled={panels.length >= NATIVE_SINGLE_CHOICE_LIMITS.panels}><Plus aria-hidden="true" />Add Panel</StudioButton>{selectedPanel ? <><StudioButton onClick={() => movePanel(-1)} disabled={panels.indexOf(selectedPanel) === 0}>Move Up</StudioButton><StudioButton onClick={() => movePanel(1)} disabled={panels.indexOf(selectedPanel) === panels.length - 1}>Move Down</StudioButton><StudioButton variant="danger-ghost" onClick={deletePanel}><Trash2 aria-hidden="true" />Delete Panel</StudioButton></> : null}</aside>
+      <section className="studio-canvas-column"><StudioCanvasToolbar zoom={zoom} onZoomChange={setZoom} /><div className="studio-canvas-viewport"><div className="studio-artboard-wrap" style={{ width: `${zoom * 100}%` }}>{selectedPanel ? <NativeSingleChoiceHotspotCanvas panel={selectedPanel} assetUrl={assetUrlForSlot(selectedPanel.backgroundAssetSlot)} questions={questions} selectedHotspotId={selectedHotspotId} onSelect={setSelectedHotspotId} onChangeArea={updateHotspotGeometry} onDelete={deleteHotspot} /> : <p>Select a panel.</p>}</div></div></section>
+      <aside className="studio-inspector"><header><span className="studio-section-icon"><ImagePlus aria-hidden="true" /></span><div><h3>{selectedHotspot ? "Hotspot properties" : "Panel properties"}</h3><p>{selectedPanel ? `Panel ${panels.indexOf(selectedPanel) + 1}` : "Select a panel."}</p></div></header>{selectedPanel ? <><label className="studio-upload-action"><Upload aria-hidden="true" /><span><strong>{uploading ? "Uploading…" : selectedPanel.backgroundAssetSlot ? "Change background" : "Upload background"}</strong><small>PNG, JPEG or WebP</small></span><input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={(event) => { uploadBackground(event.target.files?.[0]); event.target.value = ""; }} /></label><StudioField label="Option to map"><select value={hotspotBinding} onChange={(event) => setHotspotBinding(event.target.value)}><option value="">Choose question and option</option>{questions.flatMap((question, questionIndex) => question.options.map((option, optionIndex) => { const value = bindingValue(question.id, option.id); return <option key={value} value={value} disabled={mappedBindings.has(value)}>Question {questionIndex + 1}, option {optionIndex + 1}: {option.text || "Untitled"}</option>; }))}</select></StudioField><StudioButton variant="primary" disabled={!hotspotBinding || !selectedPanel.backgroundAssetSlot || mappedBindings.has(hotspotBinding)} reason={!hotspotBinding ? "Choose an option first" : !selectedPanel.backgroundAssetSlot ? "Upload a background first" : mappedBindings.has(hotspotBinding) ? "That option already has a hotspot" : ""} onClick={createHotspot}>New hotspot</StudioButton>{selectedHotspot ? <><StudioField label="Hotspot binding"><select value={bindingValue(selectedHotspot.questionId, selectedHotspot.optionId)} onChange={(event) => { const [questionId, optionId] = event.target.value.split(":"); updateHotspot((hotspot) => { hotspot.questionId = questionId; hotspot.optionId = optionId; }); }}>{questions.flatMap((question, questionIndex) => question.options.map((option, optionIndex) => { const value = bindingValue(question.id, option.id); return <option key={value} value={value} disabled={mappedBindings.has(value) && value !== bindingValue(selectedHotspot.questionId, selectedHotspot.optionId)}>Question {questionIndex + 1}, option {optionIndex + 1}: {option.text || "Untitled"}</option>; }))}</select></StudioField><div className="studio-number-grid">{["x", "y", "width", "height"].map((key) => <StudioField key={key} label={key[0].toUpperCase() + key.slice(1)}><input type="number" min={["width", "height"].includes(key) ? 1 : 0} step="1" value={selectedHotspot.area[key]} onChange={(event) => updateHotspotArea(key, event.target.value)} /></StudioField>)}</div><StudioButton variant="danger-ghost" onClick={deleteHotspot}><Trash2 aria-hidden="true" />Delete Hotspot</StudioButton></> : null}</> : <p>Select or add a panel.</p>}</aside></div> : null}
       </section>
       : null}
       {mode === "preview" ?
