@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { nativeActivityFontFamilyAlias } from "../../data/native-activities/nativeActivityFont.js";
+import { subscribeAndSynchronizeNativeActivityFontEntries } from "./nativeActivityFontSubscription.js";
 
 const registeredFaces = new Map();
 
@@ -73,11 +74,7 @@ export function useNativeActivityFonts(document, assetUrl) {
   useEffect(() => {
     const entries = sources.map(registeredFace);
     const update = () => setRevision((current) => current + 1);
-    entries.forEach((entry) => {
-      entry.subscribers.add(update);
-      beginFontLoad(entry);
-    });
-    return () => entries.forEach((entry) => entry.subscribers.delete(update));
+    return subscribeAndSynchronizeNativeActivityFontEntries(entries, update, beginFontLoad);
   }, [identity]);
 
   return useMemo(() => publicState(sources), [identity, revision]);

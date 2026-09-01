@@ -7,14 +7,16 @@ export async function assertAhemRendering(locator, label) {
     const alias = family.split(",")[0].trim().replace(/^['"]|['"]$/g, "");
     await document.fonts.ready;
     const requested = await document.fonts.load(`32px "${alias}"`, "iiiiiiiiii");
-    const face = [...document.fonts].find((candidate) => candidate.family.replace(/^['"]|['"]$/g, "") === alias);
+    const matchingFaces = [...document.fonts]
+      .filter((candidate) => candidate.family.replace(/^['"]|['"]$/g, "") === alias)
+      .map((candidate) => ({ family: candidate.family, status: candidate.status, style: candidate.style, weight: candidate.weight }));
     const canvas = document.createElement("canvas"); const context = canvas.getContext("2d");
     context.font = `32px "${alias}"`; const managedWidth = context.measureText("iiiiiiiiii").width;
     context.font = "32px Arial"; const fallbackWidth = context.measureText("iiiiiiiiii").width;
-    return { family, alias, faceStatus: face?.status || null, requestedFaces: requested.length, checked: document.fonts.check(`32px "${alias}"`, "iiiiiiiiii"), managedWidth, fallbackWidth };
+    return { family, alias, documentFontStatus: document.fonts.status, matchingFaceCount: matchingFaces.length, matchingFaces, requestedFaces: requested.length, checked: document.fonts.check(`32px "${alias}"`, "iiiiiiiiii"), managedWidth, fallbackWidth };
   });
   assert.match(evidence.alias, /^hh-native-font-/i, `${label}: ${JSON.stringify(evidence)}`);
-  assert.equal(evidence.faceStatus, "loaded", `${label}: ${JSON.stringify(evidence)}`);
+  assert.ok(evidence.matchingFaceCount > 0 && evidence.matchingFaces.every((face) => face.status === "loaded"), `${label}: ${JSON.stringify(evidence)}`);
   assert.ok(evidence.requestedFaces > 0 && evidence.checked, `${label}: ${JSON.stringify(evidence)}`);
   assert.ok(evidence.managedWidth > evidence.fallbackWidth * 2, `${label}: Ahem metrics must differ from Arial fallback: ${JSON.stringify(evidence)}`);
   return evidence;

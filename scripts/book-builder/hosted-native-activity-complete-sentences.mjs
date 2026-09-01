@@ -3,24 +3,10 @@ import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
+import { assertAhemRendering } from "./hosted-native-activity-authoring-helpers.mjs";
 import { landscapeChoicePng, portraitChoicePng, tallReadablePng } from "./hosted-native-activity-media-fixtures.mjs";
 
 const testFontBytes = Buffer.from((await readFile(path.resolve("tests/fixtures/fonts/Ahem.ttf.base64"), "utf8")).trim(), "base64");
-
-async function assertAhemRendering(locator) {
-  const evidence = await locator.evaluate(async (element) => {
-    const family = getComputedStyle(element).fontFamily;
-    const alias = family.split(",")[0].trim().replace(/^['"]|['"]$/g, "");
-    await document.fonts.ready;
-    const requested = await document.fonts.load(`32px "${alias}"`, "iiiiiiiiii");
-    const face = [...document.fonts].find((candidate) => candidate.family.replace(/^['"]|['"]$/g, "") === alias);
-    const canvas = document.createElement("canvas"); const context = canvas.getContext("2d"); context.font = `32px "${alias}"`; const managedWidth = context.measureText("iiiiiiiiii").width; context.font = "32px Arial"; const fallbackWidth = context.measureText("iiiiiiiiii").width;
-    return { alias, faceStatus: face?.status || null, requestedFaces: requested.length, checked: document.fonts.check(`32px "${alias}"`, "iiiiiiiiii"), managedWidth, fallbackWidth };
-  });
-  assert.equal(evidence.faceStatus, "loaded", JSON.stringify(evidence));
-  assert.ok(evidence.requestedFaces > 0 && evidence.checked, JSON.stringify(evidence));
-  assert.ok(evidence.managedWidth > evidence.fallbackWidth * 2, `Ahem must render differently from Arial fallback: ${JSON.stringify(evidence)}`);
-}
 
 export async function handleCompleteSentencesFontRequest({ request, response, url, nativeRoot, origin, nativeFonts, nativeFontUploads, nativeAssets, nextSequence, json, requestBytes, requestJson }) {
   if (url.pathname === `${nativeRoot}/fonts` && request.method === "GET") {
@@ -111,7 +97,7 @@ export async function exerciseCompleteSentencesAuthoring({ page, nativeDocuments
   assert.equal(completeTargetPresentation.color, "#e40083");
   assert.match(completeTargetPresentation.fontFamily, /^hh-native-font-/);
   assert.match(completeTargetPresentation.fontSize, /cqw$/);
-  await assertAhemRendering(completeTeacherTarget);
+  await assertAhemRendering(completeTeacherTarget, "Complete Sentences Teacher Preview");
   assert.equal(await completeTeacherTarget.getAttribute("data-revealed"), null); assert.equal(await completePreview.getByText("catching up on", { exact: true }).count(), 0); await completeTeacherTarget.focus(); await completeTeacherTarget.press("Enter"); assert.equal(await completeTeacherTarget.getAttribute("data-revealed"), "true"); assert.equal(await completePreview.getByText("catching up on", { exact: true }).count(), 1); assert.equal(await completePreview.getByText("turned it in", { exact: true }).count(), 0); await completeTeacherTarget.click(); assert.equal(await completePreview.getByText("catching up on", { exact: true }).count(), 1); await page.getByRole("button", { name: "Student Preview" }).click();
   assert.equal(await completePreview.getByText("catching up on", { exact: true }).count(), 0);
   const completePanelNavigation = completePreview.getByRole("navigation", { name: "Complete the Sentences panels" });
