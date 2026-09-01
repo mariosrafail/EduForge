@@ -99,7 +99,6 @@
 
 .teacher-offline-unit-overview-screen .teacher-offline-unit-overview:is([data-overview-book="workbook"], [data-overview-book="grammar-book"]) {
   --teacher-unit-overview-thumbnail-height: clamp(118px, 14.75vw, 270px);
-  padding-block: clamp(4px, 0.4vw, 8px);
 }
 
 .teacher-offline-unit-overview-screen .teacher-unit-overview-grid {
