@@ -133,6 +133,7 @@ test("Open Response candidate preserves reused geometry and assigns only new que
   const result = generateNativeBulkCandidate({ kind: "open-response", source: "1. First\n*Answer one*\n\n2. Second\n*Answer two*\n*Alternative*", ...pair, createId });
   assert.equal(result.publicDocument.parts[0].interaction.questions.length, 2);
   assert.deepEqual(result.publicDocument.parts[0].interaction.presentation.panels[0].questionIds, result.publicDocument.parts[0].interaction.questions.map((question) => question.id));
+  assert.equal(result.teacherDocument.parts[0].solution.modelAnswers[0].text, "Answer one");
   assert.deepEqual(result.teacherDocument.parts[0].solution.modelAnswers[1].modelAnswerTexts, ["Answer two", "Alternative"]);
   assert.deepEqual(result.publicDocument.readableText, pair.publicDocument.readableText);
   assert.deepEqual(result.publicDocument.video, pair.publicDocument.video);

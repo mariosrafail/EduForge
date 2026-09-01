@@ -188,7 +188,7 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
         updateNativeOpenResponsePanelMembership(current, targetPanel.id, id, "response", true);
       }
     });
-    mutateTeacher((next) => next.parts[0].solution.modelAnswers.push({ questionId: id, modelAnswerTexts: [""] }));
+    mutateTeacher((next) => next.parts[0].solution.modelAnswers.push({ questionId: id, text: "" }));
     setSelectedQuestionId(id); setSelection({ type: "prompt", id });
   };
   const deleteQuestion = (id) => {
@@ -221,8 +221,8 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
     const target = next.parts[0].solution.modelAnswers.find((item) => item.questionId === selectedQuestionId);
     const texts = nativeOpenResponseModelAnswerTexts(target);
     texts[index] = value;
-    delete target.text;
-    target.modelAnswerTexts = texts;
+    if (texts.length === 1) { target.text = value; delete target.modelAnswerTexts; }
+    else { delete target.text; target.modelAnswerTexts = texts; }
   });
   const addAnswerVariant = () => mutateTeacher((next) => {
     const target = next.parts[0].solution.modelAnswers.find((item) => item.questionId === selectedQuestionId);
@@ -233,9 +233,8 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
   });
   const removeAnswerVariant = () => mutateTeacher((next) => {
     const target = next.parts[0].solution.modelAnswers.find((item) => item.questionId === selectedQuestionId);
-    const texts = nativeOpenResponseModelAnswerTexts(target).slice(0, 1);
-    delete target.text;
-    target.modelAnswerTexts = texts;
+    target.text = nativeOpenResponseModelAnswerTexts(target)[0] || "";
+    delete target.modelAnswerTexts;
   });
 
   const selectedArea = (() => {
@@ -370,7 +369,7 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
     {tab === "content" ? <div className="native-or-content"><NativeBulkGenerator kind="open-response" hasExistingContent={questions.length > 0} onGenerate={generateBulk} />
       <div className="native-activity-foundation-fields"><label><span>Activity title</span><input value={publicDraft.metadata.title} maxLength={300} onChange={(event) => mutatePublic((next) => { next.metadata.title = event.target.value; })} /></label></div>
       <div className="native-or-question-workspace"><aside><button className="studio-primary-action" type="button" disabled={questions.length >= 20} onClick={addQuestion}><Plus aria-hidden="true" /> Add Question</button>{questions.map((question, index) => { const panelCount = questionPanelCount(question.id); return <button type="button" key={question.id} aria-current={selectedQuestionId === question.id ? "true" : undefined} onClick={() => setSelectedQuestionId(question.id)}><strong>Question {index + 1}</strong><span>{question.prompt.trim() || "Untitled question"}</span><small>{panelCount ? `Shown on ${panelCount} panel${panelCount === 1 ? "" : "s"}` : "Unassigned"}</small><code>{question.id}</code></button>; })}</aside>
-      {selectedQuestion ? <section className="native-or-question-editor"><header><strong>Question {questions.indexOf(selectedQuestion) + 1}</strong><code>{selectedQuestion.id}</code><div><button type="button" disabled={questions.indexOf(selectedQuestion) === 0} title={questions.indexOf(selectedQuestion) === 0 ? "Already first" : undefined} onClick={() => moveQuestion(selectedQuestion.id, -1)}>Move Up</button><button type="button" disabled={questions.indexOf(selectedQuestion) === questions.length - 1} title={questions.indexOf(selectedQuestion) === questions.length - 1 ? "Already last" : undefined} onClick={() => moveQuestion(selectedQuestion.id, 1)}>Move Down</button><button className="studio-danger-action" type="button" onClick={() => deleteQuestion(selectedQuestion.id)}><Trash2 aria-hidden="true" /> Delete Question</button></div></header><label><span>Prompt</span><textarea value={selectedQuestion.prompt} maxLength={2000} rows={4} onChange={(event) => updateQuestion(selectedQuestion.id, (question) => { question.prompt = event.target.value; })} /></label><label className="studio-teacher-field"><span><ShieldCheck aria-hidden="true" /> Model answer 1 <small>Teacher only · never shown to students</small></span><textarea value={answerTexts[0] || ""} maxLength={5000} rows={5} onChange={(event) => updateAnswer(0, event.target.value)} /></label>{answerTexts.length > 1 ? <label className="studio-teacher-field"><span><ShieldCheck aria-hidden="true" /> Model answer 2 <button type="button" onClick={removeAnswerVariant}>Remove second model answer</button></span><textarea value={answerTexts[1] || ""} maxLength={5000} rows={5} onChange={(event) => updateAnswer(1, event.target.value)} /></label> : <StudioButton onClick={addAnswerVariant}>Add second model answer</StudioButton>}<OpenResponseTypographyFeedback document={publicDraft} assetUrl={previewAsset} question={selectedQuestion} text={answerTexts[0] || ""} /></section> : <p>No questions yet. Add a question to begin.</p>}</div>
+      {selectedQuestion ? <section className="native-or-question-editor"><header><strong>Question {questions.indexOf(selectedQuestion) + 1}</strong><code>{selectedQuestion.id}</code><div><button type="button" disabled={questions.indexOf(selectedQuestion) === 0} title={questions.indexOf(selectedQuestion) === 0 ? "Already first" : undefined} onClick={() => moveQuestion(selectedQuestion.id, -1)}>Move Up</button><button type="button" disabled={questions.indexOf(selectedQuestion) === questions.length - 1} title={questions.indexOf(selectedQuestion) === questions.length - 1 ? "Already last" : undefined} onClick={() => moveQuestion(selectedQuestion.id, 1)}>Move Down</button><button className="studio-danger-action" type="button" onClick={() => deleteQuestion(selectedQuestion.id)}><Trash2 aria-hidden="true" /> Delete Question</button></div></header><label><span>Prompt</span><textarea value={selectedQuestion.prompt} maxLength={2000} rows={4} onChange={(event) => updateQuestion(selectedQuestion.id, (question) => { question.prompt = event.target.value; })} /></label><label className="studio-teacher-field"><span><ShieldCheck aria-hidden="true" /> Private model answer 1 <small>Teacher only · never shown to students</small></span><textarea value={answerTexts[0] || ""} maxLength={5000} rows={5} onChange={(event) => updateAnswer(0, event.target.value)} /></label>{answerTexts.length > 1 ? <label className="studio-teacher-field"><span><ShieldCheck aria-hidden="true" /> Private model answer 2 <button type="button" onClick={removeAnswerVariant}>Remove second model answer</button></span><textarea value={answerTexts[1] || ""} maxLength={5000} rows={5} onChange={(event) => updateAnswer(1, event.target.value)} /></label> : <StudioButton onClick={addAnswerVariant}>Add second model answer</StudioButton>}<OpenResponseTypographyFeedback document={publicDraft} assetUrl={previewAsset} question={selectedQuestion} text={answerTexts[0] || ""} /></section> : <p>No questions yet. Add a question to begin.</p>}</div>
     </div> : null}
     {tab === "layout" && panel ? <PanelCompositionControls panel={panel} questions={questions} onChange={changePanelMembership} /> : null}
     {tab === "layout" ? panel ? <div className="native-or-layout studio-or-layout"><div className="studio-canvas-column"><StudioCanvasToolbar zoom={zoom} onZoomChange={changeCanvasZoom}>

@@ -324,7 +324,9 @@ function normalizeOpenCandidate(publicDocument, teacherDocument, parsed, createI
     if (Object.hasOwn(firstPanel, "questionIds")) firstPanel.questionIds.push(id);
     else { firstPanel.promptQuestionIds.push(id); firstPanel.responseQuestionIds.push(id); }
   }
-  teacherCandidate.parts[0].solution.modelAnswers = parsed.map((question, index) => ({ questionId: ids[index], modelAnswerTexts: question.modelAnswers }));
+  teacherCandidate.parts[0].solution.modelAnswers = parsed.map((question, index) => question.modelAnswers.length === 1
+    ? { questionId: ids[index], text: question.modelAnswers[0] }
+    : { questionId: ids[index], modelAnswerTexts: question.modelAnswers });
   const normalized = normalizeCandidatePair(publicCandidate, teacherCandidate, "open-response", normalizeNativeOpenResponseInteraction, normalizeNativeOpenResponseSolution);
   validateNativeOpenResponseTopology(normalized.publicDocument, normalized.teacherDocument);
   const readiness = assessNativeOpenResponseReadiness(normalized.publicDocument, normalized.teacherDocument);
