@@ -19,6 +19,8 @@
   color: #0f172a;
   font-size: 1.05rem;
   font-weight: 700;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .native-single-choice-student label,
@@ -29,6 +31,13 @@
   gap: .65rem;
   margin-top: .45rem;
   padding: .55rem;
+}
+
+.native-single-choice-student label > span,
+.native-single-choice-teacher label > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
 }
 
 .native-single-choice-student label:has(input:checked),

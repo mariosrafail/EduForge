@@ -5,6 +5,7 @@ import { NativeOpenResponseTeacherSurface } from "../../../native-open-response/
 import { NativeSingleChoiceTeacherSurface } from "../../../native-single-choice/NativeSingleChoiceTeacherSurface.jsx";
 import { NativeCompleteSentencesTeacherSurface } from "../../../native-complete-sentences/NativeCompleteSentencesSurface.jsx";
 import { NativeReadableTextPresentation } from "../../../native-readable-text/NativeReadableTextPresentation.jsx";
+import "./nativeActivityText.css";
 import { NativeListeningTeacherSurface } from "../../../native-listening/NativeListeningSurface.jsx";
 import { NativeOldschoolListeningTeacherSurface } from "../../../native-oldschool-listening/NativeOldschoolListeningSurface.jsx";
 import { NativeDragDropTeacherSurface } from "../../../native-drag-drop/NativeDragDropTeacherSurface.jsx";
@@ -32,7 +33,7 @@ export function PublishedNativeTeacherActivityRunner({ entry, publication, showM
   const loadingLabel = ["open-response", "listening", "oldschool-listening"].includes(entry.kind) ? "Loading Teacher model answers…" : "Loading Teacher answers…";
   const errorLabel = ["open-response", "listening", "oldschool-listening"].includes(entry.kind) ? "Teacher model answers are unavailable." : "Teacher answers are unavailable.";
   return <NativeReadableTextPresentation document={document} assetUrl={assetUrl} presentation={presentation}>{(activityPresentation, audioHotspotPresentation) => <article className="published-native-activity" data-native-kind={entry.kind} data-release-id={publication.releaseId} data-native-metadata={showMetadataHeader || undefined}>
-    {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p>{document.metadata.visibleInstructionText}</p> : null}</header> : null}
+    {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p className="native-activity-visible-instruction">{document.metadata.visibleInstructionText}</p> : null}</header> : null}
     {entry.kind === "image" ? <NativeImagePresentation document={document} assetUrl={assetUrl} className="native-runtime-surface" audioHotspotPresentation={audioHotspotPresentation} /> : null}
     {entry.kind === "image" && showMetadataHeader ? <NativeImageLearnerContent document={document} /> : null}
     {teacherDocumentKinds.has(entry.kind) && teacherState.kind === "loading" ? <p role="status">{loadingLabel}</p> : null}

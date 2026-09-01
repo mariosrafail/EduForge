@@ -3,6 +3,7 @@ import { NativeOpenResponseStudentSurface } from "../../../native-open-response/
 import { NativeSingleChoiceStudentSurface } from "../../../native-single-choice/NativeSingleChoiceStudentSurface.jsx";
 import { NativeCompleteSentencesStudentSurface } from "../../../native-complete-sentences/NativeCompleteSentencesSurface.jsx";
 import { NativeReadableTextPresentation } from "../../../native-readable-text/NativeReadableTextPresentation.jsx";
+import "./nativeActivityText.css";
 import { NativeListeningStudentSurface } from "../../../native-listening/NativeListeningSurface.jsx";
 import { NativeOldschoolListeningStudentSurface } from "../../../native-oldschool-listening/NativeOldschoolListeningSurface.jsx";
 import { NativeDragDropStudentSurface } from "../../../native-drag-drop/NativeDragDropSurface.jsx";
@@ -15,7 +16,7 @@ export function PublishedNativeStudentActivityRunner({ entry, publication, respo
     return publishedNativeAssetUrl(publication, reference);
   };
   return <NativeReadableTextPresentation document={document} assetUrl={assetUrl} presentation={presentation}>{(activityPresentation, audioHotspotPresentation) => <article className="published-native-activity" data-native-kind={entry.kind} data-release-id={publication.releaseId} data-native-metadata={showMetadataHeader || undefined}>
-    {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p>{document.metadata.visibleInstructionText}</p> : null}</header> : null}
+    {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p className="native-activity-visible-instruction">{document.metadata.visibleInstructionText}</p> : null}</header> : null}
     {entry.kind === "image" ? <NativeImagePresentation document={document} assetUrl={assetUrl} className="native-runtime-surface" audioHotspotPresentation={audioHotspotPresentation} /> : null}
     {entry.kind === "image" && showMetadataHeader ? <NativeImageLearnerContent document={document} /> : null}
     {entry.kind === "open-response" ? <NativeOpenResponseStudentSurface document={document} assetUrl={assetUrl} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} audioHotspotPresentation={audioHotspotPresentation} /> : null}

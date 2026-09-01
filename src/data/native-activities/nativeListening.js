@@ -5,6 +5,7 @@ import {
   initialNativeOpenResponseArtworkArea,
   normalizeNativeOpenResponseInteraction,
 } from "./nativeOpenResponse.js";
+import { normalizeNativePedagogicalText, normalizeNativeSingleLineText } from "./nativePedagogicalText.js";
 
 export const NATIVE_LISTENING_LIMITS = Object.freeze({
   questions: 20,
@@ -36,13 +37,6 @@ function exactKeys(value, keys, label) {
   if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) throw new Error(`${label} has missing or unknown fields.`);
 }
 
-function text(value, label, maximum, { required = false } = {}) {
-  if (typeof value !== "string" || value.length > maximum || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)) throw new Error(`${label} is invalid.`);
-  const normalized = value.trim();
-  if (required && !normalized) throw new Error(`${label} is required.`);
-  return normalized;
-}
-
 function integer(value, label, minimum, maximum) {
   if (!Number.isSafeInteger(value) || value < minimum || value > maximum) throw new Error(`${label} is invalid.`);
   return value;
@@ -61,7 +55,7 @@ function normalizeLegacyQuestion(input, index) {
   if (!isNativeChildId(input.id, "q")) throw new Error(`${label}.id is invalid.`);
   return {
     ...createNativeOpenResponseQuestion(input.id, index),
-    prompt: text(input.prompt, `${label}.prompt`, NATIVE_LISTENING_LIMITS.promptLength),
+    prompt: normalizeNativePedagogicalText(input.prompt, `${label}.prompt`, NATIVE_LISTENING_LIMITS.promptLength, { forbidMarkup: false }),
   };
 }
 
@@ -72,7 +66,7 @@ function normalizeCue(input, index) {
   const startMs = integer(input.startMs, `${label}.startMs`, 0, NATIVE_LISTENING_LIMITS.durationMs);
   const endMs = integer(input.endMs, `${label}.endMs`, 1, NATIVE_LISTENING_LIMITS.durationMs);
   if (endMs <= startMs) throw new Error(`${label} must end after it starts.`);
-  return { id: input.id, startMs, endMs, text: text(input.text, `${label}.text`, NATIVE_LISTENING_LIMITS.cueTextLength, { required: true }) };
+  return { id: input.id, startMs, endMs, text: normalizeNativePedagogicalText(input.text, `${label}.text`, NATIVE_LISTENING_LIMITS.cueTextLength, { required: true, forbidMarkup: false }) };
 }
 
 function normalizeSnippet(input, index, cueIds, surface, assetSlots) {
@@ -81,13 +75,13 @@ function normalizeSnippet(input, index, cueIds, surface, assetSlots) {
   exactKeys(input, ["id", "area", "cueIds", "label", ...(hasAudioAssetSlot ? ["audioAssetSlot"] : [])], label);
   if (!isNativeChildId(input.id, "aud")) throw new Error(`${label}.id is invalid.`);
   if (!Array.isArray(input.cueIds) || !input.cueIds.length || input.cueIds.some((id) => !cueIds.has(id)) || new Set(input.cueIds).size !== input.cueIds.length) throw new Error(`${label}.cueIds are invalid.`);
-  const audioAssetSlot = hasAudioAssetSlot ? text(input.audioAssetSlot, `${label}.audioAssetSlot`, 128) : "";
+  const audioAssetSlot = hasAudioAssetSlot ? normalizeNativeSingleLineText(input.audioAssetSlot, `${label}.audioAssetSlot`, 128, { forbidMarkup: false }) : "";
   if (audioAssetSlot && !assetSlots.has(audioAssetSlot)) throw new Error(`${label}.audioAssetSlot must reference managed native audio.`);
   return {
     id: input.id,
     area: area(input.area, `${label}.area`, surface),
     cueIds: [...input.cueIds],
-    label: text(input.label, `${label}.label`, NATIVE_LISTENING_LIMITS.snippetLabelLength, { required: true }),
+    label: normalizeNativeSingleLineText(input.label, `${label}.label`, NATIVE_LISTENING_LIMITS.snippetLabelLength, { required: true, forbidMarkup: false }),
     audioAssetSlot,
   };
 }
@@ -162,7 +156,7 @@ export function normalizeNativeListeningSolution(input) {
     const label = `Native Listening modelAnswers[${index}]`;
     exactKeys(entry, ["questionId", "text"], label);
     if (!isNativeChildId(entry.questionId, "q")) throw new Error(`${label}.questionId is invalid.`);
-    return { questionId: entry.questionId, text: text(entry.text, `${label}.text`, NATIVE_LISTENING_LIMITS.answerLength) };
+    return { questionId: entry.questionId, text: normalizeNativePedagogicalText(entry.text, `${label}.text`, NATIVE_LISTENING_LIMITS.answerLength, { forbidMarkup: false }) };
   });
   if (new Set(answers.map((entry) => entry.questionId)).size !== answers.length) throw new Error("Native Listening model-answer identities must be unique.");
   return { kind: "listening", modelAnswers: answers };

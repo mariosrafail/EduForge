@@ -1,4 +1,5 @@
 import { isNativeChildId } from "./nativeChildIdentity.js";
+import { normalizeNativePedagogicalText } from "./nativePedagogicalText.js";
 
 export const NATIVE_SINGLE_CHOICE_LIMITS = Object.freeze({
   questions: 20,
@@ -20,11 +21,6 @@ function exactKeys(value, keys, label) {
   const actual = Object.keys(object(value, label)).sort();
   const expected = [...keys].sort();
   if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) throw new Error(`${label} has missing or unknown fields.`);
-}
-
-function text(value, label, maximum) {
-  if (typeof value !== "string" || value.length > maximum || /[<>\u0000-\u001f\u007f]/.test(value)) throw new Error(`${label} is invalid.`);
-  return value.trim();
 }
 
 function positiveInteger(value, label, maximum = Number.MAX_SAFE_INTEGER) {
@@ -122,13 +118,13 @@ export function normalizeNativeSingleChoiceInteraction(input, { assets = [] } = 
       const optionIds = new Set();
       return {
         id: entry.id,
-        prompt: text(entry.prompt, `${label}.prompt`, NATIVE_SINGLE_CHOICE_LIMITS.promptLength),
+        prompt: normalizeNativePedagogicalText(entry.prompt, `${label}.prompt`, NATIVE_SINGLE_CHOICE_LIMITS.promptLength),
         options: entry.options.map((option, optionIndex) => {
           const optionLabel = `${label}.options[${optionIndex}]`;
           exactKeys(option, ["id", "text"], optionLabel);
           if (!isNativeChildId(option.id, "opt") || optionIds.has(option.id)) throw new Error(`${optionLabel}.id is invalid or duplicate.`);
           optionIds.add(option.id);
-          return { id: option.id, text: text(option.text, `${optionLabel}.text`, NATIVE_SINGLE_CHOICE_LIMITS.optionTextLength) };
+          return { id: option.id, text: normalizeNativePedagogicalText(option.text, `${optionLabel}.text`, NATIVE_SINGLE_CHOICE_LIMITS.optionTextLength) };
         }),
       };
     }),

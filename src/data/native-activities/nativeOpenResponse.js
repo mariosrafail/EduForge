@@ -3,6 +3,7 @@ import { NATIVE_IMAGE_LIMITS, normalizeNativeImageInteraction } from "./nativeIm
 import { removeNativeManagedAssetReferenceIfUnused } from "./nativeActivityPublic.js";
 import { nativeActivityFontFamily } from "./nativeActivityFont.js";
 import { autoFitNativeOpenResponseAnswer } from "./nativeOpenResponseAutoFit.js";
+import { normalizeNativePedagogicalText, normalizeNativeSingleLineText } from "./nativePedagogicalText.js";
 
 export const NATIVE_OPEN_RESPONSE_LIMITS = Object.freeze({
   questions: 20,
@@ -64,13 +65,6 @@ function number(value, label, minimum, maximum) {
 function integer(value, label, minimum, maximum) {
   if (!Number.isSafeInteger(value) || value < minimum || value > maximum) throw new Error(`${label} is invalid.`);
   return value;
-}
-
-function text(value, label, maximum, { required = false } = {}) {
-  if (typeof value !== "string" || value.length > maximum || /[<>\u0000-\u001f\u007f]/.test(value)) throw new Error(`${label} is invalid.`);
-  const normalized = value.trim();
-  if (required && !normalized) throw new Error(`${label} is required.`);
-  return normalized;
 }
 
 function surface(input) {
@@ -190,7 +184,7 @@ function responseRegion(input, label, questionId, logicalSurface, assets) {
   const regionArea = area(input.area, `${label}.area`, logicalSurface);
   return {
     id: input.id,
-    ariaLabel: text(input.ariaLabel, `${label}.ariaLabel`, NATIVE_OPEN_RESPONSE_LIMITS.labelLength, { required: true }),
+    ariaLabel: normalizeNativeSingleLineText(input.ariaLabel, `${label}.ariaLabel`, NATIVE_OPEN_RESPONSE_LIMITS.labelLength, { required: true }),
     area: regionArea,
     presentation: responsePresentation(input.presentation, `${label}.presentation`, regionArea, assets),
   };
@@ -202,7 +196,7 @@ function question(input, index, logicalSurface, assets) {
   if (!isNativeChildId(input.id, "q")) throw new Error(`${label}.id is invalid.`);
   return {
     id: input.id,
-    prompt: text(input.prompt, `${label}.prompt`, NATIVE_OPEN_RESPONSE_LIMITS.promptLength),
+    prompt: normalizeNativePedagogicalText(input.prompt, `${label}.prompt`, NATIVE_OPEN_RESPONSE_LIMITS.promptLength),
     promptArea: area(input.promptArea, `${label}.promptArea`, logicalSurface),
     promptStyle: promptStyle(input.promptStyle, `${label}.promptStyle`),
     responseRegion: responseRegion(input.responseRegion, `${label}.responseRegion`, input.id, logicalSurface, assets),
@@ -224,7 +218,7 @@ function artwork(input, index, logicalSurface, assetSlots) {
     assetSlot: input.assetSlot,
     area: area(input.area, `${label}.area`, logicalSurface),
     order: input.order,
-    altText: text(input.altText, `${label}.altText`, NATIVE_OPEN_RESPONSE_LIMITS.altTextLength),
+    altText: normalizeNativePedagogicalText(input.altText, `${label}.altText`, NATIVE_OPEN_RESPONSE_LIMITS.altTextLength),
     decorative: input.decorative,
     fit: input.fit,
     locked: legacy ? false : input.locked,
@@ -549,7 +543,7 @@ export function normalizeNativeOpenResponseSolution(input) {
       exactKeys(answer, ["questionId", "text"], label);
       if (!isNativeChildId(answer.questionId, "q") || ids.has(answer.questionId)) throw new Error(`${label}.questionId is invalid or duplicate.`);
       ids.add(answer.questionId);
-      return { questionId: answer.questionId, text: text(answer.text, `${label}.text`, NATIVE_OPEN_RESPONSE_LIMITS.modelAnswerLength) };
+      return { questionId: answer.questionId, text: normalizeNativePedagogicalText(answer.text, `${label}.text`, NATIVE_OPEN_RESPONSE_LIMITS.modelAnswerLength) };
     }),
   };
 }

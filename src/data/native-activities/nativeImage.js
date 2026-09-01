@@ -1,5 +1,6 @@
 import { isNativeChildId } from "./nativeChildIdentity.js";
 import { removeNativeManagedAssetReferenceIfUnused } from "./nativeActivityPublic.js";
+import { normalizeNativePedagogicalText } from "./nativePedagogicalText.js";
 
 export const NATIVE_IMAGE_LIMITS = Object.freeze({ images: 32, altTextLength: 2_000, contentTextLength: 10_000, surfaceMaximum: 10_000 });
 export const NATIVE_IMAGE_DEFAULT_SURFACE = Object.freeze({ width: 1024, height: 582 });
@@ -24,16 +25,6 @@ function number(value, label, minimum, maximum) {
 function integer(value, label, minimum, maximum) {
   if (!Number.isSafeInteger(value) || value < minimum || value > maximum) throw new Error(`${label} is invalid.`);
   return value;
-}
-
-function text(value, label, maximum) {
-  if (typeof value !== "string" || value.length > maximum || /[<>\u0000-\u001f\u007f]/.test(value)) throw new Error(`${label} is invalid.`);
-  return value.trim();
-}
-
-function multilineText(value, label, maximum) {
-  if (typeof value !== "string" || value.length > maximum || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)) throw new Error(`${label} is invalid.`);
-  return value.replace(/\r\n?/g, "\n").trim();
 }
 
 function surface(input) {
@@ -70,7 +61,7 @@ function normalizeImage(input, index, logicalSurface, assetSlots) {
     assetSlot: input.assetSlot,
     area: area(input.area, `${label}.area`, logicalSurface),
     order: input.order,
-    altText: text(input.altText, `${label}.altText`, NATIVE_IMAGE_LIMITS.altTextLength),
+    altText: normalizeNativePedagogicalText(input.altText, `${label}.altText`, NATIVE_IMAGE_LIMITS.altTextLength),
     decorative: input.decorative,
     fit: input.fit,
     locked: input.locked,
@@ -79,7 +70,7 @@ function normalizeImage(input, index, logicalSurface, assetSlots) {
 
 function normalizeLegacyInteraction(value, assets, commonAssetSlots) {
   exactKeys(value, ["kind", "image", "altText"], "Native Image interaction");
-  const altText = text(value.altText, "Native Image alt text", NATIVE_IMAGE_LIMITS.altTextLength);
+  const altText = normalizeNativePedagogicalText(value.altText, "Native Image alt text", NATIVE_IMAGE_LIMITS.altTextLength);
   if (value.image === null) {
     if (assets.some((asset) => !commonAssetSlots.has(asset.slot))) throw new Error("Blank Native Image drafts cannot retain unused managed assets.");
     return { kind: "image", surface: { ...NATIVE_IMAGE_DEFAULT_SURFACE }, images: [] };
@@ -113,7 +104,7 @@ export function normalizeNativeImageInteraction(input, { assets = [], commonAsse
   });
   if (assets.some((asset) => asset.role !== "activity_artwork" || (!usedSlots.has(asset.slot) && !commonAssetSlots.has(asset.slot)))) throw new Error("Every Native Image managed asset must be used by an image instance or common supporting content.");
   const normalized = { kind: "image", surface: logicalSurface, images };
-  if (hasContentText) normalized.contentText = multilineText(value.contentText, "Native Image content text", NATIVE_IMAGE_LIMITS.contentTextLength);
+  if (hasContentText) normalized.contentText = normalizeNativePedagogicalText(value.contentText, "Native Image content text", NATIVE_IMAGE_LIMITS.contentTextLength, { forbidMarkup: false });
   return normalized;
 }
 

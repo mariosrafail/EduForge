@@ -1,5 +1,6 @@
 import { candidateNativeAudioTextAssetSlots, normalizeNativeAudioTextHotspots } from "./nativeAudioTextHotspots.js";
 import { normalizeTimedTextCues, TIMED_TEXT_LIMITS } from "../timed-media/timedText.js";
+import { normalizeNativePedagogicalText, normalizeNativeSingleLineText } from "./nativePedagogicalText.js";
 
 export const NATIVE_ACTIVITY_SCHEMA_VERSION = "1.0";
 export const NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION = "1.0";
@@ -29,13 +30,6 @@ function exactKeys(value, keys, label) {
 function safeId(value, label) {
   if (typeof value !== "string" || !SAFE_ID.test(value)) throw new Error(`${label} is invalid.`);
   return value;
-}
-
-function text(value, label, maximum, { required = false } = {}) {
-  if (typeof value !== "string" || value.length > maximum || /[\u0000-\u001f\u007f]/.test(value)) throw new Error(`${label} is invalid.`);
-  const normalized = value.trim();
-  if (required && !normalized) throw new Error(`${label} is required.`);
-  return normalized;
 }
 
 export function normalizeNativeManagedAssetReference(input) {
@@ -96,7 +90,7 @@ export function normalizeNativeReadableText(input, assets) {
     assetSlot: reference.slot,
     sourceWidth: value.sourceWidth,
     sourceHeight: value.sourceHeight,
-    altText: text(value.altText, "Native readable text alt text", NATIVE_READABLE_TEXT_ALT_TEXT_MAXIMUM, { required: true }),
+    altText: normalizeNativePedagogicalText(value.altText, "Native readable text alt text", NATIVE_READABLE_TEXT_ALT_TEXT_MAXIMUM, { required: true, forbidMarkup: false }),
   };
 }
 
@@ -112,7 +106,7 @@ export function normalizeNativeVideo(input, assets) {
   if (value.kind !== "managed-mp4") throw new Error("Native video companion kind is invalid.");
   const reference = assets.find((asset) => asset.slot === value.assetSlot);
   if (!reference || reference.role !== "activity_artwork") throw new Error("Native video companion must reference a managed native asset.");
-  const fileName = text(value.fileName, "Native video file name", NATIVE_VIDEO_FILE_NAME_MAXIMUM, { required: true });
+  const fileName = normalizeNativeSingleLineText(value.fileName, "Native video file name", NATIVE_VIDEO_FILE_NAME_MAXIMUM, { required: true, forbidMarkup: false });
   if (!/^[A-Za-z0-9][A-Za-z0-9._() -]*\.mp4$/i.test(fileName)) throw new Error("Native video file name is invalid.");
   if (!Number.isSafeInteger(value.byteSize) || value.byteSize < 1 || value.byteSize > NATIVE_VIDEO_MAXIMUM_BYTES) throw new Error("Native video byte size is invalid.");
   if (!Number.isSafeInteger(value.durationMs) || value.durationMs < 1 || value.durationMs > TIMED_TEXT_LIMITS.durationMs) throw new Error("Native video duration is invalid.");
@@ -123,7 +117,7 @@ export function normalizeNativeVideo(input, assets) {
     exactKeys(value.worksheet, ["assetSlot", "fileName", "byteSize"], "Native video worksheet");
     const worksheetReference = assets.find((asset) => asset.slot === value.worksheet.assetSlot);
     if (!worksheetReference || worksheetReference.role !== "activity_artwork" || worksheetReference.slot === reference.slot) throw new Error("Native video worksheet must reference a distinct managed native asset.");
-    const worksheetFileName = text(value.worksheet.fileName, "Native video worksheet file name", NATIVE_VIDEO_FILE_NAME_MAXIMUM, { required: true });
+    const worksheetFileName = normalizeNativeSingleLineText(value.worksheet.fileName, "Native video worksheet file name", NATIVE_VIDEO_FILE_NAME_MAXIMUM, { required: true, forbidMarkup: false });
     if (!/^[A-Za-z0-9][A-Za-z0-9._() -]*\.pdf$/i.test(worksheetFileName)) throw new Error("Native video worksheet file name is invalid.");
     if (!Number.isSafeInteger(value.worksheet.byteSize) || value.worksheet.byteSize < 1 || value.worksheet.byteSize > NATIVE_VIDEO_WORKSHEET_MAXIMUM_BYTES) throw new Error("Native video worksheet byte size is invalid.");
     normalized.worksheet = { assetSlot: worksheetReference.slot, fileName: worksheetFileName, byteSize: value.worksheet.byteSize };
@@ -202,8 +196,8 @@ export function normalizeNativeActivityPublic(input, { normalizeInteraction, exp
     activityId,
     kind,
     metadata: {
-      title: text(value.metadata.title, "Native activity title", 300, { required: true }),
-      visibleInstructionText: text(value.metadata.visibleInstructionText, "Native activity instruction", 2_000),
+      title: normalizeNativeSingleLineText(value.metadata.title, "Native activity title", 300, { required: true, forbidMarkup: false }),
+      visibleInstructionText: normalizeNativePedagogicalText(value.metadata.visibleInstructionText, "Native activity instruction", 2_000, { forbidMarkup: false }),
     },
     placement: normalizeNativeActivityPlacement(value.placement),
     assets,

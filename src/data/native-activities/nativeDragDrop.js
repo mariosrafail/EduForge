@@ -2,6 +2,7 @@ import { isNativeChildId } from "./nativeChildIdentity.js";
 import { nativeActivityFontFamily } from "./nativeActivityFont.js";
 import { NATIVE_IMAGE_DEFAULT_SURFACE, NATIVE_IMAGE_LIMITS, normalizeNativeImageInteraction } from "./nativeImage.js";
 import { removeNativeManagedAssetReferenceIfUnused } from "./nativeActivityPublic.js";
+import { normalizeNativePedagogicalText, normalizeNativeSingleLineText } from "./nativePedagogicalText.js";
 
 export const NATIVE_DRAG_DROP_LIMITS = Object.freeze({
   words: 100,
@@ -32,13 +33,6 @@ function exactKeys(value, keys, label) {
   const actual = Object.keys(object(value, label)).sort();
   const expected = [...keys].sort();
   if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) throw new Error(`${label} has missing or unknown fields.`);
-}
-
-function text(value, label, maximum, { required = false } = {}) {
-  if (typeof value !== "string" || value.length > maximum || /[<>\u0000-\u001f\u007f]/.test(value)) throw new Error(`${label} is invalid.`);
-  const normalized = value.trim();
-  if (required && !normalized) throw new Error(`${label} is required.`);
-  return normalized;
 }
 
 function number(value, label, minimum, maximum) {
@@ -95,7 +89,7 @@ export function normalizeNativeDragDropInteraction(input, { assets = [], commonA
     exactKeys(word, ["id", "text"], label);
     if (!isNativeChildId(word.id, "word") || wordIds.has(word.id)) throw new Error("Native Drag & Drop word identity is invalid or duplicate.");
     wordIds.add(word.id);
-    return { id: word.id, text: text(word.text, `${label}.text`, NATIVE_DRAG_DROP_LIMITS.wordTextLength, { required: true }) };
+    return { id: word.id, text: normalizeNativePedagogicalText(word.text, `${label}.text`, NATIVE_DRAG_DROP_LIMITS.wordTextLength, { required: true }) };
   });
 
   const presentation = normalizePresentation(value.presentation, assets);
@@ -130,7 +124,7 @@ export function normalizeNativeDragDropInteraction(input, { assets = [], commonA
       return {
         id: target.id,
         area: normalizeArea(target.area, composition.surface, `${targetLabel}.area`),
-        accessibleLabel: text(target.accessibleLabel, `${targetLabel}.accessibleLabel`, NATIVE_DRAG_DROP_LIMITS.targetLabelLength, { required: true }),
+        accessibleLabel: normalizeNativeSingleLineText(target.accessibleLabel, `${targetLabel}.accessibleLabel`, NATIVE_DRAG_DROP_LIMITS.targetLabelLength, { required: true }),
       };
     });
     return { id: panel.id, surface: composition.surface, images: composition.images, dropTargets };

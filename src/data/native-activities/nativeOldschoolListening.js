@@ -5,6 +5,7 @@ import {
   initialNativeOpenResponseArtworkArea,
   normalizeNativeOpenResponseInteraction,
 } from "./nativeOpenResponse.js";
+import { normalizeNativePedagogicalText, normalizeNativeSingleLineText } from "./nativePedagogicalText.js";
 
 export const NATIVE_OLDSCHOOL_LISTENING_LIMITS = Object.freeze({
   questions: 20,
@@ -39,13 +40,6 @@ function exactKeys(value, keys, label) {
   if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) throw new Error(`${label} has missing or unknown fields.`);
 }
 
-function text(value, label, maximum, { required = false } = {}) {
-  if (typeof value !== "string" || value.length > maximum || /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/.test(value)) throw new Error(`${label} is invalid.`);
-  const normalized = value.trim();
-  if (required && !normalized) throw new Error(`${label} is required.`);
-  return normalized;
-}
-
 function integer(value, label, minimum, maximum) {
   if (!Number.isSafeInteger(value) || value < minimum || value > maximum) throw new Error(`${label} is invalid.`);
   return value;
@@ -62,7 +56,7 @@ function normalizeLegacyQuestion(input, index) {
   const label = `Oldschool Listening questions[${index}]`;
   exactKeys(input, ["id", "prompt"], label);
   if (!isNativeChildId(input.id, "q")) throw new Error(`${label}.id is invalid.`);
-  return { ...createNativeOpenResponseQuestion(input.id, index), prompt: text(input.prompt, `${label}.prompt`, NATIVE_OLDSCHOOL_LISTENING_LIMITS.promptLength) };
+  return { ...createNativeOpenResponseQuestion(input.id, index), prompt: normalizeNativePedagogicalText(input.prompt, `${label}.prompt`, NATIVE_OLDSCHOOL_LISTENING_LIMITS.promptLength, { forbidMarkup: false }) };
 }
 
 function normalizeRegion(input, cueIndex, regionIndex, surface) {
@@ -70,7 +64,7 @@ function normalizeRegion(input, cueIndex, regionIndex, surface) {
   const hasText = Object.hasOwn(input, "text");
   exactKeys(input, ["id", "x", "y", "width", "height", ...(hasText ? ["text"] : [])], label);
   if (!isNativeChildId(input.id, "region")) throw new Error(`${label}.id is invalid.`);
-  return { id: input.id, ...area({ x: input.x, y: input.y, width: input.width, height: input.height }, label, surface), ...(hasText ? { text: text(input.text, `${label}.text`, NATIVE_OLDSCHOOL_LISTENING_LIMITS.cueTextLength, { required: true }) } : {}) };
+  return { id: input.id, ...area({ x: input.x, y: input.y, width: input.width, height: input.height }, label, surface), ...(hasText ? { text: normalizeNativePedagogicalText(input.text, `${label}.text`, NATIVE_OLDSCHOOL_LISTENING_LIMITS.cueTextLength, { required: true, forbidMarkup: false }) } : {}) };
 }
 
 function normalizeCue(input, index, surface) {
@@ -84,7 +78,7 @@ function normalizeCue(input, index, surface) {
   const regions = input.highlightRegions.map((region, regionIndex) => normalizeRegion(region, index, regionIndex, surface));
   if (new Set(regions.map((region) => region.id)).size !== regions.length) throw new Error(`${label}.highlightRegions identities must be unique.`);
   const scrollY = input.scrollY === null ? null : integer(input.scrollY, `${label}.scrollY`, 0, surface.height);
-  return { id: input.id, startMs, endMs, text: text(input.text, `${label}.text`, NATIVE_OLDSCHOOL_LISTENING_LIMITS.cueTextLength, { required: true }), highlightRegions: regions, scrollY };
+  return { id: input.id, startMs, endMs, text: normalizeNativePedagogicalText(input.text, `${label}.text`, NATIVE_OLDSCHOOL_LISTENING_LIMITS.cueTextLength, { required: true, forbidMarkup: false }), highlightRegions: regions, scrollY };
 }
 
 function normalizeSnippet(input, index, cueIds, surface, assetSlots) {
@@ -92,9 +86,9 @@ function normalizeSnippet(input, index, cueIds, surface, assetSlots) {
   exactKeys(input, ["id", "area", "cueIds", "label", "audioAssetSlot"], label);
   if (!isNativeChildId(input.id, "aud")) throw new Error(`${label}.id is invalid.`);
   if (!Array.isArray(input.cueIds) || !input.cueIds.length || input.cueIds.some((id) => !cueIds.has(id)) || new Set(input.cueIds).size !== input.cueIds.length) throw new Error(`${label}.cueIds are invalid.`);
-  const audioAssetSlot = text(input.audioAssetSlot, `${label}.audioAssetSlot`, 128);
+  const audioAssetSlot = normalizeNativeSingleLineText(input.audioAssetSlot, `${label}.audioAssetSlot`, 128, { forbidMarkup: false });
   if (audioAssetSlot && !assetSlots.has(audioAssetSlot)) throw new Error(`${label}.audioAssetSlot must reference managed native audio.`);
-  return { id: input.id, area: area(input.area, `${label}.area`, surface), cueIds: [...input.cueIds], label: text(input.label, `${label}.label`, NATIVE_OLDSCHOOL_LISTENING_LIMITS.snippetLabelLength, { required: true }), audioAssetSlot };
+  return { id: input.id, area: area(input.area, `${label}.area`, surface), cueIds: [...input.cueIds], label: normalizeNativeSingleLineText(input.label, `${label}.label`, NATIVE_OLDSCHOOL_LISTENING_LIMITS.snippetLabelLength, { required: true, forbidMarkup: false }), audioAssetSlot };
 }
 
 export function normalizeNativeOldschoolListeningInteraction(input, { assets = [], commonAssetSlots = new Set() } = {}) {
@@ -140,7 +134,7 @@ export function normalizeNativeOldschoolListeningInteraction(input, { assets = [
     audioDurationMs,
     panels: [
       { id: "panel-1", kind: "questions", sourceWidth: surfaceOne.width, sourceHeight: surfaceOne.height },
-      { id: "panel-2", kind: "synchronized-page", pageAssetSlot: panelTwo.pageAssetSlot, sourceWidth: surfaceTwo.width, sourceHeight: surfaceTwo.height, altText: text(panelTwo.altText, "Oldschool Listening page alt text", NATIVE_OLDSCHOOL_LISTENING_LIMITS.pageAltTextLength, { required: Boolean(panelTwo.pageAssetSlot) }) },
+      { id: "panel-2", kind: "synchronized-page", pageAssetSlot: panelTwo.pageAssetSlot, sourceWidth: surfaceTwo.width, sourceHeight: surfaceTwo.height, altText: normalizeNativePedagogicalText(panelTwo.altText, "Oldschool Listening page alt text", NATIVE_OLDSCHOOL_LISTENING_LIMITS.pageAltTextLength, { required: Boolean(panelTwo.pageAssetSlot), forbidMarkup: false }) },
     ],
     artwork: questionSurface.artwork,
     questions: questionSurface.questions,
@@ -157,7 +151,7 @@ export function normalizeNativeOldschoolListeningSolution(input) {
     const label = `Oldschool Listening modelAnswers[${index}]`;
     exactKeys(entry, ["questionId", "text"], label);
     if (!isNativeChildId(entry.questionId, "q")) throw new Error(`${label}.questionId is invalid.`);
-    return { questionId: entry.questionId, text: text(entry.text, `${label}.text`, NATIVE_OLDSCHOOL_LISTENING_LIMITS.answerLength) };
+    return { questionId: entry.questionId, text: normalizeNativePedagogicalText(entry.text, `${label}.text`, NATIVE_OLDSCHOOL_LISTENING_LIMITS.answerLength, { forbidMarkup: false }) };
   });
   if (new Set(answers.map((entry) => entry.questionId)).size !== answers.length) throw new Error("Oldschool Listening model-answer identities must be unique.");
   return { kind: "oldschool-listening", modelAnswers: answers };

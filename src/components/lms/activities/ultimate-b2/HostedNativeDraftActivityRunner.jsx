@@ -5,6 +5,7 @@ import { NativeSingleChoiceStudentSurface } from "../../../native-single-choice/
 import { NativeSingleChoiceTeacherSurface } from "../../../native-single-choice/NativeSingleChoiceTeacherSurface.jsx";
 import { NativeCompleteSentencesStudentSurface, NativeCompleteSentencesTeacherSurface } from "../../../native-complete-sentences/NativeCompleteSentencesSurface.jsx";
 import { NativeReadableTextPresentation } from "../../../native-readable-text/NativeReadableTextPresentation.jsx";
+import "./nativeActivityText.css";
 import { NativeListeningStudentSurface, NativeListeningTeacherSurface } from "../../../native-listening/NativeListeningSurface.jsx";
 import { NativeOldschoolListeningStudentSurface, NativeOldschoolListeningTeacherSurface } from "../../../native-oldschool-listening/NativeOldschoolListeningSurface.jsx";
 import { NativeDragDropStudentSurface } from "../../../native-drag-drop/NativeDragDropSurface.jsx";
@@ -19,7 +20,7 @@ export function HostedNativeDraftActivityRunner({ activityId, state, teacherMode
   const { kind, document } = state.entry;
   const assetUrl = (assetId) => hostedNativeDraftAssetUrl(activityId, assetId, runtimeContext, identity);
   return <NativeReadableTextPresentation document={document} assetUrl={assetUrl} presentation={presentation}>{(activityPresentation, audioHotspotPresentation) => <article className="hosted-native-draft-activity" data-native-kind={kind} data-native-draft="true" data-native-metadata={showMetadataHeader || undefined}>
-    {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p>{document.metadata.visibleInstructionText}</p> : null}</header> : null}
+    {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p className="native-activity-visible-instruction">{document.metadata.visibleInstructionText}</p> : null}</header> : null}
     {kind === "image" ? <NativeImagePresentation document={document} assetUrl={assetUrl} className="native-runtime-surface" audioHotspotPresentation={audioHotspotPresentation} /> : null}
     {kind === "image" && showMetadataHeader ? <NativeImageLearnerContent document={document} /> : null}
     {kind === "open-response" && (!teacherMode || state.teacher.kind !== "ready") ? <NativeOpenResponseStudentSurface document={document} assetUrl={assetUrl} audioHotspotPresentation={audioHotspotPresentation} /> : null}

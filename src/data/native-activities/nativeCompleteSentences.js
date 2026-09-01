@@ -1,5 +1,6 @@
 import { isNativeChildId } from "./nativeChildIdentity.js";
 import { nativeActivityFontFamilyAlias } from "./nativeActivityFont.js";
+import { normalizeNativePedagogicalText, normalizeNativeSingleLineText } from "./nativePedagogicalText.js";
 
 export const NATIVE_COMPLETE_SENTENCES_LIMITS = Object.freeze({
   items: 30, panels: 8, hotspots: 30, promptLength: 2_000, answerLength: 500,
@@ -37,11 +38,6 @@ function object(value, label) {
 function exact(value, keys, label) {
   const actual = Object.keys(object(value, label)).sort(); const expected = [...keys].sort();
   if (actual.length !== expected.length || actual.some((key, index) => key !== expected[index])) throw new Error(`${label} has missing or unknown fields.`);
-}
-
-function text(value, label, maximum) {
-  if (typeof value !== "string" || value.length > maximum || /[<>\u0000-\u001f\u007f]/.test(value)) throw new Error(`${label} is invalid.`);
-  return value.trim();
 }
 
 function positiveInteger(value, label, maximum) {
@@ -114,7 +110,7 @@ export function normalizeNativeCompleteSentencesInteraction(input, { assets = []
   const items = value.items.map((item, index) => {
     exact(item, ["id", "prompt"], `Complete the Sentences items[${index}]`);
     if (!isNativeChildId(item.id, "item") || ids.has(item.id)) throw new Error("Complete the Sentences item identity is invalid or duplicate.");
-    const prompt = text(item.prompt, "Complete the Sentences prompt", NATIVE_COMPLETE_SENTENCES_LIMITS.promptLength);
+    const prompt = normalizeNativePedagogicalText(item.prompt, "Complete the Sentences prompt", NATIVE_COMPLETE_SENTENCES_LIMITS.promptLength);
     if (prompt.split(NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN).length > 2) throw new Error("Complete the Sentences prompt can contain only one blank token.");
     ids.add(item.id); return { id: item.id, prompt };
   });
@@ -129,7 +125,7 @@ export function normalizeNativeCompleteSentencesSolution(input) {
   return { kind: "complete-sentences", answers: value.answers.map((answer, index) => {
     exact(answer, ["itemId", "text"], `Complete the Sentences answers[${index}]`);
     if (!isNativeChildId(answer.itemId, "item") || ids.has(answer.itemId)) throw new Error("Complete the Sentences answer identity is invalid or duplicate.");
-    ids.add(answer.itemId); return { itemId: answer.itemId, text: text(answer.text, "Complete the Sentences answer", NATIVE_COMPLETE_SENTENCES_LIMITS.answerLength) };
+    ids.add(answer.itemId); return { itemId: answer.itemId, text: normalizeNativeSingleLineText(answer.text, "Complete the Sentences answer", NATIVE_COMPLETE_SENTENCES_LIMITS.answerLength) };
   }) };
 }
 

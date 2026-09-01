@@ -261,6 +261,7 @@
 .native-single-choice-editor .native-or-question-editor fieldset { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--studio-border); border-radius: 9px; }
 .native-single-choice-editor .native-or-question-editor fieldset input[type="text"], .native-single-choice-editor .native-or-question-editor fieldset input:not([type]) { min-height: 38px; padding: 8px; border: 1px solid var(--studio-border-strong); border-radius: 7px; }
 .native-single-choice-option-editor { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto auto auto; align-items: center; gap: 7px; padding: 8px; }
+.native-single-choice-option-editor textarea { min-height: 44px; resize: vertical; }
 .native-single-choice-option-editor > span { display: grid; place-items: center; width: 24px; height: 24px; color: var(--studio-muted); background: #eef2f7; border-radius: 50%; font-size: .72rem; font-weight: 850; }
 .native-single-choice-answer-option { display: grid; grid-template-columns: 22px minmax(0, 1fr); align-items: center; gap: 12px; padding: 12px; cursor: pointer; border: 1px solid var(--studio-border); border-radius: 10px; background: #fbfcfe; }
 .native-single-choice-answer-option:hover { border-color: #8bbcf4; background: var(--studio-selected); }
