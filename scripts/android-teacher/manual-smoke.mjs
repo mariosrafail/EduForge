@@ -377,9 +377,7 @@ try {
   assert.equal(await page.getByRole("button", { name: "Show classroom tools" }).count(), 0, "Toolbar must never auto-hide behind a reveal button");
 
   await assertCanonicalUnitOverview(page, 1);
-  const practiceOneCard = page.locator('[data-page-ids="ub2-sb-unit-1-part-9,ub2-sb-unit-1-part-10"]');
-  assert.deepEqual(await practiceOneCard.getByRole("button").evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), ["Open Practice 1, pg 17", "Open Practice 1, pg 18"]);
-  await practiceOneCard.getByRole("button", { name: "Open Practice 1, pg 17", exact: true }).click();
+  await page.locator('[data-page-ids="ub2-sb-unit-1-part-9,ub2-sb-unit-1-part-10"]').click();
   await page.locator(".teacher-offline-pages-viewer").waitFor();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Practice");
   assert.equal(await page.locator(".legacy-page-location").count(), 0, "Page location pill must be removed");
@@ -399,16 +397,12 @@ try {
   await page.locator('[data-page-ids="reading-20-21"]').click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Reading");
   await returnToOverview(page, 2);
-  const practiceTwoCard = page.locator('[data-page-ids="practice-31,practice-32"]');
-  assert.deepEqual(await practiceTwoCard.getByRole("button").evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), ["Open Practice 2, pg 31", "Open Practice 2, pg 32"]);
-  await practiceTwoCard.getByRole("button", { name: "Open Practice 2, pg 31", exact: true }).click();
+  await page.locator('[data-page-ids="practice-31,practice-32"]').click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Practice 2");
   await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Next page", exact: true }).click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Practice 2");
   await returnToOverview(page, 2);
-  const progressCheckCard = page.locator('[data-page-ids="progress-check-33,progress-check-34"]');
-  assert.deepEqual(await progressCheckCard.getByRole("button").evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label"))), ["Open Progress check 1, pg 33", "Open Progress check 1, pg 34"]);
-  await progressCheckCard.getByRole("button", { name: "Open Progress check 1, pg 33", exact: true }).click();
+  await page.locator('[data-page-ids="progress-check-33,progress-check-34"]').click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Progress check 1");
   await page.locator("[data-teacher-book-navigation]").getByRole("button", { name: "Next page", exact: true }).click();
   assert.equal(await page.locator(".legacy-page-heading strong").textContent(), "Progress check 1");
