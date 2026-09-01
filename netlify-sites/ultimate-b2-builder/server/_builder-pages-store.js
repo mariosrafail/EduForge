@@ -88,6 +88,110 @@ export async function mutateBuilderPage(sql, input) {
   return normalizeRevisionField(rows[0] || null, "current_revision");
 }
 
+function canonicalPageDescriptor(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("invalid_canonical_builder_page");
+  const descriptor = {
+    stableKey: String(value.stableKey || ""),
+    unitNumber: Number(value.unitNumber),
+    label: String(value.label || ""),
+    printedLabel: String(value.printedLabel || ""),
+    sortOrder: Number(value.sortOrder),
+    checksumSha256: String(value.checksumSha256 || ""),
+    mimeType: String(value.mimeType || ""),
+    width: Number(value.width),
+    height: Number(value.height),
+  };
+  if (!/^[a-z0-9][a-z0-9._/-]{0,255}$/.test(descriptor.stableKey)
+    || !Number.isSafeInteger(descriptor.unitNumber) || descriptor.unitNumber < 1 || descriptor.unitNumber > 10
+    || !descriptor.label || descriptor.label.length > 160 || descriptor.printedLabel.length > 40
+    || !Number.isSafeInteger(descriptor.sortOrder) || descriptor.sortOrder < -100000 || descriptor.sortOrder > 100000
+    || !/^[a-f0-9]{64}$/.test(descriptor.checksumSha256)
+    || !["image/png", "image/jpeg", "image/webp"].includes(descriptor.mimeType)
+    || !Number.isSafeInteger(descriptor.width) || descriptor.width < 1
+    || !Number.isSafeInteger(descriptor.height) || descriptor.height < 1) {
+    throw new Error("invalid_canonical_builder_page");
+  }
+  return descriptor;
+}
+
+export async function mutateCanonicalBuilderPage(sql, input) {
+  if (typeof sql?.transaction !== "function") throw new Error("builder_page_transaction_unavailable");
+  const canonical = canonicalPageDescriptor(input.canonicalPage);
+  if (canonical.stableKey !== input.pageKey || input.componentSlug !== "ultimate-b2-students-book") {
+    throw new Error("invalid_canonical_builder_page");
+  }
+  const sourceMetadata = {
+    source: "builder-pages",
+    canonical_page_id: canonical.stableKey.split("/").at(-1),
+    canonical_unit_number: canonical.unitNumber,
+    canonical_image_checksum_sha256: canonical.checksumSha256,
+    canonical_image_mime_type: canonical.mimeType,
+    canonical_image_width: canonical.width,
+    canonical_image_height: canonical.height,
+    is_override: false,
+    has_image_override: false,
+    has_metadata_override: false,
+    is_active: true,
+    is_deleted: false,
+    is_permanently_deleted: false,
+    printed_label: canonical.printedLabel,
+  };
+  const lockKey = `builder-pages:${input.bookSlug}:${input.componentSlug}`;
+  const results = await sql.transaction((transaction) => [
+    transaction`select pg_advisory_xact_lock(hashtextextended(${lockKey},0)) locked`,
+    transaction`
+      insert into builder_component_page_revisions(book_component_id)
+      select component.id
+      from book_packages package join book_components component on component.book_package_id=package.id
+      where package.slug=${input.bookSlug} and component.slug=${input.componentSlug}
+      on conflict(book_component_id) do nothing
+    `,
+    transaction`
+      with scope as materialized (
+        select package.id package_id,component.id component_id
+        from book_packages package
+        join book_components component on component.book_package_id=package.id
+        where package.slug=${input.bookSlug} and component.slug=${input.componentSlug}
+        limit 1
+      ), canonical_unit as materialized (
+        select unit.id
+        from units unit join scope on scope.component_id=unit.book_component_id
+        where unit.unit_number=${canonical.unitNumber} and unit.slug=${`unit-${canonical.unitNumber}`}
+        limit 1
+      ), revision_lock as materialized (
+        select revision.revision
+        from builder_component_page_revisions revision join scope on scope.component_id=revision.book_component_id
+        for update
+      ), inserted as (
+        insert into book_pages(book_package_id,book_component_id,unit_id,stable_key,label,sort_order,source_metadata)
+        select scope.package_id,scope.component_id,canonical_unit.id,${canonical.stableKey},${canonical.label},${canonical.sortOrder},${JSON.stringify(sourceMetadata)}::jsonb
+        from scope cross join canonical_unit cross join revision_lock
+        where revision_lock.revision=${input.expectedRevision}
+          and ${input.action} in ('metadata','reorder')
+          and exists(select 1 from builder_users where id=${input.builderUserId}::uuid and status='active' and role='developer')
+          and not exists(
+            select 1 from builder_component_page_mutations mutation
+            where mutation.book_component_id=scope.component_id and mutation.client_mutation_id=${input.clientMutationId}::uuid
+          )
+        on conflict(book_package_id,stable_key) do nothing
+        returning id
+      ), barrier as materialized (
+        select count(*) inserted_count from inserted
+      ), mutation as materialized (
+        select result.*
+        from barrier
+        cross join lateral mutate_builder_component_page(
+          ${input.bookSlug},${input.componentSlug},${input.pageKey},${input.action},${input.expectedRevision},
+          ${input.clientMutationId}::uuid,${JSON.stringify(input.pageMetadata)}::jsonb,${input.builderUserId}::uuid
+        ) result
+      )
+      select mutation.outcome,mutation.current_revision
+      from mutation
+    `,
+  ]);
+  return normalizeRevisionField(results?.[2]?.[0] || null, "current_revision");
+}
+
 export async function loadBuilderPageHotspots(sql, { bookSlug, componentSlug }) {
   const rows = await sql`
     select document.revision,document.schema_version,document.payload,document.payload_sha256

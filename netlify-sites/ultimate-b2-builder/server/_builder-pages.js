@@ -20,6 +20,7 @@ import {
   loadBuilderPageHotspots,
   loadBuilderPageActivityReferences,
   loadBuilderPages,
+  mutateCanonicalBuilderPage,
   mutateBuilderPage,
   deleteBuilderPageLifecycle,
   purgeBuilderPage,
@@ -230,6 +231,7 @@ export function createBuilderPagesHandler(overrides = {}) {
     complete: overrides.complete || completeBuilderPageUpload,
     fail: overrides.fail || failBuilderPageUpload,
     mutate: overrides.mutate || mutateBuilderPage,
+    mutateCanonical: overrides.mutateCanonical || mutateCanonicalBuilderPage,
     deleteLifecycle: overrides.deleteLifecycle || deleteBuilderPageLifecycle,
     restorePage: overrides.restorePage || overrides.restoreStudentsPage || restoreBuilderPage,
     purgePage: overrides.purgePage || purgeBuilderPage,
@@ -369,7 +371,27 @@ export function createBuilderPagesHandler(overrides = {}) {
         } else if (parsed.action === "purge") {
           try { result = await dependencies.purgePage(sql, { ...parsed, pageKey: `${parsed.componentSlug}/pages/${parsed.pageId}`, expectedRevision: body.value.expectedRevision, clientMutationId: body.value.clientMutationId, builderUserId: auth.builderUser.id }); }
           catch (error) { if (error?.code === "42883") return json(503, { error: "page_lifecycle_schema_not_ready" }); throw error; }
-        } else result = await dependencies.mutate(sql, { ...parsed, pageKey: `${parsed.componentSlug}/pages/${parsed.pageId}`, expectedRevision: body.value.expectedRevision, clientMutationId: body.value.clientMutationId, pageMetadata: metadata, builderUserId: auth.builderUser.id });
+        } else {
+          const mutationInput = { ...parsed, pageKey: `${parsed.componentSlug}/pages/${parsed.pageId}`, expectedRevision: body.value.expectedRevision, clientMutationId: body.value.clientMutationId, pageMetadata: metadata, builderUserId: auth.builderUser.id };
+          if (policy.kind === "students-book") {
+            const baseline = canonicalStudentsBookPagesById.get(parsed.pageId);
+            if (!baseline) return json(404, { error: "page_not_found" });
+            result = await dependencies.mutateCanonical(sql, {
+              ...mutationInput,
+              canonicalPage: {
+                stableKey: baseline.stableKey,
+                unitNumber: baseline.unitNumber,
+                label: baseline.label,
+                printedLabel: baseline.printedLabel,
+                sortOrder: baseline.sortOrder,
+                checksumSha256: baseline.image.checksumSha256,
+                mimeType: baseline.image.mimeType,
+                width: baseline.image.width,
+                height: baseline.image.height,
+              },
+            });
+          } else result = await dependencies.mutate(sql, mutationInput);
+        }
         if (!result || ["revision_conflict", "hotspot_revision_conflict", "mutation_id_conflict", "unsupported_page_reference", "page_state_conflict", "page_referenced", "restorable_asset_unavailable", "page_permanently_deleted"].includes(result.outcome)) return json(409, { error: result?.outcome || "page_mutation_failed", currentRevision: result?.current_revision ?? null, currentHotspotRevision: result?.hotspot_revision ?? null });
         if (!["saved", "idempotent"].includes(result.outcome)) return json(result.outcome === "page_not_found" ? 404 : 400, { error: result.outcome });
         const listed = await listResponse(dependencies, sql, parsed, policy);

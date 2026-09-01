@@ -3,9 +3,10 @@ import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
 import pg from "pg";
 import repositoryHotspots from "../../src/data/ultimate-b2/authoring/studentsBookHotspots.json" with { type: "json" };
-import { canonicalStudentsBookPagesById } from "../../netlify-sites/ultimate-b2-builder/server/_builder-page-catalog.js";
+import { canonicalStudentsBookPages, canonicalStudentsBookPagesById } from "../../netlify-sites/ultimate-b2-builder/server/_builder-page-catalog.js";
 import { builderDocumentSha256 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { createBuilderNativeActivitiesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
+import { createBuilderPagesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-pages.js";
 import { createEmptyUltimateB2ActivityLifecycle } from "../../src/data/ultimate-b2/activityLifecycle.js";
 import { normalizeUltimateB2UnitExtrasDocument } from "../../src/data/ultimate-b2/unitExtras.js";
 
@@ -30,7 +31,28 @@ const actor = "10000000-0000-4000-8000-000000000001";
 const otherActor = "10000000-0000-4000-8000-000000000002";
 
 function scoped(base, schema) { const url = new URL(base); url.searchParams.set("options", `-c search_path=${schema}`); return url.toString(); }
-function tag(pool) { return async (strings, ...values) => { let text = strings[0]; for (let index = 0; index < values.length; index += 1) text += `$${index + 1}${strings[index + 1]}`; return (await pool.query(text, values)).rows; }; }
+function queryText(strings, values) { let text = strings[0]; for (let index = 0; index < values.length; index += 1) text += `$${index + 1}${strings[index + 1]}`; return text; }
+function tag(pool) {
+  const sql = async (strings, ...values) => (await pool.query(queryText(strings, values), values)).rows;
+  sql.transaction = async (build) => {
+    const client = await pool.connect();
+    try {
+      await client.query("begin");
+      const transaction = (strings, ...values) => ({ strings, values });
+      const queries = build(transaction);
+      const results = [];
+      for (const query of queries) results.push((await client.query(queryText(query.strings, query.values), query.values)).rows);
+      await client.query("commit");
+      return results;
+    } catch (error) {
+      await client.query("rollback");
+      throw error;
+    } finally {
+      client.release();
+    }
+  };
+  return sql;
+}
 const digest = () => randomBytes(32).toString("hex");
 
 function uploadInput({ componentSlug, pageId, mode, expectedRevision, builderUserId = actor, unitId = null, sortOrder = 10 }) {
@@ -170,6 +192,83 @@ test("isolated PostgreSQL persists Students overrides and relational Workbook/Gr
   ]);
   assert.deepEqual(concurrentDeletes.map(({ outcome }) => outcome).sort(), ["revision_conflict", "saved"]);
   assert.equal((await pool.query("select count(*)::int count from builder_audit_log where action='component_page_deleted' and metadata->>'page_key'=$1", [second.pageKey])).rows[0].count, 1);
+});
+
+test("isolated PostgreSQL materializes canonical Students metadata and reorder first writes exactly once", { skip: !enabled }, async (t) => {
+  const schema = `builder_page_first_write_${randomBytes(8).toString("hex")}`;
+  const admin = new Pool({ connectionString: databaseUrl, max: 1 });
+  await admin.query(`create schema "${schema}"`);
+  const pool = new Pool({ connectionString: scoped(databaseUrl, schema), max: 6 });
+  t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
+  await applyCanonicalProductionMigrations(pool);
+  await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Page Actor','page-first-write@example.test','hash')", [actor]);
+  const sql = tag(pool);
+  const handler = createBuilderPagesHandler({
+    getDatabase: () => sql,
+    authorize: async () => ({ builderUser: { id: actor } }),
+    logger: { error() {} },
+  });
+  const root = "/builder/api/pages/books/ultimate-b2/components/ultimate-b2-students-book";
+  const call = (path, body) => handler({
+    httpMethod: body ? "POST" : "GET", path,
+    headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" },
+    ...(body ? { body: JSON.stringify(body) } : {}),
+  });
+  const mutationBody = (page, clientMutationId, expectedRevision, overrides = {}) => ({
+    expectedRevision, clientMutationId,
+    metadata: { label: `Edited ${page.label}`, printedLabel: page.printedLabel, sortOrder: page.sortOrder + 7, ...overrides },
+  });
+
+  const [first, second, third] = canonicalStudentsBookPages;
+  const initial = await call(root);
+  assert.equal(initial.statusCode, 200, initial.body);
+  assert.equal(JSON.parse(initial.body).pages.find((page) => page.id === first.id).capabilities.editMetadata, true);
+  assert.equal((await pool.query("select count(*)::int count from book_pages")).rows[0].count, 0);
+
+  const mutationId = randomUUID();
+  const firstBody = mutationBody(first, mutationId, 0);
+  const saved = await call(`${root}/pages/${first.id}/metadata`, firstBody);
+  assert.equal(saved.statusCode, 200, saved.body);
+  const savedPage = JSON.parse(saved.body).pages.find((page) => page.id === first.id);
+  assert.equal(savedPage.label, firstBody.metadata.label);
+  assert.equal(savedPage.image.source, "repository-baseline");
+  assert.equal(JSON.parse(saved.body).revision, 1);
+  const materialized = (await pool.query("select page.*,unit.unit_number from book_pages page join units unit on unit.id=page.unit_id where page.stable_key=$1", [first.stableKey])).rows[0];
+  assert.equal(materialized.unit_number, first.unitNumber);
+  assert.equal(materialized.source_metadata.has_metadata_override, true);
+  assert.equal(materialized.source_metadata.has_image_override, false);
+  assert.equal(materialized.source_metadata.canonical_image_checksum_sha256, first.image.checksumSha256);
+  assert.equal(materialized.source_metadata.canonical_image_mime_type, first.image.mimeType);
+
+  const replay = await call(`${root}/pages/${first.id}/metadata`, firstBody);
+  assert.equal(replay.statusCode, 200, replay.body);
+  assert.equal(JSON.parse(replay.body).idempotent, true);
+  assert.equal(JSON.parse(replay.body).revision, 1);
+  const conflictingReplay = await call(`${root}/pages/${first.id}/metadata`, mutationBody(first, mutationId, 0, { label: "Different replay" }));
+  assert.equal(conflictingReplay.statusCode, 409, conflictingReplay.body);
+  assert.equal(JSON.parse(conflictingReplay.body).error, "mutation_id_conflict");
+
+  const stale = await call(`${root}/pages/${second.id}/metadata`, mutationBody(second, randomUUID(), 0));
+  assert.equal(stale.statusCode, 409, stale.body);
+  assert.equal(JSON.parse(stale.body).error, "revision_conflict");
+  assert.equal((await pool.query("select count(*)::int count from book_pages where stable_key=$1", [second.stableKey])).rows[0].count, 0);
+
+  const concurrent = await Promise.all([
+    call(`${root}/pages/${second.id}/metadata`, mutationBody(second, randomUUID(), 1, { label: "Concurrent A" })),
+    call(`${root}/pages/${second.id}/metadata`, mutationBody(second, randomUUID(), 1, { label: "Concurrent B" })),
+  ]);
+  assert.deepEqual(concurrent.map((response) => response.statusCode).sort(), [200, 409]);
+  assert.equal((await pool.query("select count(*)::int count from book_pages where stable_key=$1", [second.stableKey])).rows[0].count, 1);
+  assert.equal((await pool.query("select revision from builder_component_page_revisions revision join book_components component on component.id=revision.book_component_id where component.slug='ultimate-b2-students-book'")).rows[0].revision, "2");
+
+  const reordered = await call(`${root}/pages/${third.id}/reorder`, mutationBody(third, randomUUID(), 2, { sortOrder: 0 }));
+  assert.equal(reordered.statusCode, 200, reordered.body);
+  assert.equal(JSON.parse(reordered.body).revision, 3);
+  assert.equal((await pool.query("select sort_order from book_pages where stable_key=$1", [third.stableKey])).rows[0].sort_order, 0);
+  const unknown = await call(`${root}/pages/not-canonical/metadata`, mutationBody(first, randomUUID(), 3));
+  assert.equal(unknown.statusCode, 404, unknown.body);
+  assert.equal((await pool.query("select count(*)::int count from book_assets")).rows[0].count, 0);
+  assert.equal((await pool.query("select count(*)::int count from builder_audit_log where action in ('component_page_metadata','component_page_reorder')")).rows[0].count, 3);
 });
 
 test("isolated PostgreSQL atomically tombstones and restores a canonical Student page while pruning only its effective hotspots", { skip: !enabled }, async (t) => {

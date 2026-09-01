@@ -34,7 +34,7 @@ function request(path, body, overrides = {}) {
 }
 
 function harness(options = {}) {
-  let prepared; let completed; let failed; let mutation; let lifecycleMutation;
+  let prepared; let completed; let failed; let mutation; let canonicalMutation; let lifecycleMutation;
   const storage = {
     signedPutUrl: async () => ({ url: "https://storage.example/upload", headers: { "Content-Type": first.image.mimeType } }),
     signedGetUrl: async () => "https://storage.example/private-preview",
@@ -66,6 +66,7 @@ function harness(options = {}) {
     complete: async (_sql, input) => { completed = input; return { outcome: "saved", page_id: actor, asset_id: assetId, revision: 1 }; },
     fail: async (_sql, input) => { failed = input; return true; },
     mutate: async (_sql, input) => { mutation = input; return { outcome: "saved", current_revision: input.expectedRevision + 1 }; },
+    mutateCanonical: async (_sql, input) => { canonicalMutation = input; mutation = input; return { outcome: "saved", current_revision: input.expectedRevision + 1 }; },
     deleteLifecycle: async (_sql, input) => { lifecycleMutation = input; return { outcome: "saved", current_revision: input.expectedRevision + 1, hotspot_revision: input.expectedHotspotRevision + (input.removedHotspotCount ? 1 : 0), removed_hotspot_count: input.removedHotspotCount, preserved_activity_count: input.preservedActivityCount }; },
     restorePage: options.restorePage || (async (_sql, input) => { mutation = input; return { outcome: "saved", current_revision: input.expectedRevision + 1 }; }),
     purgePage: options.purgePage || (async (_sql, input) => { mutation = input; return { outcome: "saved", current_revision: input.expectedRevision + 1 }; }),
@@ -73,7 +74,7 @@ function harness(options = {}) {
     inspectRaster: options.inspectRaster,
     logger: { error() {} },
   });
-  return { handler, getPrepared: () => prepared, getCompleted: () => completed, getFailed: () => failed, getMutation: () => mutation, getLifecycleMutation: () => lifecycleMutation };
+  return { handler, getPrepared: () => prepared, getCompleted: () => completed, getFailed: () => failed, getMutation: () => mutation, getCanonicalMutation: () => canonicalMutation, getLifecycleMutation: () => lifecycleMutation };
 }
 
 test("Students Book Pages derives the complete canonical catalog and exposes no repository paths", async () => {
@@ -229,6 +230,14 @@ test("Students Book reorder accepts the zero boundary needed to move before the 
   const response = await current.handler(request(`${base}/ultimate-b2-students-book/pages/${first.id}/reorder`, input));
   assert.equal(response.statusCode, 200, response.body);
   assert.equal(current.getMutation().pageMetadata.sortOrder, 0);
+  assert.deepEqual(current.getCanonicalMutation().canonicalPage, {
+    stableKey: first.stableKey, unitNumber: first.unitNumber, label: first.label, printedLabel: first.printedLabel,
+    sortOrder: first.sortOrder, checksumSha256: first.image.checksumSha256, mimeType: first.image.mimeType,
+    width: first.image.width, height: first.image.height,
+  });
+  const unknown = await current.handler(request(`${base}/ultimate-b2-students-book/pages/not-canonical/metadata`, { ...input, clientMutationId: randomUUID() }));
+  assert.equal(unknown.statusCode, 404);
+  assert.equal(JSON.parse(unknown.body).error, "page_not_found");
 });
 
 test("restore and Delete completely are component-scoped revision mutations with controlled schema rollout", async () => {
