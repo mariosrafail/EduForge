@@ -28,9 +28,10 @@ test("shared Studio tabs implement the complete accessible keyboard contract", a
 
 test("every editable activity exposes only its supported semantic authoring modes", async () => {
   const source = Object.fromEntries(await Promise.all(Object.entries(editors).map(async ([name, path]) => [name, await read(path)])));
+  const completeSentencesControls = await read("src/apps/book-builder/hosted/NativeCompleteSentencesEditorControls.jsx");
   const listeningSupport = await read("src/apps/book-builder/hosted/nativeListeningEditorSupport.js");
   const expectLabels = (name, labels) => {
-    const labelSource = name === "listening" ? `${source[name]}\n${listeningSupport}` : source[name];
+    const labelSource = name === "completeSentences" ? `${source[name]}\n${completeSentencesControls}` : name === "listening" ? `${source[name]}\n${listeningSupport}` : source[name];
     for (const label of labels) assert.match(labelSource, new RegExp(`label: "${label}"`), `${name} must expose ${label}`);
     assert.match(source[name], /StudioTabWorkspace/);
     assert.doesNotMatch(labelSource, /label: "(?:Front|Back)"/);

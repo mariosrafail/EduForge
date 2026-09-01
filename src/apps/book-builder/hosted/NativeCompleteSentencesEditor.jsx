@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpenText, Eye, FileText, Film, ImagePlus, KeyRound, LayoutPanelTop, Plus, Trash2, Upload } from "lucide-react";
+import { Eye, ImagePlus, KeyRound, LayoutPanelTop, Plus, Trash2, Upload } from "lucide-react";
 
 import { StudioButton, StudioCanvasToolbar, StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
 import { QuickNumber, StageGeometryControls } from "../../../components/builder-studio/StageGeometryControls.jsx";
@@ -11,20 +11,13 @@ import { assessNativeCompleteSentencesReadiness, assessNativeCompleteSentencesSa
 import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesPanel, findNextUnusedNativeCompleteSentencesItemId, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../../../data/native-activities/nativeCompleteSentencesAuthoring.js";
 import { getBuilderContent } from "./builderContentApi.js";
 import { getBuilderFontLibrary, nativeFontPreviewUrl, saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
+import { NATIVE_COMPLETE_SENTENCES_TABS, NativeCompleteSentencesEditorHeader, NativeCompleteSentencesItemNavigation } from "./NativeCompleteSentencesEditorControls.jsx";
 import { NativeCompleteSentencesFontControls } from "./NativeCompleteSentencesFontControls.jsx";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
 import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
 
 const clone = (value) => structuredClone(value);
-const tabs = [
-  { id: "content", label: "Content", icon: FileText },
-  { id: "visual", label: "Visual", icon: LayoutPanelTop },
-  { id: "answer-key", label: "Answer Key", icon: KeyRound },
-  { id: "readable-text", label: "Readable Text", icon: BookOpenText },
-  { id: "video", label: "Video", icon: Film },
-  { id: "preview", label: "Local Preview", icon: Eye },
-];
 const previewRoot = (bookSlug, componentSlug, activityId, assetId) => `/builder/api/native-activities/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/activities/${encodeURIComponent(activityId)}/assets/${encodeURIComponent(assetId)}/preview`;
 
 export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {}, onSaved = () => {} }) {
@@ -353,35 +346,10 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   const mapped = mappedItemIds;
   const readinessIssues = [...readiness.issues, ...authoringIssues, readableIncomplete ? "Complete the Readable Text setup." : "", videoIncomplete ? "Complete the Video setup." : ""].filter(Boolean);
   const readyToSave = saveability.saveable && !authoringIssues.length && !readableIncomplete && !videoIncomplete;
-  const itemNavigation = (
-    <aside>
-      <StudioButton onClick={addItem} disabled={items.length >= NATIVE_COMPLETE_SENTENCES_LIMITS.items}>
-        <Plus />
-        Add Sentence
-      </StudioButton>
-      {items.map((item, index) => (
-        <button type="button" key={item.id} aria-current={item.id === selectedItemId ? "true" : undefined} onClick={() => setSelectedItemId(item.id)}>
-          <strong>Sentence {index + 1}</strong>
-          <span>{authoringSentences[item.id] || item.prompt || "Untitled"}</span>
-          <code>{item.id}</code>
-        </button>
-      ))}
-    </aside>
-  );
 
   return (
     <section className="native-activity-foundation native-single-choice-editor studio-editor">
-      <header className="studio-editor-header">
-        <div>
-          <span className="studio-eyebrow">{placementLabel} · Complete the Sentences</span>
-          <h2>{publicDraft.metadata.title}</h2>
-          <p>{readiness.ready ? "Content complete" : `${readiness.issues.length} items need attention`}</p>
-        </div>
-        <details className="builder-technical-details">
-          <summary>Technical details</summary>
-          <code>{activityId}</code>
-        </details>
-      </header>
+      <NativeCompleteSentencesEditorHeader activityId={activityId} contentReady={readiness.ready} issueCount={readiness.issues.length} placementLabel={placementLabel} title={publicDraft.metadata.title} />
       <StudioTabWorkspace
         id="native-complete-sentences-tabs"
         value={tab}
@@ -389,7 +357,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
           setTab(value);
           setDrawing(false);
         }}
-        tabs={tabs}
+        tabs={NATIVE_COMPLETE_SENTENCES_TABS}
         label="Complete the Sentences authoring modes"
       >
         {tab === "content" ? (
@@ -408,7 +376,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
               </StudioField>
             </section>
             <div className="native-or-question-workspace">
-              {itemNavigation}
+              <NativeCompleteSentencesItemNavigation authoringSentences={authoringSentences} items={items} maximumItems={NATIVE_COMPLETE_SENTENCES_LIMITS.items} onAdd={addItem} onSelect={setSelectedItemId} selectedItemId={selectedItemId} />
               {selectedItem ? (
                 <section className="native-or-question-editor">
                   <header>
@@ -614,7 +582,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
               </header>
             </section>
             <div className="native-or-question-workspace">
-              {itemNavigation}
+              <NativeCompleteSentencesItemNavigation authoringSentences={authoringSentences} items={items} maximumItems={NATIVE_COMPLETE_SENTENCES_LIMITS.items} onAdd={addItem} onSelect={setSelectedItemId} selectedItemId={selectedItemId} />
               {selectedItem ? (
                 <section className="native-or-question-editor">
                   <strong>Sentence {items.indexOf(selectedItem) + 1}</strong>
