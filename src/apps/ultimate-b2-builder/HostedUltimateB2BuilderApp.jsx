@@ -6,7 +6,7 @@ import { nativeActivityKindLabels } from "../../data/native-activities/nativeAct
 import { isUltimateB2ConfigurableOpenResponse } from "../../data/ultimate-b2/openResponseActivityRegistry.js";
 import { BuilderModal } from "../book-builder/hosted/BuilderModal.jsx";
 import { ComponentPagesWorkspace } from "../book-builder/hosted/ComponentPagesWorkspace.jsx";
-import { createNativeActivity, deleteNativeActivity, getActivityLifecycle, getNativeActivityCatalog, moveActivity, retireCanonicalActivity } from "../book-builder/hosted/builderNativeActivityApi.js";
+import { createNativeActivity, deleteNativeActivity, getActivityLifecycle, getNativeActivityCatalogResult, moveActivity, retireCanonicalActivity } from "../book-builder/hosted/builderNativeActivityApi.js";
 import { NativeActivityFoundationEditor } from "../book-builder/hosted/NativeActivityFoundationEditor.jsx";
 import { getBuilderPages } from "../book-builder/hosted/builderPagesApi.js";
 import { pageLibraryReviewNavigation } from "../book-builder/hosted/pageLibraryReviewModel.js";
@@ -63,6 +63,8 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
   const [dirty, setDirty] = useState(false);
   const [viewerRefresh, setViewerRefresh] = useState(0);
   const [nativeCatalog, setNativeCatalog] = useState([]);
+  const [catalogDiagnostics, setCatalogDiagnostics] = useState([]);
+  const [catalogReload, setCatalogReload] = useState(0);
   const [lifecycle, setLifecycle] = useState({ schemaVersion: "1.0", activities: {} });
   const [catalogState, setCatalogState] = useState({ status: "loading", error: "" });
   const [addOpen, setAddOpen] = useState(false);
@@ -100,8 +102,8 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
     registerToolContext("activities", { view: "activity", activityId: selectedId, ...(nativeSelectedPlacement ? { pageId: nativeSelectedPlacement.pageId, unitNumber: nativeSelectedPlacement.unitNumber } : {}), dirty, refreshKey: viewerRefresh, release: null });
   }, [dirty, nativeSelectedPlacement, registerToolContext, selectedId, viewerRefresh]);
   const loadCatalogs = useCallback(async (signal, generation = scopeGenerationRef.current, requestedScope = scopeKey) => {
-    const [native, currentLifecycle, pageLibrary] = await Promise.all([
-      getNativeActivityCatalog({ bookSlug, componentSlug }, { signal }),
+    const [nativeResult, currentLifecycle, pageLibrary] = await Promise.all([
+      getNativeActivityCatalogResult({ bookSlug, componentSlug }, { signal }),
       getActivityLifecycle({ bookSlug, componentSlug }, { signal }),
       getBuilderPages({ bookSlug, componentSlug }, { signal }),
     ]);
@@ -111,14 +113,15 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
       if (managed) setManagedNavigation(navigation);
       setActivePageIds(pageLibrary.pages.map((page) => page.id));
     }
-    setNativeCatalog(native); setLifecycle(currentLifecycle.document); return { native, lifecycle: currentLifecycle.document };
+    setNativeCatalog(nativeResult.activities); setCatalogDiagnostics(nativeResult.invalidActivities);
+    setLifecycle(currentLifecycle.document); return { native: nativeResult.activities, lifecycle: currentLifecycle.document };
   }, [bookSlug, componentSlug, managed, scopeKey]);
   useEffect(() => {
     const controller = new AbortController();
     const generation = scopeGenerationRef.current + 1;
     scopeGenerationRef.current = generation;
     setManagedNavigation({ units: [], placements: [] }); setActivePageIds(null);
-    setNativeCatalog([]); setLifecycle({ schemaVersion: "1.0", activities: {} }); setSelectedId(firstId);
+    setNativeCatalog([]); setCatalogDiagnostics([]); setLifecycle({ schemaVersion: "1.0", activities: {} }); setSelectedId(firstId);
     setDirty(false); setViewerRefresh(0); setAddOpen(false); setDeleteState({ open: false, saving: false, error: "" });
     setMoveState({ open: false, pageId: "", saving: false, error: "", placementRequired: false }); setSwitchTarget("");
     setQuery(""); setAccess("all"); setType("all"); setExpandedUnits(new Set(managed ? [] : [catalog.units?.[0]?.id]));
@@ -132,7 +135,7 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
       }
     });
     return () => controller.abort();
-  }, [componentLabel, firstId, initialExpandedPageId, loadCatalogs, managed, nativeKindsKey, scopeKey]);
+  }, [catalogReload, componentLabel, firstId, initialExpandedPageId, loadCatalogs, managed, nativeKindsKey, scopeKey]);
   useEffect(() => {
     const query = globalThis.matchMedia?.("(hover: hover) and (pointer: fine)");
     if (!query) return undefined;
@@ -242,6 +245,7 @@ function ActivityReview({ nativeActivities, bookSlug, componentSlug }) {
 
   return <main className="activity-builder-shell b2-hosted-activity-review">
     <header className="activity-builder-header"><div><span>Ultimate B2 · Activity Builder</span><h1>Activity authoring</h1><p>Find, edit, and preview activities in their book placement.</p></div><div className="activity-builder-header-actions"><button ref={addTriggerRef} className="hosted-builder-action" type="button" disabled={catalogState.status !== "ready" || !nativePlacements.length} onClick={openCreate}><Plus aria-hidden="true" /> Add Activity</button></div></header>
+    {catalogState.status === "ready" && catalogDiagnostics.length ? <section className="native-catalog-warning" role="alert" aria-live="polite"><div><strong>{catalogDiagnostics.length} {componentLabel} {catalogDiagnostics.length === 1 ? "activity" : "activities"} could not be loaded and {catalogDiagnostics.length === 1 ? "needs" : "need"} repair.</strong><p>Other activities remain available.</p><ul>{catalogDiagnostics.map((diagnostic) => <li key={diagnostic.activityId}><code>{diagnostic.activityId}</code><span>{nativeActivityKindLabels[diagnostic.kind] || diagnostic.kind} · {diagnostic.code}</span></li>)}</ul></div><button type="button" onClick={() => setCatalogReload((value) => value + 1)}>Retry</button></section> : null}
 
     <BuilderModal open={addOpen} title="Add activity" description={`Choose an activity type and its location in the ${managed ? componentSlug === "ultimate-b2-workbook" ? "Workbook" : "Grammar Book" : "Students Book"}.`} busy={createState.saving} onClose={() => setAddOpen(false)} returnFocusRef={addTriggerRef}><form className="native-activity-create" onSubmit={submitNativeActivity}>
       <fieldset><legend>Activity type</legend><div className="native-activity-kind-cards">{nativeKinds.map((kind) => { const Icon = kindIcons[kind] || Boxes; return <label key={kind} data-selected={createState.kind === kind || undefined}><input type="radio" name="activity-kind" value={kind} checked={createState.kind === kind} onChange={() => setCreateState((current) => ({ ...current, kind }))} /><Icon aria-hidden="true" /><strong>{nativeActivityKindLabels[kind]}</strong><span>{kindDescriptions[kind]}</span></label>; })}</div></fieldset>

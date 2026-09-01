@@ -4,8 +4,11 @@ import test from "node:test";
 
 import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.js";
 import { createBuilderContentHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-content.js";
+import { builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { resolveBuilderContentResource } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-registry.js";
 import { createBuilderNativeActivitiesHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
+import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
+import { addNativeCompleteSentencesItem } from "../src/data/native-activities/nativeCompleteSentencesAuthoring.js";
 import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
 const actor = "10000000-0000-4000-8000-000000000001";
@@ -293,9 +296,98 @@ test("authenticated native catalog exposes page-aware readiness without Teacher 
   sources.native.activities[publicationV2Fixture.openResponseId].public.payload.parts[0].interaction.questions = [];
   sources.native.activities[publicationV2Fixture.openResponseId].teacher.payload.parts[0].solution.modelAnswers = [];
   const incomplete = await handler(request({ method: "GET", path }));
-  assert.equal(incomplete.statusCode, 500);
-  assert.equal(JSON.parse(incomplete.body).error, "native_activity_request_failed");
-  assert.doesNotMatch(incomplete.body, new RegExp(publicationV2Fixture.openResponseId));
+  assert.equal(incomplete.statusCode, 200, incomplete.body);
+  const incompletePayload = JSON.parse(incomplete.body);
+  assert.deepEqual(incompletePayload.activities.map((activity) => activity.activityId), [publicationV2Fixture.imageId, publicationV2Fixture.singleChoiceId, publicationV2Fixture.dragDropId]);
+  assert.deepEqual(incompletePayload.invalidActivities, [{
+    activityId: publicationV2Fixture.openResponseId, kind: "open-response", pageId: publicationV2Fixture.pageId,
+    code: "document_integrity_invalid", stage: "public-document", loadable: false, ready: false,
+  }]);
+  assert.doesNotMatch(incomplete.body, new RegExp(publicationV2Fixture.teacherSentinel));
+});
+
+test("catalog quarantines a missing local pair while preserving valid activities and safe diagnostics", async () => {
+  const sources = createPublicationV2FixtureSources();
+  sources.native.activities[publicationV2Fixture.openResponseId].teacher = null;
+  const warnings = [];
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => ({}), authorize: async () => ({ builderUser: { id: actor } }),
+    collectCatalog: async () => sources, logger: { error() {}, warn(message, fields) { warnings.push({ message, fields }); } },
+  });
+  const response = await handler(request({ method: "GET", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/catalog" }));
+  assert.equal(response.statusCode, 200, response.body);
+  const payload = JSON.parse(response.body);
+  assert.equal(payload.activities.some((activity) => activity.activityId === publicationV2Fixture.openResponseId), false);
+  assert.deepEqual(payload.invalidActivities[0], {
+    activityId: publicationV2Fixture.openResponseId, kind: "open-response", pageId: publicationV2Fixture.pageId,
+    code: "pair_missing", stage: "pair-load", loadable: false, ready: false,
+  });
+  assert.deepEqual(warnings[0].fields, {
+    componentSlug: "ultimate-b2-students-book", activityId: publicationV2Fixture.openResponseId,
+    kind: "open-response", code: "pair_missing", stage: "pair-load",
+  });
+  assert.doesNotMatch(response.body, new RegExp(publicationV2Fixture.teacherSentinel));
+});
+
+test("catalog keeps a structurally valid activity non-ready when its local managed asset is missing", async () => {
+  const sources = createPublicationV2FixtureSources();
+  sources.native.assetRows = sources.native.assetRows.filter((asset) => asset.id !== publicationV2Fixture.assetId);
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => ({}), authorize: async () => ({ builderUser: { id: actor } }), collectCatalog: async () => sources, logger: { error() {} },
+  });
+  const response = await handler(request({ method: "GET", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/catalog" }));
+  assert.equal(response.statusCode, 200, response.body);
+  const image = JSON.parse(response.body).activities.find((activity) => activity.activityId === publicationV2Fixture.imageId);
+  assert.equal(image.ready, false);
+  assert.ok(image.issues.some((issue) => issue.includes("required managed asset")));
+});
+
+test("catalog fails closed when a referenced managed asset belongs to another component or activity", async () => {
+  for (const asset of [
+    { component_slug: "ultimate-b2-workbook" },
+    { source_metadata: { native_activity_id: publicationV2Fixture.openResponseId, asset_slot: "composition-artwork" } },
+  ]) {
+    const sources = createPublicationV2FixtureSources();
+    Object.assign(sources.native.assetRows[0], asset);
+    const handler = createBuilderNativeActivitiesHandler({
+      getDatabase: () => ({}), authorize: async () => ({ builderUser: { id: actor } }), collectCatalog: async () => sources, logger: { error() {} },
+    });
+    const response = await handler(request({ method: "GET", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/catalog" }));
+    assert.equal(response.statusCode, 500);
+    assert.deepEqual(JSON.parse(response.body), { error: "native_activity_request_failed" });
+  }
+});
+
+test("catalog normalizes supported pre-rich Teacher answer shapes instead of quarantining them", async () => {
+  const sources = createPublicationV2FixtureSources();
+  const activityId = "ultimate-b2-sb-u1-p1-o95";
+  const kind = resolveNativeActivityKind("complete-sentences");
+  const publicDocument = kind.createBlankPublic({ activityId, title: "Historical Complete", placement: { pageId: publicationV2Fixture.pageId } });
+  const teacherDocument = kind.createBlankTeacher({ activityId });
+  let sequence = 1;
+  const itemId = addNativeCompleteSentencesItem(publicDocument, teacherDocument, (prefix) => `${prefix}-${String(sequence++).padStart(32, "0")}`);
+  publicDocument.parts[0].interaction.items[0].prompt = "This is _____.";
+  teacherDocument.parts[0].solution.answers = [{ itemId, text: "historical" }];
+  const entry = { activityId, kind: "complete-sentences", placement: { pageId: publicationV2Fixture.pageId }, sortOrder: 5 };
+  sources.native.index.payload.activities.push(entry);
+  sources.native.index.sha256 = builderDocumentSha256(sources.native.index.payload);
+  sources.native.activities[activityId] = {
+    index: entry,
+    public: { payload: publicDocument, revision: 1, sha256: builderDocumentSha256(publicDocument) },
+    teacher: { payload: teacherDocument, revision: 1, sha256: builderDocumentSha256(teacherDocument) },
+  };
+  assert.ok(sources.native.activities[publicationV2Fixture.openResponseId].teacher.payload.parts[0].solution.modelAnswers.every((answer) => Object.hasOwn(answer, "text")));
+  assert.ok(sources.native.activities[publicationV2Fixture.singleChoiceId].teacher.payload.parts[0].solution.correctAnswers.every((answer) => Object.hasOwn(answer, "correctOptionId")));
+  assert.ok(sources.native.activities[publicationV2Fixture.dragDropId].teacher.payload.parts[0].solution.mappings.length > 0);
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => ({}), authorize: async () => ({ builderUser: { id: actor } }), collectCatalog: async () => sources, logger: { error() {} },
+  });
+  const response = await handler(request({ method: "GET", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/catalog" }));
+  assert.equal(response.statusCode, 200, response.body);
+  const payload = JSON.parse(response.body);
+  assert.equal(payload.invalidActivities, undefined);
+  assert.deepEqual(payload.activities.map((activity) => activity.activityId), [...sources.native.index.payload.activities.map((item) => item.activityId)]);
+  assert.equal(payload.activities.find((activity) => activity.activityId === activityId).ready, false);
 });
 
 test("Students Book catalog keeps a native activity on a tombstoned canonical page as Unassigned", async () => {
@@ -330,6 +422,20 @@ test("catalog fails closed when a Students Book activity is supplied for Workboo
   assert.equal(response.statusCode, 500);
   assert.equal(JSON.parse(response.body).error, "native_activity_request_failed");
   assert.doesNotMatch(response.body, new RegExp(publicationV2Fixture.openResponseId));
+});
+
+test("an untrusted native index produces only a generic response and a stable safe server code", async () => {
+  const errors = [];
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => ({}), authorize: async () => ({ builderUser: { id: actor } }),
+    collectCatalog: async () => { throw Object.assign(new Error("PRIVATE INDEX PAYLOAD"), { code: "native_catalog_index_invalid" }); },
+    logger: { error(message, fields) { errors.push({ message, fields }); } },
+  });
+  const response = await handler(request({ method: "GET", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/catalog" }));
+  assert.equal(response.statusCode, 500);
+  assert.deepEqual(JSON.parse(response.body), { error: "native_activity_request_failed" });
+  assert.doesNotMatch(response.body, /PRIVATE INDEX PAYLOAD/);
+  assert.deepEqual(errors, [{ message: "Builder native activity request failed", fields: { code: "native_catalog_index_invalid" } }]);
 });
 
 test("a component with no stored native index returns an exact empty catalog without falling back", async () => {

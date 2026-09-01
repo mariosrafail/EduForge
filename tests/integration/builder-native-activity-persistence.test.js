@@ -7,6 +7,8 @@ import { createBuilderContentHandler } from "../../netlify-sites/ultimate-b2-bui
 import { builderDocumentSha256 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { createBuilderNativeActivitiesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
 import { claimBuilderNativeAssetUpload, completeBuilderNativeAssetUpload, createBuilderNativeActivity, prepareBuilderNativeAssetUpload } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activity-store.js";
+import { collectUltimateB2PublicationSources } from "../../netlify-sites/ultimate-b2-builder/server/_builder-publication-store.js";
+import { ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS } from "../../src/data/ultimate-b2/openResponseActivityRegistry.js";
 import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
 
 const { Pool } = pg;
@@ -21,6 +23,7 @@ function pairEvent(activityId, body) { return { httpMethod: "POST", path: `/buil
 function deleteEvent(activityId, mutationId = randomUUID()) { return { httpMethod: "POST", path: `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/delete`, headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify({ clientMutationId: mutationId }) }; }
 function lifecycleEvent(activityId, action, sourcePageId, destinationPageId = null, mutationId = randomUUID()) { return { httpMethod: "POST", path: `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/activities/${activityId}/${action}`, headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify({ sourcePageId, ...(destinationPageId ? { destinationPageId } : {}), clientMutationId: mutationId }) }; }
 function hotspotEvent(method, body = null) { return { httpMethod: method, path: "/builder/api/content/books/ultimate-b2/components/ultimate-b2-students-book/hotspots", headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: body ? JSON.stringify(body) : "" }; }
+function catalogEvent() { return { httpMethod: "GET", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/catalog", headers: { host: "localhost:8888" }, body: "" }; }
 
 test("isolated PostgreSQL creates native index/public/Teacher drafts atomically, idempotently, and without identity races", { skip: !enabled }, async (t) => {
   const schema = `builder_native_${randomBytes(8).toString("hex")}`;
@@ -109,6 +112,57 @@ test("isolated PostgreSQL creates native index/public/Teacher drafts atomically,
 
   const unauthorized = await createBuilderNativeActivity(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: failedId, kind: "open-response", expectedIndexRevision: 4, indexDocument: failedIndex, indexSha256: "a".repeat(64), publicDocument: { ...publicDocument, activityId: failedId }, publicSha256: "b".repeat(64), teacherDocument: { ...teacherDocument, activityId: failedId }, teacherSha256: "d".repeat(64), schemaVersion: "1.0", requestSha256: "c".repeat(64), builderUserId: "10000000-0000-4000-8000-000000000099", clientMutationId: randomUUID() });
   assert.equal(unauthorized.outcome, "unauthorized_actor");
+});
+
+test("isolated PostgreSQL catalog ignores unrelated malformed legacy publication state and quarantines only a local invalid pair", { skip: !enabled }, async (t) => {
+  const schema = `builder_native_catalog_${randomBytes(8).toString("hex")}`;
+  const admin = new Pool({ connectionString: testDatabaseUrl, max: 1 });
+  await admin.query(`create schema "${schema}"`);
+  const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 4 });
+  t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
+  await applyCanonicalProductionMigrations(pool);
+  await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Catalog Actor','catalog@example.test','hash')", [actor]);
+  const sql = tag(pool);
+  const warnings = [];
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }),
+    logger: { error() {}, warn(message, fields) { warnings.push({ message, fields }); } },
+  });
+  const valid = JSON.parse((await handler(event({ title: "Valid catalog activity" }))).body);
+  const invalid = JSON.parse((await handler(event({ title: "Invalid catalog activity" }))).body);
+  const initial = await handler(catalogEvent());
+  assert.equal(initial.statusCode, 200, initial.body);
+  assert.deepEqual(JSON.parse(initial.body).activities.map((activity) => activity.activityId), [valid.activityId, invalid.activityId]);
+
+  const identity = (await pool.query("select package.id package_id,component.id component_id from book_packages package join book_components component on component.book_package_id=package.id where package.slug='ultimate-b2' and component.slug='ultimate-b2-students-book'")).rows[0];
+  const legacyActivityId = [...ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS][0];
+  const malformedLegacy = { schemaVersion: "1.0", activityId: legacyActivityId, privateTeacherSentinel: "MUST_NOT_ESCAPE" };
+  await pool.query(`insert into builder_component_documents(
+    book_package_id,book_component_id,document_type,document_key,schema_version,revision,payload,payload_sha256,
+    created_by_builder_user_id,updated_by_builder_user_id
+  ) values($1,$2,'open_response',$3,'1.0',1,$4,$5,$6,$6)`, [identity.package_id, identity.component_id, legacyActivityId, malformedLegacy, builderDocumentSha256(malformedLegacy), actor]);
+  await assert.rejects(collectUltimateB2PublicationSources(sql));
+  const afterLegacy = await handler(catalogEvent());
+  assert.equal(afterLegacy.statusCode, 200, afterLegacy.body);
+  assert.deepEqual(JSON.parse(afterLegacy.body).activities.map((activity) => activity.activityId), [valid.activityId, invalid.activityId]);
+  assert.doesNotMatch(afterLegacy.body, /MUST_NOT_ESCAPE/);
+
+  await pool.query("update builder_component_documents set payload=$1 where document_type='native_activity_public' and document_key=$2", [{ schemaVersion: "1.0", activityId: invalid.activityId, privateTeacherSentinel: "PAIR_MUST_NOT_ESCAPE" }, invalid.activityId]);
+  const beforeGet = (await pool.query("select id,document_type,document_key,revision,payload,payload_sha256,updated_at from builder_component_documents order by document_type,document_key")).rows;
+  const resilient = await handler(catalogEvent());
+  assert.equal(resilient.statusCode, 200, resilient.body);
+  const payload = JSON.parse(resilient.body);
+  assert.deepEqual(payload.activities.map((activity) => activity.activityId), [valid.activityId]);
+  assert.deepEqual(payload.invalidActivities, [{
+    activityId: invalid.activityId, kind: "open-response", pageId: "ub2-sb-unit-1-part-1",
+    code: "document_integrity_invalid", stage: "public-document", loadable: false, ready: false,
+  }]);
+  assert.doesNotMatch(resilient.body, /PAIR_MUST_NOT_ESCAPE|MUST_NOT_ESCAPE|answer|solution/i);
+  assert.deepEqual((await pool.query("select id,document_type,document_key,revision,payload,payload_sha256,updated_at from builder_component_documents order by document_type,document_key")).rows, beforeGet);
+  assert.deepEqual(warnings.at(-1)?.fields, {
+    componentSlug: "ultimate-b2-students-book", activityId: invalid.activityId, kind: "open-response",
+    code: "document_integrity_invalid", stage: "public-document",
+  });
 });
 
 test("isolated PostgreSQL derives managed native placement from active same-component pages and returns to empty", { skip: !enabled }, async (t) => {

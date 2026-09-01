@@ -49,6 +49,7 @@ const srtTime = (milliseconds) => { const seconds = Math.floor(milliseconds / 10
 const listeningSrt = Array.from({ length: 10 }, (_, index) => `${index + 1}\n${srtTime(index * 900)} --> ${srtTime(index * 900 + 800)}\nTranscript cue ${index + 1} has enough semantic classroom text to exercise synchronized highlighting and scrolling.`).join("\n\n");
 const nativeDocuments = new Map(); const nativeAssets = new Map(); const nativeUploads = new Map(); const nativeAssetByContent = new Map(); const nativeFonts = new Map(); const nativeFontUploads = new Map(); const deleteMutations = new Map(); const lifecycleMutations = new Map(); const requestedPaths = []; const viewerRequests = []; const authorizationIntents = []; const viewerExchangeIntents = [];
 let indexRevision = 0; let nativeIndex = { schemaVersion: "1.0", activities: [] }; let origin = "";
+let catalogDiagnostics = [{ activityId: "ultimate-b2-sb-u1-p1-o88", kind: "open-response", pageId: "ub2-sb-unit-1-part-1", code: "pair_missing", stage: "pair-load", loadable: false, ready: false }];
 let hotspotRevision = 0; let hotspotManifest = structuredClone(repositoryHotspots);
 let lifecycleRevision = 0; let activityLifecycle = { schemaVersion: "1.0", activities: {} };
 let uploadSequence = 10; let nextNativeOrdinal = 90;
@@ -136,7 +137,7 @@ const server = createServer(async (request, response) => {
   });
   if (url.pathname === `${contentRoot}/native-activity-index` && request.method === "GET") return json(response, 200, envelope("native-activity-index", "default", indexRevision, nativeIndex));
   if (url.pathname === `${nativeRoot}/lifecycle` && request.method === "GET") return json(response, 200, envelope("activity-lifecycle", "default", lifecycleRevision, activityLifecycle));
-  if (url.pathname === `${nativeRoot}/catalog` && request.method === "GET") return json(response, 200, { schemaVersion: "1.0", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activities: nativeIndex.activities.map((entry) => ({ ...entry, title: nativeDocuments.get(entry.activityId)?.publicDocument.metadata.title || entry.activityId, ready: true, issues: [] })) });
+  if (url.pathname === `${nativeRoot}/catalog` && request.method === "GET") return json(response, 200, { schemaVersion: "1.0", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activities: nativeIndex.activities.map((entry) => ({ ...entry, title: nativeDocuments.get(entry.activityId)?.publicDocument.metadata.title || entry.activityId, ready: true, issues: [] })), ...(catalogDiagnostics.length ? { invalidActivities: catalogDiagnostics } : {}) });
   if (await handleCompleteSentencesFontRequest({
     request, response, url, nativeRoot, origin, nativeFonts, nativeFontUploads, nativeAssets, nextSequence: () => uploadSequence++, json, requestBytes, requestJson,
   })) return;
@@ -290,6 +291,13 @@ try {
   });
   await page.goto(`${origin}/#/books/ultimate-b2/components/ultimate-b2-students-book/activities`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Add Activity" }).waitFor(); await page.locator(".b2-hosted-open-response-editor").waitFor();
+  const catalogWarning = page.getByRole("alert").filter({ hasText: "1 Students Book activity could not be loaded and needs repair." });
+  await catalogWarning.waitFor(); await catalogWarning.getByText("ultimate-b2-sb-u1-p1-o88", { exact: true }).waitFor(); await catalogWarning.getByText(/Open Response · pair_missing/).waitFor();
+  assert.equal(await page.getByRole("button", { name: /ultimate-b2-sb-u1-p1-o88/ }).count(), 0, "a quarantined activity is not selectable");
+  assert.equal(await page.getByRole("button", { name: new RegExp(legacyActivityId) }).count(), 1, "valid activities remain selectable");
+  const catalogRequestsBeforeRetry = requestedPaths.filter((pathname) => pathname === `${nativeRoot}/catalog`).length; catalogDiagnostics = [];
+  await catalogWarning.getByRole("button", { name: "Retry" }).click(); await catalogWarning.waitFor({ state: "detached" });
+  assert.ok(requestedPaths.filter((pathname) => pathname === `${nativeRoot}/catalog`).length > catalogRequestsBeforeRetry);
   assert.equal(await page.locator(".activity-builder-header .b2-hosted-review-banner").count(), 0); assert.equal(await page.locator(".activity-builder-header-actions").getByRole("button", { name: "Add Activity" }).count(), 1); assert.equal(await page.locator(".b2-hosted-open-response-editor").getByLabel("Student instruction").count(), 0);
   const headerGeometry = await page.locator(".activity-builder-header").evaluate((header) => { const copy = header.firstElementChild.getBoundingClientRect(); const actions = header.querySelector(".activity-builder-header-actions").getBoundingClientRect(); const button = header.querySelector(".hosted-builder-action").getBoundingClientRect(); return { copyBottom: copy.bottom, actionsTop: actions.top, actionsWidth: actions.width, buttonWidth: button.width }; }); assert.ok(headerGeometry.actionsTop <= headerGeometry.copyBottom, JSON.stringify(headerGeometry)); assert.ok(headerGeometry.actionsWidth <= headerGeometry.buttonWidth + 1, JSON.stringify(headerGeometry));
   const search = page.getByPlaceholder("Search title, type, or ID"); await search.fill("does-not-exist"); await page.getByText("The selected activity is hidden by the current filters.", { exact: false }).waitFor(); assert.equal(await page.locator(".b2-hosted-open-response-editor").count(), 1); await search.fill("");

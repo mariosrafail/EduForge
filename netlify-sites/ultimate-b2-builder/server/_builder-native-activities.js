@@ -47,7 +47,7 @@ import {
 } from "./_builder-native-activity-store.js";
 import { resolveNativeActivityAdapter } from "./_native-activity-adapters.js";
 import { resolveNativeActivityKind, validateNativeActivityPair } from "./_native-activity-registry.js";
-import { collectBuilderNativeActivityCatalogSources } from "./_builder-publication-store.js";
+import { collectBuilderNativeActivityCatalogSources, loadBuilderNativeActivityCatalogAssets, normalizeStoredBuilderDocument } from "./_builder-publication-store.js";
 import { serveBuilderPrivateFont } from "./_builder-private-font-response.js";
 
 const exact = (value, keys) => value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join("\0") === [...keys].sort().join("\0");
@@ -594,86 +594,150 @@ async function finalizeAsset(dependencies, sql, auth, parsedRoute, event) {
   }
 }
 
+function nativeCatalogBoundary(message) {
+  return Object.assign(new Error(message), { code: "native_catalog_boundary_invalid" });
+}
+
+function normalizeCatalogSource(candidate, resource) {
+  if (!candidate) return null;
+  if (Object.hasOwn(candidate, "payload_sha256")) return normalizeStoredBuilderDocument(candidate, resource);
+  if (!Object.hasOwn(candidate, "payload")) throw new Error("Stored Builder document payload is unavailable");
+  return normalizeStoredBuilderDocument({
+    payload: candidate.payload,
+    payload_sha256: candidate.sha256,
+    schema_version: resource.schemaVersion,
+    revision: candidate.revision,
+  }, resource);
+}
+
+function catalogDocumentCode(error, audience) {
+  return String(error?.message || "").includes("checksum") ? "document_integrity_invalid" : `${audience}_document_invalid`;
+}
+
+function nativeAssetRequirements(publicDocument) {
+  return [
+    ...nativeReadableTextAssetRequirements(publicDocument),
+    ...nativeVideoAssetRequirements(publicDocument),
+    ...nativeAudioTextAssetRequirements(publicDocument),
+    ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
+    ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
+    ...(publicDocument.kind === "listening" ? nativeListeningAssetRequirements(publicDocument) : []),
+    ...(publicDocument.kind === "oldschool-listening" ? nativeOldschoolListeningAssetRequirements(publicDocument) : []),
+    ...(publicDocument.kind === "drag-drop" ? nativeDragDropAssetRequirements(publicDocument) : []),
+    ...(publicDocument.kind === "open-response" ? nativeOpenResponseAssetRequirements(publicDocument) : []),
+  ];
+}
+
 async function nativeCatalog(dependencies, sql, parsedRoute) {
   const sources = await dependencies.collectCatalog(sql, { bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug });
   const adapter = dependencies.resolveAdapter(parsedRoute.bookSlug, parsedRoute.componentSlug);
-  if (!adapter || !sources?.native || !sources.native.activities) throw new Error("Native activity catalog scope is unavailable.");
-  const assetRows = new Map((sources.native.assetRows || []).map((row) => [String(row.id), row]));
-  const activities = [];
+  if (!adapter || !sources?.native || !sources.native.activities) throw nativeCatalogBoundary("Native activity catalog scope is unavailable.");
+  const invalidActivities = [];
+  const quarantine = (entry, code, stage) => {
+    const diagnostic = { activityId: entry.activityId, kind: entry.kind, pageId: entry.placement.pageId, code, stage, loadable: false, ready: false };
+    invalidActivities.push(diagnostic);
+    dependencies.logger.warn?.("Builder native activity quarantined", {
+      componentSlug: parsedRoute.componentSlug, activityId: entry.activityId, kind: entry.kind, code, stage,
+    });
+  };
+  const candidates = [];
   for (const entry of sources.native.index?.payload?.activities || []) {
-    if (!adapter.ownsActivityId?.(entry.activityId) || !adapter.kinds.includes(entry.kind)) throw new Error("Native activity catalog identity is outside its component.");
-    const placement = await (adapter.resolveExistingPlacement || adapter.normalizePlacement)(entry.placement, { sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug });
-    if (placement.pageId !== entry.placement.pageId) throw new Error("Native activity catalog placement is outside its component.");
+    if (!adapter.ownsActivityId?.(entry.activityId) || !adapter.kinds.includes(entry.kind)) throw nativeCatalogBoundary("Native activity catalog identity is outside its component.");
+    let placement;
+    try {
+      placement = await (adapter.resolveExistingPlacement || adapter.normalizePlacement)(entry.placement, { sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug });
+    } catch {
+      throw nativeCatalogBoundary("Native activity catalog placement is outside its component.");
+    }
+    if (placement.pageId !== entry.placement.pageId) throw nativeCatalogBoundary("Native activity catalog placement is outside its component.");
     const pair = sources.native.activities[entry.activityId];
     const kind = resolveNativeActivityKind(entry.kind);
-    let ready = false;
-    let issues = [];
-    if (!kind || !pair?.public || !pair?.teacher || pair.index?.activityId !== entry.activityId || pair.index?.kind !== entry.kind
-      || pair.index?.placement?.pageId !== entry.placement.pageId) {
-      throw new Error("Native activity pair is incomplete.");
-    } else {
-      try {
-        const publicDocument = kind.normalizePublic(pair.public.payload, entry.activityId);
-        const teacherDocument = kind.normalizeTeacher(pair.teacher.payload, entry.activityId);
-        validateNativeActivityPair(publicDocument, teacherDocument);
-        if (publicDocument.placement.pageId !== entry.placement.pageId) throw new Error("Native placement does not match its index.");
-        const readiness = kind.assessReadiness(publicDocument, teacherDocument);
-        issues = [...readiness.issues];
-        for (const reference of publicDocument.assets) {
-          const asset = assetRows.get(reference.assetId);
-          const canonicalFontSlot = `font-${String(reference.assetId || "").replaceAll("-", "").toLowerCase()}`;
-          const owned = reference.role === "activity_font"
-            ? asset?.mime_type === MANAGED_TTF_MEDIA_TYPE && asset?.source_metadata?.font_library_scope === "component" && reference.slot === canonicalFontSlot
-            : asset?.source_metadata?.native_activity_id === entry.activityId && asset?.source_metadata?.asset_slot === reference.slot;
-          if (!asset || asset.checksum_sha256 !== reference.checksumSha256 || asset.asset_role !== reference.role
-            || asset.publication_status !== "draft" || asset.access_level !== "internal" || asset.storage_profile !== "private"
-            || !owned) throw new Error("Managed artwork is outside its component.");
-        }
-        {
-          const requirements = [
-            ...nativeReadableTextAssetRequirements(publicDocument),
-            ...nativeVideoAssetRequirements(publicDocument),
-            ...nativeAudioTextAssetRequirements(publicDocument),
-            ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
-            ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
-            ...(publicDocument.kind === "listening" ? nativeListeningAssetRequirements(publicDocument) : []),
-            ...(publicDocument.kind === "oldschool-listening" ? nativeOldschoolListeningAssetRequirements(publicDocument) : []),
-            ...(publicDocument.kind === "drag-drop" ? nativeDragDropAssetRequirements(publicDocument) : []),
-            ...(publicDocument.kind === "open-response" ? nativeOpenResponseAssetRequirements(publicDocument) : []),
-          ];
-          for (const requirement of requirements) {
-            const reference = publicDocument.assets.find((asset) => asset.slot === requirement.slot);
-            const asset = reference ? assetRows.get(reference.assetId) : null;
-            if (!asset || (requirement.mediaType && asset.mime_type !== requirement.mediaType)) {
-              issues.push(`${requirement.label || "Native managed asset"} media type does not match the managed asset.`);
-            } else if (requirement.width !== undefined
-              && (Number(asset.width) !== requirement.width || Number(asset.height) !== requirement.height)) {
-              issues.push(`${requirement.label || "Managed image"} dimensions do not match the managed asset.`);
-            }
-          }
-        }
-        ready = issues.length === 0;
-        activities.push({
-          activityId: entry.activityId,
-          kind: entry.kind,
-          title: publicDocument.metadata.title,
-          placement: entry.placement,
-          sourcePageId: placement.sourcePageId || entry.placement.pageId,
-          assignment: {
-            state: placement.assignmentState || "assigned",
-            ...(placement.unassignedReason ? { reason: placement.unassignedReason } : {}),
-          },
-          ready,
-          issues: [...new Set(issues)],
-        });
-        continue;
-      } catch (error) {
-        if (String(error?.message || "").includes("outside its component")) throw error;
-        throw new Error("Native activity pair is invalid.");
+    if (!kind) throw nativeCatalogBoundary("Native activity catalog kind is unsupported.");
+    if (!pair?.public || !pair?.teacher) { quarantine(entry, "pair_missing", "pair-load"); continue; }
+    if (pair.index?.activityId !== entry.activityId || pair.index?.kind !== entry.kind || pair.index?.placement?.pageId !== entry.placement.pageId) {
+      quarantine(entry, "pair_topology_invalid", "pair-index"); continue;
+    }
+    const [publicResource, teacherResource] = await Promise.all([
+      dependencies.resolveResource(parsedRoute.bookSlug, parsedRoute.componentSlug, "native-activity-public", entry.activityId),
+      dependencies.resolveResource(parsedRoute.bookSlug, parsedRoute.componentSlug, "native-activity-teacher", entry.activityId),
+    ]);
+    if (!publicResource || !teacherResource) throw nativeCatalogBoundary("Native activity catalog resources are unavailable.");
+    let publicSource;
+    try { publicSource = normalizeCatalogSource(pair.public, publicResource); }
+    catch (error) { quarantine(entry, catalogDocumentCode(error, "public"), "public-document"); continue; }
+    let teacherSource;
+    try { teacherSource = normalizeCatalogSource(pair.teacher, teacherResource); }
+    catch (error) { quarantine(entry, catalogDocumentCode(error, "teacher"), "teacher-document"); continue; }
+    let publicDocument;
+    try { publicDocument = kind.normalizePublic(publicSource.payload, entry.activityId); }
+    catch { quarantine(entry, "public_document_invalid", "public-normalization"); continue; }
+    let teacherDocument;
+    try { teacherDocument = kind.normalizeTeacher(teacherSource.payload, entry.activityId); }
+    catch { quarantine(entry, "teacher_document_invalid", "teacher-normalization"); continue; }
+    try {
+      validateNativeActivityPair(publicDocument, teacherDocument);
+      if (publicDocument.placement.pageId !== entry.placement.pageId) throw new Error("placement mismatch");
+    } catch { quarantine(entry, "pair_topology_invalid", "pair-validation"); continue; }
+    candidates.push({ entry, placement, kind, publicDocument, teacherDocument });
+  }
+
+  const references = candidates.flatMap((candidate) => candidate.publicDocument.assets);
+  const loadedAssets = Array.isArray(sources.native.assetRows)
+    ? sources.native.assetRows
+    : await dependencies.loadCatalogAssets(sql, { bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, references });
+  const assetRows = new Map(loadedAssets.map((row) => [String(row.id), row]));
+  const activities = [];
+  for (const candidate of candidates) {
+    const { entry, placement, kind, publicDocument, teacherDocument } = candidate;
+    let invalidAsset = false;
+    const issues = [...kind.assessReadiness(publicDocument, teacherDocument).issues];
+    for (const reference of publicDocument.assets) {
+      const asset = assetRows.get(reference.assetId);
+      if (!asset) { issues.push("A required managed asset is missing."); continue; }
+      if ((asset.book_slug && asset.book_slug !== parsedRoute.bookSlug) || (asset.component_slug && asset.component_slug !== parsedRoute.componentSlug)) {
+        throw nativeCatalogBoundary("Managed artwork is outside its component.");
+      }
+      const canonicalFontSlot = `font-${String(reference.assetId || "").replaceAll("-", "").toLowerCase()}`;
+      if (reference.role !== "activity_font" && asset.source_metadata?.native_activity_id && asset.source_metadata.native_activity_id !== entry.activityId) {
+        throw nativeCatalogBoundary("Managed artwork is owned by another activity.");
+      }
+      const owned = reference.role === "activity_font"
+        ? asset.mime_type === MANAGED_TTF_MEDIA_TYPE && asset.source_metadata?.font_library_scope === "component" && reference.slot === canonicalFontSlot
+        : asset.source_metadata?.native_activity_id === entry.activityId && asset.source_metadata?.asset_slot === reference.slot;
+      if (asset.checksum_sha256 !== reference.checksumSha256 || asset.asset_role !== reference.role
+        || asset.publication_status !== "draft" || asset.access_level !== "internal" || asset.storage_profile !== "private" || !owned) {
+        invalidAsset = true; break;
       }
     }
+    if (invalidAsset) { quarantine(entry, "required_asset_missing", "managed-asset-validation"); continue; }
+    for (const requirement of nativeAssetRequirements(publicDocument)) {
+      const reference = publicDocument.assets.find((asset) => asset.slot === requirement.slot);
+      const asset = reference ? assetRows.get(reference.assetId) : null;
+      if (!asset || (requirement.mediaType && asset.mime_type !== requirement.mediaType)) {
+        issues.push(`${requirement.label || "Native managed asset"} media type does not match the managed asset.`);
+      } else if (requirement.width !== undefined
+        && (Number(asset.width) !== requirement.width || Number(asset.height) !== requirement.height)) {
+        issues.push(`${requirement.label || "Managed image"} dimensions do not match the managed asset.`);
+      }
+    }
+    activities.push({
+      activityId: entry.activityId,
+      kind: entry.kind,
+      title: publicDocument.metadata.title,
+      placement: entry.placement,
+      sourcePageId: placement.sourcePageId || entry.placement.pageId,
+      assignment: {
+        state: placement.assignmentState || "assigned",
+        ...(placement.unassignedReason ? { reason: placement.unassignedReason } : {}),
+      },
+      ready: issues.length === 0,
+      issues: [...new Set(issues)],
+    });
   }
-  return json(200, { schemaVersion: "1.0", bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, activities });
+  return json(200, {
+    schemaVersion: "1.0", bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, activities,
+    ...(invalidActivities.length ? { invalidActivities } : {}),
+  });
 }
 
 export function createBuilderNativeActivitiesHandler(overrides = {}) {
@@ -703,6 +767,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
     listFonts: overrides.listFonts || listBuilderFonts,
     loadFont: overrides.loadFont || loadBuilderFontAsset,
     collectCatalog: overrides.collectCatalog || collectBuilderNativeActivityCatalogSources,
+    loadCatalogAssets: overrides.loadCatalogAssets || loadBuilderNativeActivityCatalogAssets,
     storage: overrides.storage || (() => createBookAssetStorage()),
     inspectRaster: overrides.inspectRaster || inspectManagedRaster,
     inspectAudio: overrides.inspectAudio || inspectManagedMp3,

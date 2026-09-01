@@ -20,6 +20,13 @@
 .activity-builder-header-actions { display: flex; align-items: flex-start; justify-content: flex-end; }
 .activity-builder-header .hosted-builder-action { display: inline-flex; gap: 8px; margin: 0; }
 .activity-builder-header .hosted-builder-action svg { width: 18px; }
+.native-catalog-warning { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; max-width: 1680px; margin: 0 auto 18px; padding: 14px 16px; border: 1px solid #d49b26; border-radius: 12px; background: #fff8e8; color: #694500; }
+.native-catalog-warning > div { min-width: 0; }
+.native-catalog-warning p { margin: 4px 0 0; }
+.native-catalog-warning ul { display: grid; gap: 4px; margin: 10px 0 0; padding: 0; list-style: none; }
+.native-catalog-warning li { display: flex; flex-wrap: wrap; gap: 8px; }
+.native-catalog-warning code { overflow-wrap: anywhere; }
+.native-catalog-warning button { flex: 0 0 auto; }
 .b2-hosted-activity-layout { --activity-builder-sidebar-width: clamp(292px, 24vw, 360px); grid-template-columns: var(--activity-builder-sidebar-width) minmax(0, 1fr); gap: 18px; max-width: 1680px; margin: 0 auto; transition: grid-template-columns 220ms ease, gap 220ms ease; }
 .b2-hosted-activity-layout.is-navigation-collapsed { grid-template-columns: 30px minmax(0, 1fr); gap: 10px; }
 .activity-builder-navigation-shell { position: relative; display: grid; min-width: 0; align-items: start; }

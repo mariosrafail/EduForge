@@ -3,7 +3,7 @@ import { resolveBuilderContentResource } from "./_builder-content-registry.js";
 import { ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS } from "../../../src/data/ultimate-b2/openResponseActivityRegistry.js";
 import { loadBuilderPages } from "./_builder-pages-store.js";
 
-function document(row, resource) {
+export function normalizeStoredBuilderDocument(row, resource) {
   if (!row) return null;
   const sha256 = builderDocumentSha256(row.payload);
   if (sha256 !== row.payload_sha256) throw new Error("Stored Builder document checksum is invalid");
@@ -13,6 +13,8 @@ function document(row, resource) {
   if (!Number.isSafeInteger(revision) || revision < 1) throw new Error("Stored Builder document revision is invalid");
   return { revision, sha256, payload, resource };
 }
+
+const document = normalizeStoredBuilderDocument;
 
 export async function collectUltimateB2PublicationV2Sources(sql) {
   const [legacy, pages] = await Promise.all([
@@ -103,12 +105,64 @@ export async function collectUltimateB2ManagedPublicationSources(sql, componentS
 }
 
 export async function collectBuilderNativeActivityCatalogSources(sql, { bookSlug, componentSlug }) {
-  if (bookSlug !== "ultimate-b2") throw new Error("Publication component is unavailable");
-  if (componentSlug === "ultimate-b2-students-book") return collectUltimateB2PublicationV2Sources(sql);
-  if (["ultimate-b2-workbook", "ultimate-b2-grammar-book"].includes(componentSlug)) {
-    return collectUltimateB2ManagedPublicationSources(sql, componentSlug);
+  if (bookSlug !== "ultimate-b2" || !["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"].includes(componentSlug)) throw new Error("Publication component is unavailable");
+  const rows = await sql`
+    select package.slug book_slug,component.slug component_slug,
+      document.document_type,document.document_key,document.schema_version,document.revision,document.payload,document.payload_sha256
+    from book_packages package
+    join book_components component on component.book_package_id=package.id
+    left join builder_component_documents document on document.book_component_id=component.id
+      and document.document_type='native_activity_index' and document.document_key='default'
+    where package.slug=${bookSlug} and component.slug=${componentSlug}
+    limit 1
+  `;
+  if (!rows[0]) throw new Error("Publication component is unavailable");
+  const indexResource = await resolveBuilderContentResource(bookSlug, componentSlug, "native-activity-index");
+  if (!indexResource) throw new Error("Publication component is unavailable");
+  let index = null;
+  if (rows[0].document_type) {
+    try { index = normalizeStoredBuilderDocument(rows[0], indexResource); }
+    catch { throw Object.assign(new Error("Native activity index is invalid"), { code: "native_catalog_index_invalid" }); }
   }
-  throw new Error("Publication component is unavailable");
+  const activityIds = (index?.payload?.activities || []).map((entry) => entry.activityId);
+  const pairRows = activityIds.length ? await sql`
+    select document.document_type,document.document_key,document.schema_version,document.revision,document.payload,document.payload_sha256
+    from builder_component_documents document
+    join book_components component on component.id=document.book_component_id
+    join book_packages package on package.id=document.book_package_id and package.id=component.book_package_id
+    where package.slug=${bookSlug} and component.slug=${componentSlug}
+      and document.document_type in ('native_activity_public','native_activity_teacher')
+      and document.document_key=any(${activityIds}::text[])
+    order by document.document_type,document.document_key
+  ` : [];
+  const documents = new Map(pairRows.map((row) => [`${row.document_type}/${row.document_key}`, row]));
+  return {
+    native: {
+      index,
+      activities: Object.fromEntries((index?.payload?.activities || []).map((entry) => [entry.activityId, {
+        index: entry,
+        public: documents.get(`native_activity_public/${entry.activityId}`) || null,
+        teacher: documents.get(`native_activity_teacher/${entry.activityId}`) || null,
+      }])),
+    },
+  };
+}
+
+export async function loadBuilderNativeActivityCatalogAssets(sql, { references }) {
+  if (!references.length) return [];
+  const ids = [...new Set(references.map((reference) => reference.assetId))];
+  return sql`
+    select asset.id,package.slug book_slug,component.slug component_slug,
+      asset.book_package_id,asset.book_component_id,asset.checksum_sha256,asset.asset_role,asset.object_key,asset.storage_profile,
+      asset.storage_bucket,asset.mime_type,asset.byte_size,asset.width,asset.height,asset.duration_seconds,
+      asset.unit_id,asset.page_id,asset.activity_id,
+      asset.publication_status,asset.access_level,asset.source_metadata
+    from book_assets asset
+    join book_packages package on package.id=asset.book_package_id
+    join book_components component on component.id=asset.book_component_id and component.book_package_id=package.id
+    where asset.id=any(${ids}::uuid[])
+    order by asset.id
+  `;
 }
 
 export async function loadNativePublicationAssets(sql, { bookSlug, componentSlug, references }) {

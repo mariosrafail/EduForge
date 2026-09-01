@@ -5,6 +5,7 @@ import test from "node:test";
 
 import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.js";
 import { createBuilderContentHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-content.js";
+import { builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { resolveBuilderContentResource } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-registry.js";
 import { createBuilderNativeActivitiesHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
 import { NATIVE_ACTIVITY_KINDS } from "../src/data/native-activities/nativeActivityKinds.js";
@@ -59,7 +60,7 @@ function componentHarness() {
     },
     collectCatalog: async (_sql, scope) => {
       scopes.push(scope); const state = states[scope.componentSlug];
-      const source = (stored) => ({ revision: stored.revision, payload: stored.document });
+      const source = (stored) => ({ revision: stored.revision, payload: stored.document, sha256: builderDocumentSha256(stored.document) });
       return { native: { index: source(state.index), activities: Object.fromEntries(state.index.document.activities.map((entry) => [entry.activityId, {
         index: entry, public: source(state.documents.get(`native_activity_public:${entry.activityId}`)), teacher: source(state.documents.get(`native_activity_teacher:${entry.activityId}`)),
       }])), assetRows: [] } };
@@ -121,8 +122,10 @@ test("client source pins catalog identity, route generations, visible errors, an
     readFile(new URL("../src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx", import.meta.url), "utf8"),
   ]);
   assert.match(api, /value\.bookSlug !== bookSlug \|\| value\.componentSlug !== componentSlug/);
+  assert.match(api, /getNativeActivityCatalogResult/); assert.match(api, /return \(await getNativeActivityCatalogResult\(identity, options\)\)\.activities/);
   assert.match(app, /scopeGenerationRef/); assert.match(app, /generation !== scopeGenerationRef\.current/);
   assert.match(app, /controller\.signal\.aborted/); assert.match(app, /activities could not be loaded/);
+  assert.match(app, /catalogDiagnostics/); assert.match(app, /Other activities remain available/); assert.match(app, />Retry</);
   assert.match(app, /key={`\$\{scopeKey}:\$\{selectedId}:\$\{nativeSelected\.placement\?\.pageId}`}/);
   assert.doesNotMatch(app, /loadCatalogs\(controller\.signal\)\.catch\(\(\) => \{\}\)/);
 });

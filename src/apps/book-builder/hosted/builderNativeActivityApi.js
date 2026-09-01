@@ -61,12 +61,22 @@ export async function createNativeActivity({ bookSlug, componentSlug, kind, page
   return value;
 }
 
-export async function getNativeActivityCatalog({ bookSlug, componentSlug }, { signal } = {}) {
+export async function getNativeActivityCatalogResult({ bookSlug, componentSlug }, { signal } = {}) {
   for (const value of [bookSlug, componentSlug]) if (!SAFE_ID.test(String(value || ""))) throw new Error("Invalid native activity catalog identity.");
   const response = await fetch(`${root}/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/catalog`, { method: "GET", credentials: "same-origin", cache: "no-store", signal });
   const value = await payload(response);
   if (!response.ok || value.schemaVersion !== "1.0" || value.bookSlug !== bookSlug || value.componentSlug !== componentSlug || !Array.isArray(value.activities)) throw new Error(value.error || "Native activity catalog could not be loaded.");
-  return value.activities;
+  const invalidActivities = value.invalidActivities || [];
+  if (!Array.isArray(invalidActivities) || invalidActivities.some((diagnostic) => !diagnostic || typeof diagnostic !== "object" || Array.isArray(diagnostic)
+    || Object.keys(diagnostic).sort().join("\0") !== ["activityId", "kind", "pageId", "code", "stage", "loadable", "ready"].sort().join("\0")
+    || ![diagnostic.activityId, diagnostic.kind, diagnostic.pageId].every((item) => SAFE_ID.test(String(item || "")))
+    || !/^[a-z][a-z0-9_]{2,63}$/.test(String(diagnostic.code || "")) || !/^[a-z][a-z0-9-]{2,63}$/.test(String(diagnostic.stage || ""))
+    || diagnostic.loadable !== false || diagnostic.ready !== false)) throw new Error("Native activity catalog diagnostics are invalid.");
+  return { activities: value.activities, invalidActivities };
+}
+
+export async function getNativeActivityCatalog(identity, options) {
+  return (await getNativeActivityCatalogResult(identity, options)).activities;
 }
 
 export async function saveNativeActivityPair({ bookSlug, componentSlug, activityId, expectedPublicRevision, expectedTeacherRevision, publicDocument, teacherDocument }) {
