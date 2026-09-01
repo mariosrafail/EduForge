@@ -14,6 +14,7 @@ import { canonicalStudentsBookPages } from "../../netlify-sites/ultimate-b2-buil
 import { createBuilderPagesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-pages.js";
 import { createBuilderNativeActivitiesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
 import { createBuilderContentHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content.js";
+import { builderDocumentSha256 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { createBuilderPreviewHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-preview.js";
 import { createBuilderPreviewAuthorizationHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization-handler.js";
 import { classifyBuilderPreviewAuthorization, inspectBuilderPreviewAuthorizationScope, issueBuilderPreviewAuthorization } from "../../netlify-sites/ultimate-b2-builder/server/_builder-preview-authorization.js";
@@ -114,7 +115,7 @@ async function loadNativeDocument(_sql, resource) {
 
 function nativeSources(componentSlug) {
   const state = nativeState(componentSlug);
-  const source = (stored) => stored ? { revision: stored.revision, payload: stored.document } : null;
+  const source = (stored) => stored ? { revision: stored.revision, payload: stored.document, sha256: builderDocumentSha256(stored.document) } : null;
   return {
     native: {
       index: source(state.index),
