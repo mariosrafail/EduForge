@@ -1,4 +1,5 @@
 import { isNativeChildId } from "./nativeChildIdentity.js";
+import { nativeActivityFontFamily } from "./nativeActivityFont.js";
 import { NATIVE_IMAGE_DEFAULT_SURFACE, NATIVE_IMAGE_LIMITS, normalizeNativeImageInteraction } from "./nativeImage.js";
 import { removeNativeManagedAssetReferenceIfUnused } from "./nativeActivityPublic.js";
 
@@ -11,9 +12,16 @@ export const NATIVE_DRAG_DROP_LIMITS = Object.freeze({
   targetLabelLength: 300,
   imagesPerPanel: NATIVE_IMAGE_LIMITS.images,
   surfaceMaximum: NATIVE_IMAGE_LIMITS.surfaceMaximum,
+  fontSizeMinimum: 8,
+  fontSizeMaximum: 96,
 });
 
 export const NATIVE_DRAG_DROP_DEFAULT_SURFACE = NATIVE_IMAGE_DEFAULT_SURFACE;
+export const NATIVE_DRAG_DROP_FONT_FAMILIES = Object.freeze(["Arial", "Georgia", "Verdana"]);
+export const NATIVE_DRAG_DROP_DEFAULT_PRESENTATION = Object.freeze({
+  bankWordStyle: Object.freeze({ fontFamily: "Arial", fontSize: 18, color: "#172033", fontAssetSlot: null }),
+  placedAnswerStyle: Object.freeze({ fontFamily: "Arial", fontSize: 21, color: "#172033", fontAssetSlot: null }),
+});
 
 function object(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object.`);
@@ -50,13 +58,33 @@ function normalizeArea(input, surface, label) {
   return area;
 }
 
+function normalizeTextStyle(input, label, assets) {
+  exactKeys(input, ["fontFamily", "fontSize", "color", "fontAssetSlot"], label);
+  if (!NATIVE_DRAG_DROP_FONT_FAMILIES.includes(input.fontFamily)) throw new Error(`${label}.fontFamily is not approved.`);
+  const fontSize = number(input.fontSize, `${label}.fontSize`, NATIVE_DRAG_DROP_LIMITS.fontSizeMinimum, NATIVE_DRAG_DROP_LIMITS.fontSizeMaximum);
+  if (typeof input.color !== "string" || !/^#[0-9a-f]{6}$/i.test(input.color)) throw new Error(`${label}.color is invalid.`);
+  const fontAssetSlot = input.fontAssetSlot === null ? null : String(input.fontAssetSlot);
+  if (fontAssetSlot !== null && !assets.some((asset) => asset.slot === fontAssetSlot && asset.role === "activity_font")) throw new Error(`${label}.fontAssetSlot does not reference an authorized font.`);
+  return { fontFamily: input.fontFamily, fontSize, color: input.color.toLowerCase(), fontAssetSlot };
+}
+
+function normalizePresentation(input, assets) {
+  if (input === undefined) return structuredClone(NATIVE_DRAG_DROP_DEFAULT_PRESENTATION);
+  exactKeys(input, ["bankWordStyle", "placedAnswerStyle"], "Native Drag & Drop presentation");
+  return {
+    bankWordStyle: normalizeTextStyle(input.bankWordStyle, "Native Drag & Drop bank word style", assets),
+    placedAnswerStyle: normalizeTextStyle(input.placedAnswerStyle, "Native Drag & Drop placed answer style", assets),
+  };
+}
+
 export function createEmptyNativeDragDropInteraction() {
-  return { kind: "drag-drop", words: [], panels: [] };
+  return { kind: "drag-drop", words: [], presentation: structuredClone(NATIVE_DRAG_DROP_DEFAULT_PRESENTATION), panels: [] };
 }
 
 export function normalizeNativeDragDropInteraction(input, { assets = [], commonAssetSlots = new Set() } = {}) {
   const value = structuredClone(object(input, "Native Drag & Drop interaction"));
-  exactKeys(value, ["kind", "words", "panels"], "Native Drag & Drop interaction");
+  const hasPresentation = Object.hasOwn(value, "presentation");
+  exactKeys(value, ["kind", "words", ...(hasPresentation ? ["presentation"] : []), "panels"], "Native Drag & Drop interaction");
   if (value.kind !== "drag-drop") throw new Error("Native Drag & Drop interaction kind is invalid.");
   if (!Array.isArray(value.words) || value.words.length > NATIVE_DRAG_DROP_LIMITS.words) throw new Error("Native Drag & Drop word count is invalid.");
   if (!Array.isArray(value.panels) || value.panels.length > NATIVE_DRAG_DROP_LIMITS.panels) throw new Error("Native Drag & Drop panel count is invalid.");
@@ -70,6 +98,7 @@ export function normalizeNativeDragDropInteraction(input, { assets = [], commonA
     return { id: word.id, text: text(word.text, `${label}.text`, NATIVE_DRAG_DROP_LIMITS.wordTextLength, { required: true }) };
   });
 
+  const presentation = normalizePresentation(value.presentation, assets);
   const panelIds = new Set();
   const imageIds = new Set();
   const targetIds = new Set();
@@ -85,9 +114,10 @@ export function normalizeNativeDragDropInteraction(input, { assets = [], commonA
     targetCount += panel.dropTargets.length;
     if (targetCount > NATIVE_DRAG_DROP_LIMITS.totalTargets) throw new Error("Native Drag & Drop total target count is invalid.");
 
+    const compositionAssets = assets.filter((asset) => asset.role !== "activity_font");
     const panelAssetSlots = new Set(panel.images.map((image) => image.assetSlot));
-    const otherAssetSlots = new Set([...commonAssetSlots, ...assets.filter((asset) => !panelAssetSlots.has(asset.slot)).map((asset) => asset.slot)]);
-    const composition = normalizeNativeImageInteraction({ kind: "image", surface: panel.surface, images: panel.images }, { assets, commonAssetSlots: otherAssetSlots });
+    const otherAssetSlots = new Set([...commonAssetSlots, ...compositionAssets.filter((asset) => !panelAssetSlots.has(asset.slot)).map((asset) => asset.slot)]);
+    const composition = normalizeNativeImageInteraction({ kind: "image", surface: panel.surface, images: panel.images }, { assets: compositionAssets, commonAssetSlots: otherAssetSlots });
     composition.images.forEach((image) => {
       if (imageIds.has(image.id)) throw new Error("Native Drag & Drop image identities must be unique across panels.");
       imageIds.add(image.id); usedAssetSlots.add(image.assetSlot);
@@ -106,8 +136,9 @@ export function normalizeNativeDragDropInteraction(input, { assets = [], commonA
     return { id: panel.id, surface: composition.surface, images: composition.images, dropTargets };
   });
 
-  if (assets.some((asset) => !usedAssetSlots.has(asset.slot) && !commonAssetSlots.has(asset.slot))) throw new Error("Every Native Drag & Drop managed asset must be used by an image layer or common supporting content.");
-  return { kind: "drag-drop", words, panels };
+  [presentation.bankWordStyle.fontAssetSlot, presentation.placedAnswerStyle.fontAssetSlot].filter(Boolean).forEach((slot) => usedAssetSlots.add(slot));
+  if (assets.some((asset) => !usedAssetSlots.has(asset.slot) && !commonAssetSlots.has(asset.slot))) throw new Error("Every Native Drag & Drop managed asset must be used by an image layer, text style, or common supporting content.");
+  return { kind: "drag-drop", words, presentation, panels };
 }
 
 export function normalizeNativeDragDropSolution(input) {
@@ -161,13 +192,23 @@ export function assessNativeDragDropReadiness(publicDocument, teacherDocument) {
 }
 
 export function nativeDragDropAssetRequirements(publicDocument) {
-  const panels = publicDocument?.parts?.[0]?.interaction?.panels || [];
+  const interaction = publicDocument?.parts?.[0]?.interaction;
+  const panels = interaction?.panels || [];
   const seen = new Set();
-  return panels.flatMap((panel, panelIndex) => panel.images.flatMap((image, imageIndex) => {
+  const requirements = panels.flatMap((panel, panelIndex) => panel.images.flatMap((image, imageIndex) => {
     if (seen.has(image.assetSlot)) return [];
     seen.add(image.assetSlot);
     return [{ slot: image.assetSlot, label: `Drag & Drop panel ${panelIndex + 1} image ${imageIndex + 1}` }];
   }));
+  for (const [style, label] of [[interaction?.presentation?.bankWordStyle, "Drag & Drop bank word font"], [interaction?.presentation?.placedAnswerStyle, "Drag & Drop placed answer font"]]) {
+    const slot = style?.fontAssetSlot;
+    if (slot && !seen.has(slot)) { seen.add(slot); requirements.push({ slot, mediaType: "font/ttf", label }); }
+  }
+  return requirements;
+}
+
+export function nativeDragDropTextFontFamily(publicDocument, style) {
+  return nativeActivityFontFamily(publicDocument, style?.fontAssetSlot, style?.fontFamily || "Arial");
 }
 
 export function removeNativeDragDropImage(publicDocument, panelId, imageId) {

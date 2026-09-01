@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Eye, ImagePlus, Layers3, Plus, Trash2 } from "lucide-react";
 
 import { StudioButton, StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
-import { StageGeometryControls } from "../../../components/builder-studio/StageGeometryControls.jsx";
+import { QuickNumber, StageGeometryControls } from "../../../components/builder-studio/StageGeometryControls.jsx";
 import { NativeDragDropAuthoringCanvas } from "../../../components/native-drag-drop/NativeDragDropAuthoringCanvas.jsx";
 import { NativeDragDropStudentSurface } from "../../../components/native-drag-drop/NativeDragDropSurface.jsx";
 import { NativeDragDropTeacherSurface } from "../../../components/native-drag-drop/NativeDragDropTeacherSurface.jsx";
@@ -11,14 +11,17 @@ import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUn
 import {
   assessNativeDragDropReadiness,
   NATIVE_DRAG_DROP_DEFAULT_SURFACE,
+  NATIVE_DRAG_DROP_FONT_FAMILIES,
   NATIVE_DRAG_DROP_LIMITS,
+  normalizeNativeDragDropInteraction,
   reassignNativeDragDropMapping,
   removeNativeDragDropImage,
   removeNativeDragDropPanel,
   removeNativeDragDropWord,
 } from "../../../data/native-activities/nativeDragDrop.js";
 import { getBuilderContent } from "./builderContentApi.js";
-import { saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
+import { getBuilderFontLibrary, saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
+import { NativeActivityFontControls } from "./NativeCompleteSentencesFontControls.jsx";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import "./nativeDragDropEditor.css";
 
@@ -32,6 +35,15 @@ function moveInArray(list, index, delta) {
   const [entry] = list.splice(index, 1); list.splice(target, 0, entry);
 }
 
+function DragDropTextStyleControls({ heading, style, fonts, bookSlug, componentSlug, onStyleChange, onFontSelect, onFontUploaded, onMessage }) {
+  return <fieldset className="native-drag-drop-typography"><legend>{heading}</legend>
+    <StudioField label={`${heading} family`}><select value={style.fontFamily} onChange={(event) => onStyleChange("fontFamily", event.target.value)}>{NATIVE_DRAG_DROP_FONT_FAMILIES.map((family) => <option key={family} value={family}>{family}</option>)}</select></StudioField>
+    <QuickNumber label={`${heading} size`} value={style.fontSize} minimum={NATIVE_DRAG_DROP_LIMITS.fontSizeMinimum} maximum={NATIVE_DRAG_DROP_LIMITS.fontSizeMaximum} onChange={(value) => onStyleChange("fontSize", Number(value))} />
+    <StudioField label={`${heading} color`}><input aria-label={`${heading} color`} type="color" value={style.color} onChange={(event) => onStyleChange("color", event.target.value)} /></StudioField>
+    <NativeActivityFontControls bookSlug={bookSlug} componentSlug={componentSlug} fonts={fonts} selectedSlot={style.fontAssetSlot} onSelect={onFontSelect} onUploaded={onFontUploaded} onMessage={onMessage} label={`${heading} managed font`} />
+  </fieldset>;
+}
+
 export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {}, onSaved = () => {} }) {
   const [state, setState] = useState({ kind: "loading", message: "" });
   const [publicDraft, setPublicDraft] = useState(null);
@@ -43,6 +55,7 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
   const [drawingTarget, setDrawingTarget] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [previewMode, setPreviewMode] = useState("student");
+  const [fonts, setFonts] = useState([]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -50,10 +63,12 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
     Promise.all([
       getBuilderContent({ bookSlug, componentSlug, resource: "native-activity-public", documentKey: activityId }, { signal: controller.signal }),
       getBuilderContent({ bookSlug, componentSlug, resource: "native-activity-teacher", documentKey: activityId }, { signal: controller.signal }),
-    ]).then(([publicValue, teacherValue]) => {
+      getBuilderFontLibrary({ bookSlug, componentSlug }, { signal: controller.signal }),
+    ]).then(([publicValue, teacherValue, fontLibrary]) => {
       if (controller.signal.aborted) return;
       const projected = projectNativeActivityPublicForAuthoring(publicValue.document);
-      setPublicDraft(projected); setTeacherDraft(teacherValue.document); setPanelId(projected.parts[0].interaction.panels[0]?.id || null);
+      projected.parts[0].interaction = normalizeNativeDragDropInteraction(projected.parts[0].interaction, { assets: projected.assets });
+      setPublicDraft(projected); setTeacherDraft(teacherValue.document); setFonts(fontLibrary); setPanelId(projected.parts[0].interaction.panels[0]?.id || null);
       setState({ kind: "ready", publicRevision: publicValue.revision, teacherRevision: teacherValue.revision, message: "Draft saved." });
     }).catch((error) => { if (!controller.signal.aborted) setState({ kind: "error", message: error.message }); });
     return () => controller.abort();
@@ -144,6 +159,17 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
   const setMapping = (targetId, wordId) => mutateTeacher((next) => {
     next.parts[0].solution.mappings = reassignNativeDragDropMapping(next.parts[0].solution.mappings, targetId, wordId);
   });
+  const changeTextStyle = (styleKey, key, value) => mutatePublic((next) => { next.parts[0].interaction.presentation[styleKey][key] = value; });
+  const setTextFont = (styleKey, font) => mutatePublic((next) => {
+    const style = next.parts[0].interaction.presentation[styleKey];
+    const previousSlot = style.fontAssetSlot;
+    if (font) {
+      next.assets = mergeNativeManagedAssetReference(next.assets, { assetId: font.assetId, checksumSha256: font.checksumSha256, role: font.role, slot: font.slot });
+      style.fontAssetSlot = font.slot;
+    } else style.fontAssetSlot = null;
+    if (previousSlot && previousSlot !== style.fontAssetSlot) removeNativeManagedAssetReferenceIfUnused(next, previousSlot);
+  });
+  const recordUploadedFont = (font) => setFonts((current) => [...current.filter((entry) => entry.assetId !== font.assetId), font]);
   const save = async () => {
     setState((current) => ({ ...current, saving: true, message: "Saving…" }));
     try {
@@ -160,7 +186,7 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
     <header className="studio-editor-header"><div><span className="studio-eyebrow">{placementLabel} · Drag &amp; Drop</span><h2>{publicDraft.metadata.title}</h2><p>{readiness.ready ? "Content complete" : `${readiness.issues.length} item${readiness.issues.length === 1 ? "" : "s"} need attention`}</p></div><details className="builder-technical-details"><summary>Technical details</summary><code>{activityId}</code></details></header>
     <StudioTabWorkspace id="native-drag-drop-tabs" value={tab} onChange={(value) => { setTab(value); setDrawingTarget(false); }} tabs={tabs} label="Drag and Drop authoring modes">
 
-    {tab === "content" ? <div className="studio-content-panel native-drag-drop-content"><StudioField label="Activity title"><input value={publicDraft.metadata.title} maxLength="300" onChange={(event) => mutatePublic((next) => { next.metadata.title = event.target.value; })} /></StudioField><section className="native-drag-drop-editor-list"><h3>Shared word bank</h3><StudioButton onClick={addWord} disabled={interaction.words.length >= NATIVE_DRAG_DROP_LIMITS.words}><Plus aria-hidden="true" />Add word</StudioButton>{interaction.words.map((word, index) => <div className="native-drag-drop-word-row" key={word.id}><input aria-label={`Word ${index + 1}`} value={word.text} maxLength={NATIVE_DRAG_DROP_LIMITS.wordTextLength} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.words[index].text = event.target.value; })} /><button type="button" aria-label={`Move word ${index + 1} up`} disabled={!index} onClick={() => mutatePublic((next) => moveInArray(next.parts[0].interaction.words, index, -1))}>↑</button><button type="button" aria-label={`Move word ${index + 1} down`} disabled={index === interaction.words.length - 1} onClick={() => mutatePublic((next) => moveInArray(next.parts[0].interaction.words, index, 1))}>↓</button><button type="button" aria-label={`Remove word ${index + 1}`} onClick={() => deleteWord(word.id)}><Trash2 aria-hidden="true" /></button></div>)}</section></div> : null}
+    {tab === "content" ? <div className="studio-content-panel native-drag-drop-content"><StudioField label="Activity title"><input value={publicDraft.metadata.title} maxLength="300" onChange={(event) => mutatePublic((next) => { next.metadata.title = event.target.value; })} /></StudioField><section className="native-drag-drop-editor-list"><h3>Shared word bank</h3><StudioButton onClick={addWord} disabled={interaction.words.length >= NATIVE_DRAG_DROP_LIMITS.words}><Plus aria-hidden="true" />Add word</StudioButton>{interaction.words.map((word, index) => <div className="native-drag-drop-word-row" key={word.id}><input aria-label={`Word ${index + 1}`} value={word.text} maxLength={NATIVE_DRAG_DROP_LIMITS.wordTextLength} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.words[index].text = event.target.value; })} /><button type="button" aria-label={`Move word ${index + 1} up`} disabled={!index} onClick={() => mutatePublic((next) => moveInArray(next.parts[0].interaction.words, index, -1))}>↑</button><button type="button" aria-label={`Move word ${index + 1} down`} disabled={index === interaction.words.length - 1} onClick={() => mutatePublic((next) => moveInArray(next.parts[0].interaction.words, index, 1))}>↓</button><button type="button" aria-label={`Remove word ${index + 1}`} onClick={() => deleteWord(word.id)}><Trash2 aria-hidden="true" /></button></div>)}</section><section className="native-drag-drop-typography-grid" aria-label="Drag and Drop typography"><h3>Shared typography</h3><DragDropTextStyleControls heading="Bank words" style={interaction.presentation.bankWordStyle} fonts={fonts} bookSlug={bookSlug} componentSlug={componentSlug} onStyleChange={(key, value) => changeTextStyle("bankWordStyle", key, value)} onFontSelect={(font) => setTextFont("bankWordStyle", font)} onFontUploaded={recordUploadedFont} onMessage={(message) => setState((current) => ({ ...current, message }))} /><DragDropTextStyleControls heading="Placed answers" style={interaction.presentation.placedAnswerStyle} fonts={fonts} bookSlug={bookSlug} componentSlug={componentSlug} onStyleChange={(key, value) => changeTextStyle("placedAnswerStyle", key, value)} onFontSelect={(font) => setTextFont("placedAnswerStyle", font)} onFontUploaded={recordUploadedFont} onMessage={(message) => setState((current) => ({ ...current, message }))} /></section></div> : null}
     {tab === "layout" ? <div className="native-drag-drop-editor-grid">
       <aside className="native-drag-drop-editor-list"><h3>Panels</h3><StudioButton onClick={addPanel} disabled={interaction.panels.length >= NATIVE_DRAG_DROP_LIMITS.panels}><Plus aria-hidden="true" />Add panel</StudioButton>{interaction.panels.map((entry, index) => <div className="native-drag-drop-panel-row" key={entry.id}><button type="button" aria-current={panel?.id === entry.id ? "true" : undefined} onClick={() => { setPanelId(entry.id); setSelection(null); setDrawingTarget(false); }}>Panel {index + 1} · {entry.images.length} image{entry.images.length === 1 ? "" : "s"} · {entry.dropTargets.length} target{entry.dropTargets.length === 1 ? "" : "s"}</button><button type="button" aria-label={`Move panel ${index + 1} up`} disabled={!index} onClick={() => movePanel(index, -1)}>↑</button><button type="button" aria-label={`Move panel ${index + 1} down`} disabled={index === interaction.panels.length - 1} onClick={() => movePanel(index, 1)}>↓</button></div>)}
       </aside>

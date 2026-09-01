@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
+import { nativeActivitySelectedFontState, useNativeActivityFonts } from "../native-activity-assets/useNativeActivityFonts.js";
 import {
+  NATIVE_DRAG_DROP_DEFAULT_PRESENTATION,
+  nativeDragDropTextFontFamily,
   normalizeNativeDragDropResponses,
   placeNativeDragDropWord,
   removeNativeDragDropResponse,
@@ -86,8 +89,16 @@ export function NativeDragDropStudentSurface({
   const lastResetToken = useRef(resetToken);
   const orderActivityId = useRef(document.activityId);
   const responses = useMemo(() => normalizeNativeDragDropResponses(controlled && typeof controlled === "object" ? controlled : local, document), [controlled, document, local]);
+  const fontState = useNativeActivityFonts(document, assetUrl);
   const panelIndex = controlledPanelIndex ?? localPanelIndex;
   const panel = interaction.panels[panelIndex] || interaction.panels[0];
+  const textPresentation = interaction.presentation || NATIVE_DRAG_DROP_DEFAULT_PRESENTATION;
+  const bankWordStyle = textPresentation.bankWordStyle;
+  const placedAnswerStyle = textPresentation.placedAnswerStyle;
+  const bankFont = nativeDragDropTextFontFamily(document, bankWordStyle);
+  const placedFont = nativeDragDropTextFontFamily(document, placedAnswerStyle);
+  const bankFontState = nativeActivitySelectedFontState(fontState, document, bankWordStyle.fontAssetSlot);
+  const placedFontState = nativeActivitySelectedFontState(fontState, document, placedAnswerStyle.fontAssetSlot);
   const wordById = new Map(interaction.words.map((word) => [word.id, word]));
   const visibleWordIds = visibleNativeDragDropWordIds(sessionWordIds, responses, targetWordOverrides);
   const visibleWords = visibleWordIds.map((wordId) => wordById.get(wordId)).filter(Boolean);
@@ -119,7 +130,7 @@ export function NativeDragDropStudentSurface({
     return true;
   };
   const returnDragPreview = (active) => {
-    const next = { ...active, clientX: active.sourceRect.left + active.offsetX, clientY: active.sourceRect.top + active.offsetY, returning: true };
+    const next = { ...active, clientX: active.sourceRect.left + active.sourceRect.width / 2, clientY: active.sourceRect.top + active.sourceRect.height / 2, returning: true };
     setDragPreview(next);
     clearReturnTimer();
     returnTimer.current = globalThis.setTimeout(() => { returnTimer.current = null; setDragPreview(null); }, DRAG_RETURN_MS);
@@ -127,6 +138,7 @@ export function NativeDragDropStudentSurface({
   const beginDrag = (event, wordId) => {
     if (readOnly || event.button !== 0 || !visibleWordIds.includes(wordId)) return;
     const sourceRect = event.currentTarget.getBoundingClientRect();
+    const sourceStyle = globalThis.getComputedStyle?.(event.currentTarget);
     const active = {
       pointerId: event.pointerId,
       pointerType: event.pointerType,
@@ -135,9 +147,8 @@ export function NativeDragDropStudentSurface({
       startY: event.clientY,
       clientX: event.clientX,
       clientY: event.clientY,
-      offsetX: event.clientX - sourceRect.left,
-      offsetY: event.clientY - sourceRect.top,
       sourceRect: { left: sourceRect.left, top: sourceRect.top, width: sourceRect.width, height: sourceRect.height },
+      previewStyle: { fontFamily: sourceStyle?.fontFamily, fontSize: sourceStyle?.fontSize, lineHeight: sourceStyle?.lineHeight, color: sourceStyle?.color },
       moved: false,
       returning: false,
     };
@@ -217,19 +228,18 @@ export function NativeDragDropStudentSurface({
               }
             }} onKeyDown={(event) => {
               if ((event.key === "Delete" || event.key === "Backspace") && placedWord && !readOnly) { event.preventDefault(); commit(removeNativeDragDropResponse(responses, target.id)); clearFeedback(); }
-            }}>{visibleWord?.text || null}</button>;
+            }}><span className="native-drag-drop-target-text" data-drag-drop-target-text data-font-status={placedFontState.status} style={{ fontFamily: placedFont, fontSize: `${(placedAnswerStyle.fontSize / panel.surface.width) * 100}cqw`, color: placedAnswerStyle.color }}>{visibleWord?.text || null}</span></button>;
           })}
-        </PanelArtwork>
-        <div className="native-drag-drop-bank" aria-label="Word bank">
-          <p className="native-drag-drop-bank-instruction">Choose a word, then choose a target—or drag it into place.</p>
+        <div className="native-drag-drop-bank" aria-label="Word bank" data-font-status={bankFontState.status} style={{ zIndex: panel.images.length + 4 }}>
           <div className="native-drag-drop-bank-items">
-            {visibleWords.map((word) => <button key={word.id} type="button" className="native-drag-drop-word" aria-pressed={selectedWordId === word.id} data-drag-drop-word-id={word.id} data-dragging={dragPreview?.wordId === word.id && !dragPreview.returning || undefined} disabled={readOnly} onClick={() => { if (suppressClickWordId.current === word.id) { suppressClickWordId.current = null; return; } clearFeedback(); setSelectedWordId((current) => current === word.id ? null : word.id); }} onPointerDown={(event) => beginDrag(event, word.id)} onPointerMove={moveDrag} onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)} onLostPointerCapture={(event) => finishDrag(event, true)}>{word.text}</button>)}
+            {visibleWords.map((word) => <button key={word.id} type="button" className="native-drag-drop-word" style={{ fontFamily: bankFont, fontSize: `${(bankWordStyle.fontSize / panel.surface.width) * 100}cqw`, color: bankWordStyle.color }} aria-pressed={selectedWordId === word.id} data-drag-drop-word-id={word.id} data-dragging={dragPreview?.wordId === word.id && !dragPreview.returning || undefined} disabled={readOnly} onClick={() => { if (suppressClickWordId.current === word.id) { suppressClickWordId.current = null; return; } clearFeedback(); setSelectedWordId((current) => current === word.id ? null : word.id); }} onPointerDown={(event) => beginDrag(event, word.id)} onPointerMove={moveDrag} onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)} onLostPointerCapture={(event) => finishDrag(event, true)}>{word.text}</button>)}
           </div>
           <span className="native-drag-drop-status" role="status" aria-live="polite" data-incorrect={Boolean(statusMessage) || undefined}>{statusMessage || (selectedWordId ? `${wordById.get(selectedWordId)?.text || "Word"} selected. Choose a target.` : "")}</span>
         </div>
+        </PanelArtwork>
       </div>
       {!presentation ? <PanelNavigation panels={interaction.panels} panelIndex={panelIndex} setPanelIndex={setPanelIndex} /> : null}
-      {previewWord && dragPreview ? <span className="native-drag-drop-drag-preview" data-drag-drop-drag-preview data-returning={dragPreview.returning || undefined} style={{ left: dragPreview.clientX - dragPreview.offsetX, top: dragPreview.clientY - dragPreview.offsetY, width: dragPreview.sourceRect.width, minHeight: dragPreview.sourceRect.height }}>{previewWord.text}</span> : null}
+      {previewWord && dragPreview ? <span className="native-drag-drop-drag-preview" data-drag-drop-drag-preview data-returning={dragPreview.returning || undefined} style={{ left: dragPreview.clientX, top: dragPreview.clientY, width: dragPreview.sourceRect.width, minHeight: dragPreview.sourceRect.height, ...dragPreview.previewStyle }}>{previewWord.text}</span> : null}
     </div>
   </section>;
 }

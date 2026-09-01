@@ -76,8 +76,8 @@ export async function measureDragDrop(locator, { context, viewport }) {
       visualRootRatio: visual.height / root.height,
       bankRootRatio: bank.height / root.height,
       usableVisualRatio: stageSlot.height / workspace.height,
-      usableBankRatio: bank.height / workspace.height,
-      bankTopRatio: (bankRect.top - workspaceRect.top) / workspaceRect.height,
+      usableBankRatio: bank.height / stage.height,
+      bankTopRatio: (bankRect.top - stageRect.top) / stageRect.height,
       bankInsideStage: bankRect.left >= stageRect.left - 1 && bankRect.right <= stageRect.right + 1 && bankRect.top >= stageRect.top - 1 && bankRect.bottom <= stageRect.bottom + 1,
       bankOverlapsStage: bankRect.left < stageRect.right - 1 && bankRect.right > stageRect.left + 1 && bankRect.top < stageRect.bottom - 1 && bankRect.bottom > stageRect.top + 1,
       bankItemRows: new Set([...bankItemsElement.children].map((item) => Math.round(item.getBoundingClientRect().top))).size,
@@ -182,6 +182,7 @@ export async function exerciseDragDropProxy(page, surface, pair) {
   await proxy.waitFor();
   const proxyBox = await proxy.boundingBox();
   assert.ok(proxyBox && destination.x >= proxyBox.x && destination.x <= proxyBox.x + proxyBox.width && destination.y >= proxyBox.y && destination.y <= proxyBox.y + proxyBox.height, "the drag proxy follows mouse coordinates");
+  assert.ok(Math.abs(proxyBox.x + proxyBox.width / 2 - destination.x) < 2 && Math.abs(proxyBox.y + proxyBox.height / 2 - destination.y) < 2, "the drag proxy is centered on the mouse pointer");
   await page.mouse.up();
   await expect(target).toHaveAttribute("data-incorrect", "true");
   await expect(proxy).toHaveAttribute("data-returning", "true");
@@ -210,6 +211,7 @@ export async function exerciseDragDropProxy(page, surface, pair) {
   await proxy.waitFor();
   const touchProxyBox = await proxy.boundingBox();
   assert.ok(touchProxyBox && touchEnd.x >= touchProxyBox.x && touchEnd.x <= touchProxyBox.x + touchProxyBox.width && touchEnd.y >= touchProxyBox.y && touchEnd.y <= touchProxyBox.y + touchProxyBox.height, "the drag proxy follows touch pointer coordinates");
+  assert.ok(Math.abs(touchProxyBox.x + touchProxyBox.width / 2 - touchEnd.x) < 2 && Math.abs(touchProxyBox.y + touchProxyBox.height / 2 - touchEnd.y) < 2, "the drag proxy is centered on the touch pointer");
   await dispatchPointer(correctWord, "pointercancel", { button: 0, buttons: 0, clientX: touchEnd.x, clientY: touchEnd.y }, { pointerId: 71, pointerType: "touch" });
   await proxy.waitFor({ state: "detached" });
   assert.equal(await correctWord.count(), 1, "pointer cancellation preserves the source word");

@@ -6,8 +6,10 @@ import { assertPublicBuilderDocument, builderDocumentSha256 } from "../netlify-s
 import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
+import { nativeActivityUsesManagedAssetSlot, removeNativeManagedAssetReferenceIfUnused } from "../src/data/native-activities/nativeActivityPublic.js";
 import {
   assessNativeDragDropReadiness,
+  NATIVE_DRAG_DROP_DEFAULT_PRESENTATION,
   nativeDragDropAssetRequirements,
   normalizeNativeDragDropResponses,
   placeNativeDragDropWord,
@@ -32,6 +34,7 @@ const assets = [
   { assetId: "20000000-0000-4000-8000-000000000041", checksumSha256: "b".repeat(64), role: "activity_artwork", slot: "drag-panel-shared" },
   { assetId: "20000000-0000-4000-8000-000000000042", checksumSha256: "c".repeat(64), role: "activity_artwork", slot: "drag-panel-overlay" },
 ];
+const fontAsset = { assetId: "20000000-0000-4000-8000-000000000043", checksumSha256: "d".repeat(64), role: "activity_font", slot: "font-20000000000040008000000000000043" };
 
 function pair() {
   const kind = resolveNativeActivityKind("drag-drop");
@@ -67,6 +70,7 @@ test("Drag & Drop blank pair and complete pair normalize strictly with Teacher-o
   const blankPublic = kind.createBlankPublic({ activityId, title: "Blank", placement: { pageId: publicationV2Fixture.pageId } });
   const blankTeacher = kind.createBlankTeacher({ activityId });
   assert.equal(kind.validatePair(blankPublic, blankTeacher), true);
+  assert.deepEqual(blankPublic.parts[0].interaction.presentation, NATIVE_DRAG_DROP_DEFAULT_PRESENTATION);
   assert.deepEqual(kind.assessReadiness(blankPublic, blankTeacher), { ready: false, issues: ["Add at least one draggable word.", "Add at least one visual panel."] });
 
   const current = pair();
@@ -79,6 +83,36 @@ test("Drag & Drop blank pair and complete pair normalize strictly with Teacher-o
   assert.match(JSON.stringify(teacherDocument), /mappings/);
   assert.equal(publicDocument.parts[0].interaction.words[0].text, publicDocument.parts[0].interaction.words[1].text, "duplicate visible text is legal for distinct instances");
   assert.equal(teacherDocument.parts[0].solution.mappings.some((mapping) => mapping.wordId === wordIds[2]), false, "extra bank words are legal distractors");
+
+  const legacy = pair(); delete legacy.publicDocument.parts[0].interaction.presentation;
+  assert.deepEqual(legacy.kind.normalizePublic(legacy.publicDocument).parts[0].interaction.presentation, NATIVE_DRAG_DROP_DEFAULT_PRESENTATION, "legacy documents receive deterministic shared typography defaults");
+});
+
+test("shared bank and placed-answer typography normalize independently and close managed font requirements", () => {
+  const current = pair();
+  const font = fontAsset;
+  current.publicDocument.assets.push(font);
+  current.publicDocument.parts[0].interaction.presentation = {
+    bankWordStyle: { fontFamily: "Georgia", fontSize: 17, color: "#123ABC", fontAssetSlot: font.slot },
+    placedAnswerStyle: { fontFamily: "Verdana", fontSize: 23, color: "#654321", fontAssetSlot: font.slot },
+  };
+  const normalized = current.kind.normalizePublic(current.publicDocument);
+  assert.deepEqual(normalized.parts[0].interaction.presentation, {
+    bankWordStyle: { fontFamily: "Georgia", fontSize: 17, color: "#123abc", fontAssetSlot: font.slot },
+    placedAnswerStyle: { fontFamily: "Verdana", fontSize: 23, color: "#654321", fontAssetSlot: font.slot },
+  });
+  assert.deepEqual(nativeDragDropAssetRequirements(normalized).map((entry) => [entry.slot, entry.mediaType || null]), [[assets[0].slot, null], [assets[1].slot, null], [font.slot, "font/ttf"]]);
+  assert.equal(nativeActivityUsesManagedAssetSlot(normalized, font.slot), true);
+  normalized.parts[0].interaction.presentation.bankWordStyle.fontAssetSlot = null;
+  removeNativeManagedAssetReferenceIfUnused(normalized, font.slot);
+  assert.equal(normalized.assets.some((asset) => asset.slot === font.slot), true, "a font shared by both text styles remains attached while either style uses it");
+  normalized.parts[0].interaction.presentation.placedAnswerStyle.fontAssetSlot = null;
+  removeNativeManagedAssetReferenceIfUnused(normalized, font.slot);
+  assert.equal(normalized.assets.some((asset) => asset.slot === font.slot), false);
+  assert.doesNotMatch(JSON.stringify(normalized), /mappings|solution/);
+
+  const invalid = structuredClone(current.publicDocument); invalid.parts[0].interaction.presentation.bankWordStyle.fontAssetSlot = "missing-font";
+  assert.throws(() => current.kind.normalizePublic(invalid), /authorized font/);
 });
 
 test("public word and target ordering cannot encode the private stable-ID answer", () => {
@@ -164,10 +198,13 @@ function source(payload, revision = 1) { return { payload, revision, sha256: bui
 
 test("publication v2 separates mappings and closes every Drag & Drop image asset", () => {
   const current = pair(); const sources = createPublicationV2FixtureSources();
+  current.publicDocument.assets.push(fontAsset);
+  current.publicDocument.parts[0].interaction.presentation.bankWordStyle.fontAssetSlot = fontAsset.slot;
   const entry = { activityId, kind: "drag-drop", placement: { pageId: publicationV2Fixture.pageId }, sortOrder: 4 };
   sources.native.index.payload.activities.push(entry); sources.native.index = source(sources.native.index.payload, sources.native.index.revision);
   sources.native.activities[activityId] = { index: entry, public: source(current.publicDocument), teacher: source(current.teacherDocument) };
   sources.native.assetRows.push(...assets.map((asset, index) => ({ id: asset.assetId, checksum_sha256: asset.checksumSha256, asset_role: asset.role, object_key: `builder-native-assets/drag-${index}.png`, storage_profile: "private", storage_bucket: "private", mime_type: "image/png", byte_size: 100, width: 1000, height: 600, publication_status: "draft", access_level: "internal", source_metadata: { native_activity_id: activityId, asset_slot: asset.slot } })));
+  sources.native.assetRows.push({ id: fontAsset.assetId, checksum_sha256: fontAsset.checksumSha256, asset_role: fontAsset.role, object_key: `builder-font-library/ultimate-b2/ultimate-b2-students-book/${fontAsset.checksumSha256}.ttf`, storage_profile: "private", storage_bucket: "private", mime_type: "font/ttf", byte_size: 22000, width: null, height: null, publication_status: "draft", access_level: "internal", source_metadata: { font_library_scope: "component", display_label: "Ahem" } });
   sources.documents.hotspots.payload.pages[publicationV2Fixture.pageId].push({ id: "hotspot-native-drag-drop-test", unitNumber: 1, pageId: publicationV2Fixture.pageId, pageNumber: 5, left: 68, top: 4, width: 12, height: 12, label: "Drag and Drop", actionType: "normalized_activity", activityKey: activityId });
   sources.documents.hotspots = source(sources.documents.hotspots.payload, sources.documents.hotspots.revision);
   const compiled = compileUltimateB2ComponentReleaseV2(sources);
@@ -176,6 +213,7 @@ test("publication v2 separates mappings and closes every Drag & Drop image asset
   assert.doesNotMatch(JSON.stringify(published), /mappings|solution/);
   assert.match(JSON.stringify(compiled.teacherProjection.nativeActivities[activityId]), /mappings/);
   assert.deepEqual(compiled.assetManifest.filter((asset) => asset.role === "activity_artwork" && ["b", "c"].includes(asset.sha256[0])).map((asset) => asset.sha256).sort(), ["b".repeat(64), "c".repeat(64)]);
+  assert.ok(compiled.assetManifest.some((asset) => asset.sha256 === fontAsset.checksumSha256 && asset.role === "activity_font" && asset.extension === "ttf" && asset.mediaType === "font/ttf"));
 });
 
 test("Builder and web/Android runtimes expose managed panels, controlled responses, pointer and keyboard paths", async () => {
@@ -191,11 +229,12 @@ test("Builder and web/Android runtimes expose managed panels, controlled respons
     readFile(new URL("../src/config/buildProfiles.js", import.meta.url), "utf8"),
   ]);
   assert.match(editor, /Add Background/); assert.match(editor, /Add Image/); assert.match(editor, /Replace image/); assert.match(editor, /Draw Drop Target/); assert.match(editor, /Teacher-only correct mappings/); assert.match(editor, /Move panel/); assert.match(editor, /Remove this word and its private target mapping/);
-  assert.match(editor, /Correct word mapping/); assert.match(editor, /<StageGeometryControls/); assert.match(editor, /reassignNativeDragDropMapping/); assert.match(editor, /resolveWordForTarget/);
+  assert.match(editor, /Correct word mapping/); assert.match(editor, /<StageGeometryControls/); assert.match(editor, /reassignNativeDragDropMapping/); assert.match(editor, /resolveWordForTarget/); assert.match(editor, /DragDropTextStyleControls/); assert.match(editor, /getBuilderFontLibrary/);
   assert.match(editor, /fit: "contain", locked: background/);
   assert.doesNotMatch(await readFile(new URL("../src/components/native-drag-drop/nativeDragDrop.css", import.meta.url), "utf8"), /\d+(?:\.\d+)?vh\b/, "activity sizing must be based on its container rather than the browser viewport");
   assert.match(surface, /onPointerDown/); assert.match(surface, /onPointerMove/); assert.match(surface, /elementFromPoint/); assert.match(surface, /selectedWordId/); assert.match(surface, /Delete/); assert.match(surface, /initialResponses/); assert.match(surface, /onResponsesChange/); assert.match(surface, /readOnly/);
   assert.match(surface, /data-drag-drop-drag-preview/); assert.match(surface, /pointerType/); assert.match(surface, /DRAG_MOVEMENT_THRESHOLD/); assert.match(surface, /onPointerCancel/); assert.match(surface, /onLostPointerCapture/); assert.match(surface, /visibleNativeDragDropWordIds/); assert.match(surface, /resolveWordForTarget/);
+  assert.match(surface, /data-drag-drop-target-text/); assert.doesNotMatch(surface, /Choose a word, then choose a target/);
   assert.doesNotMatch(surface, /Drop here|data-used/);
   assert.match(studentRunner, /NativeDragDropStudentSurface/); assert.doesNotMatch(studentRunner, /NativeDragDropTeacherSurface|loadPublishedNativeTeacherDocument|teacherDocument/);
   assert.match(teacherRunner, /NativeDragDropTeacherSurface/); assert.match(teacherSurface, /teacherDocument\.parts\[0\]\.solution\.mappings/); assert.match(teacherSurface, /evaluatePlacement/);

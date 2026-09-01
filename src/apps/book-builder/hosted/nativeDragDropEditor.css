@@ -6,6 +6,10 @@
 .native-drag-drop-panel-row > button[aria-current="true"] { border-color: #2563eb; background: #dbeafe; }
 .native-drag-drop-word-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 4px; }
 .native-drag-drop-word-row svg { width: 16px; }
+.native-drag-drop-typography-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.native-drag-drop-typography-grid > h3 { grid-column: 1 / -1; margin-bottom: 0; }
+.native-drag-drop-typography { display: grid; gap: 10px; min-width: 0; padding: 14px; border: 1px solid #d6dde8; border-radius: 12px; }
+.native-drag-drop-typography .studio-upload-action { width: 100%; }
 .native-drag-drop-editor-canvas { min-width: 0; }
 .native-drag-drop-editor-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
 .native-drag-drop-editor-actions label, .native-drag-drop-replace { display: inline-flex; align-items: center; gap: 6px; padding: 8px 12px; border: 1px solid #9aa8ba; border-radius: 8px; background: #fff; cursor: pointer; }
@@ -21,4 +25,4 @@
 .native-drag-drop-authoring-empty { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
 .native-drag-drop-mapping { max-width: 800px; margin: 18px auto; }
 @media (max-width: 1100px) { .native-drag-drop-editor-grid { grid-template-columns: 210px minmax(0, 1fr); } .native-drag-drop-editor-inspector { grid-column: 1 / -1; } }
-@media (max-width: 720px) { .native-drag-drop-editor-grid { grid-template-columns: 1fr; } }
+@media (max-width: 720px) { .native-drag-drop-editor-grid, .native-drag-drop-typography-grid { grid-template-columns: 1fr; } }
