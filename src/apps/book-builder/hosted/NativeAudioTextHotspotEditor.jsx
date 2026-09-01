@@ -129,7 +129,7 @@ function FocusCanvas({ readableText, imageUrl, hotspot, onFocusArea, onHighlight
         {!drawRegion && selectedRegion === "highlight" && highlight ? <StageSelectionFrame geometry={highlight} stage={bounds} label="Inner colored highlight" minWidth={Math.min(16, hotspot.readableFocusArea.width)} minHeight={Math.min(16, hotspot.readableFocusArea.height)} onChange={(area) => onHighlightArea(containedArea(area, hotspot.readableFocusArea))} onDelete={onDeleteHighlight} zIndex={100} /> : null}
       </> : null}
     </div>
-    {selectedRegion === "focus" && !drawRegion ? <StageGeometryControls area={hotspot.readableFocusArea} stage={bounds} label="Outer readable text focus" minWidth={16} minHeight={16} precision={3} aspectRatio={keepAspectRatio ? OUTER_FOCUS_ASPECT_RATIO : null} onChange={onFocusArea} /> : null}
+    {selectedRegion === "focus" && !drawRegion ? <StageGeometryControls area={hotspot.readableFocusArea} stage={bounds} label="Outer readable text focus" minWidth={16} minHeight={16} aspectRatio={keepAspectRatio ? OUTER_FOCUS_ASPECT_RATIO : null} onChange={onFocusArea} /> : null}
   </div>;
 }
 

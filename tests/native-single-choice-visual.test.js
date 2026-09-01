@@ -15,6 +15,7 @@ import { logicalAreaStyle } from "../src/components/builder-studio/stageGeometry
 import {
   addUnansweredNativeSingleChoiceQuestion,
   createNativeSingleChoiceHotspotArea,
+  findNextUnusedNativeSingleChoiceBinding,
   removeNativeSingleChoiceOption,
   setNativeSingleChoiceHotspotArea,
   setNativeSingleChoiceCorrectAnswer,
@@ -36,6 +37,21 @@ const ids = {
   hotspots: Array.from({ length: 4 }, (_, index) => nativeChildIdFromUuid("hot", `20000000-0000-4000-8000-${String(index + 31).padStart(12, "0")}`)),
 };
 const visualAsset = { assetId: "20000000-0000-4000-8000-000000000041", checksumSha256: "b".repeat(64), role: "activity_artwork", slot: "visual-background" };
+
+test("new visual hotspots bind to the next unused option in authored order", () => {
+  const questions = ids.questions.map((questionId, index) => ({ id: questionId, options: ids.options[index].map((id) => ({ id })) }));
+  const panels = [{ hotspots: [] }];
+  const first = findNextUnusedNativeSingleChoiceBinding(questions, panels);
+  assert.deepEqual(first, { questionId: ids.questions[0], optionId: ids.options[0][0], value: `${ids.questions[0]}:${ids.options[0][0]}` });
+  panels[0].hotspots.push(first);
+  assert.equal(findNextUnusedNativeSingleChoiceBinding(questions, panels).optionId, ids.options[0][1]);
+  const explicit = `${ids.questions[1]}:${ids.options[1][1]}`;
+  assert.equal(findNextUnusedNativeSingleChoiceBinding(questions, panels, explicit).value, explicit);
+  panels[0].hotspots = questions.flatMap((question) => question.options.map((option) => ({ questionId: question.id, optionId: option.id })));
+  assert.equal(findNextUnusedNativeSingleChoiceBinding(questions, panels), null);
+  panels[0].hotspots = panels[0].hotspots.filter((hotspot) => hotspot.optionId !== ids.options[0][0]);
+  assert.equal(findNextUnusedNativeSingleChoiceBinding(questions, panels).optionId, ids.options[0][0], "deletion makes the original option eligible again");
+});
 
 function visualPair() {
   const publicDocument = kind.createBlankPublic({ activityId, title: "Visual Multiple Choice", placement: { pageId } });

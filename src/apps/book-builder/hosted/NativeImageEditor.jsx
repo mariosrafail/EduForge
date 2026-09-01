@@ -85,7 +85,7 @@ export function NativeImageEditor({ bookSlug, componentSlug, activityId, placeme
   };
 
   const updateArea = (key, raw) => {
-    const value = Number(raw);
+    const value = Math.round(Number(raw));
     if (!Number.isFinite(value) || !selectedImage || selectedImage.locked) return;
     updateSelected((item) => {
       const surface = interaction.surface;

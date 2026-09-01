@@ -24,6 +24,12 @@ export function nativeCompleteSentencesMarkedSentence(prompt, answer) {
   return parts.structured ? `${parts.before}*${answer}*${parts.after}` : String(prompt || "");
 }
 
+export function findNextUnusedNativeCompleteSentencesItemId(items, panels, preferredItemId = "") {
+  const used = new Set(panels.flatMap((panel) => panel.hotspots.map((hotspot) => hotspot.itemId)));
+  if (items.some((item) => item.id === preferredItemId) && !used.has(preferredItemId)) return preferredItemId;
+  return items.find((item) => !used.has(item.id))?.id || null;
+}
+
 export function addNativeCompleteSentencesItem(publicDocument, teacherDocument, createId = createNativeChildId) {
   const itemId = createId("item");
   interaction(publicDocument).items.push({ id: itemId, prompt: "" });

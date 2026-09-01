@@ -10,15 +10,15 @@ export async function exerciseOuterFocusAspectRatio(page, audioEditor) {
   const toggle = audioEditor.getByLabel("Keep aspect ratio", { exact: true });
   await toggle.check();
   const width = audioEditor.getByLabel("Quick Width", { exact: true }); const height = audioEditor.getByLabel("Quick Height", { exact: true });
-  await width.fill("512"); assert.ok(Math.abs((await ratio(audioEditor)) - 1024 / 291) < .0001); assert.equal(await number(audioEditor, "Height"), 145.5);
-  await height.fill("220"); assert.ok(Math.abs((await ratio(audioEditor)) - 1024 / 291) < .0001);
+  await width.fill("512"); assert.ok(Math.abs((await ratio(audioEditor)) - 1024 / 291) < .03); assert.equal(await number(audioEditor, "Height"), 146);
+  await height.fill("220"); assert.ok(Math.abs((await ratio(audioEditor)) - 1024 / 291) < .03);
   const size = { width: await number(audioEditor, "Width"), height: await number(audioEditor, "Height") };
   await audioEditor.getByLabel("Quick X", { exact: true }).fill("99999"); await audioEditor.getByLabel("Quick Y", { exact: true }).fill("99999");
   assert.deepEqual({ width: await number(audioEditor, "Width"), height: await number(audioEditor, "Height") }, size);
   for (const corner of ["top left", "top right", "bottom right", "bottom left"]) {
     const handle = audioEditor.getByRole("button", { name: `Resize Outer readable text focus from ${corner}` }); const box = await handle.boundingBox(); assert.ok(box);
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2); await page.mouse.down(); await page.mouse.move(box.x + box.width / 2 + (corner.includes("left") ? -8 : 8), box.y + box.height / 2 + (corner.includes("top") ? -5 : 5)); await page.mouse.up();
-    assert.ok(Math.abs((await ratio(audioEditor)) - 1024 / 291) < .0001, corner);
+    assert.ok(Math.abs((await ratio(audioEditor)) - 1024 / 291) < .03, corner);
   }
   await toggle.uncheck(); const freeformHeight = await number(audioEditor, "Height"); await width.fill("300"); assert.equal(await number(audioEditor, "Height"), freeformHeight);
   await width.fill(String(original.Width)); await height.fill(String(original.Height)); await audioEditor.getByLabel("Quick X", { exact: true }).fill(String(original.X)); await audioEditor.getByLabel("Quick Y", { exact: true }).fill(String(original.Y));

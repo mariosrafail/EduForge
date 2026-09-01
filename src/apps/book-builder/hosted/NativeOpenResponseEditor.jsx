@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BookOpenText, Eye, FileText, Film, ImagePlus, Layers3, LayoutPanelTop, Plus, ShieldCheck, Trash2, Upload } from "lucide-react";
 
 import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
+import { normalizeStageGeometry } from "../../../components/builder-studio/stageGeometry.js";
 import { QuickNumber } from "../../../components/builder-studio/StageGeometryControls.jsx";
 import { StudioButton, StudioCanvasToolbar, StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
 import { NativeOpenResponseFontSurface } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
@@ -219,20 +220,13 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
       const target = selection.type === "artwork" ? nextPanel.images.find((item) => item.id === selection.id)
         : next.parts[0].interaction.questions.find((item) => item.id === selection.id);
       const area = selection.type === "artwork" ? target.area : selection.type === "prompt" ? target.promptArea : target.responseRegion.area;
-      const normalized = {
-        x: clamp(nextArea.x, 0, surface.width - nextArea.width),
-        y: clamp(nextArea.y, 0, surface.height - nextArea.height),
-        width: 0,
-        height: 0,
-      };
-      normalized.width = clamp(nextArea.width, 1, surface.width - normalized.x);
-      normalized.height = clamp(nextArea.height, 1, surface.height - normalized.y);
+      const normalized = normalizeStageGeometry(nextArea, surface);
       if (selection.type === "response") resizeNativeOpenResponseRegion(target.responseRegion, normalized);
       else Object.assign(area, normalized);
     });
   };
   const updateSelectedArea = (key, raw) => {
-    const value = Number(raw);
+    const value = Math.round(Number(raw));
     if (!Number.isFinite(value) || !selectedArea || selectedArtwork?.locked) return;
     const surface = panel.surface;
     const next = { ...selectedArea };
@@ -400,12 +394,12 @@ function OpenResponseQuickControls({ selection, area, question, answerText, docu
     <QuickNumber label="Height" value={area.height} minimum={1} maximum={surface.height - area.y} disabled={locked} onChange={(value) => updateArea("height", value)} />
     {selection.type === "response" && question ? <>
       <StudioField label="Accessibility label" className="studio-quick-field studio-quick-field--wide"><input value={question.responseRegion.ariaLabel} maxLength={300} onChange={(event) => updateQuestion(question.id, (target) => { target.responseRegion.ariaLabel = event.target.value; })} /></StudioField>
-      <QuickNumber label="Padding X" value={question.responseRegion.presentation.paddingX} maximum={100} onChange={(value) => changeResponse(question.id, "paddingX", Number(value))} />
-      <QuickNumber label="Padding Y" value={question.responseRegion.presentation.paddingY} maximum={100} onChange={(value) => changeResponse(question.id, "paddingY", Number(value))} />
-      <QuickNumber label="Line count" value={presentation.lineCount} minimum={1} maximum={20} onChange={(value) => changeResponse(question.id, "lineCount", Number(value))} />
-      <QuickNumber label="Line width" value={question.responseRegion.presentation.lineWidth} minimum={1} maximum={question.responseRegion.area.width - 2 * question.responseRegion.presentation.paddingX} onChange={(value) => changeResponse(question.id, "lineWidth", Number(value))} />
-      <QuickNumber label="Line spacing" value={question.responseRegion.presentation.lineSpacing} minimum={8} maximum={120} onChange={(value) => changeResponse(question.id, "lineSpacing", Number(value))} />
-      <QuickNumber label="Auto-fit minimum" value={presentation.answerFontSizeMin} minimum={8} maximum={Math.min(48, presentation.answerFontSizeMax)} onChange={(value) => changeResponse(question.id, "answerFontSizeMin", Number(value))} />
+      <QuickNumber label="Padding X" value={question.responseRegion.presentation.paddingX} maximum={100} onChange={(value) => changeResponse(question.id, "paddingX", Math.round(Number(value)))} />
+      <QuickNumber label="Padding Y" value={question.responseRegion.presentation.paddingY} maximum={100} onChange={(value) => changeResponse(question.id, "paddingY", Math.round(Number(value)))} />
+      <QuickNumber label="Line count" value={presentation.lineCount} minimum={1} maximum={20} onChange={(value) => changeResponse(question.id, "lineCount", Math.round(Number(value)))} />
+      <QuickNumber label="Line width" value={question.responseRegion.presentation.lineWidth} minimum={1} maximum={question.responseRegion.area.width - 2 * question.responseRegion.presentation.paddingX} onChange={(value) => changeResponse(question.id, "lineWidth", Math.round(Number(value)))} />
+      <QuickNumber label="Line spacing" value={question.responseRegion.presentation.lineSpacing} minimum={8} maximum={120} onChange={(value) => changeResponse(question.id, "lineSpacing", Math.round(Number(value)))} />
+      <QuickNumber label="Auto-fit minimum" value={presentation.answerFontSizeMin} minimum={8} maximum={Math.min(48, presentation.answerFontSizeMax)} onChange={(value) => changeResponse(question.id, "answerFontSizeMin", Math.round(Number(value)))} />
       <ConfiguredAnswerFontSize value={presentation.answerFontSizeMax} presentation={presentation} onChange={(value) => changeResponse(question.id, "answerFontSizeMax", value)} />
       <NativeActivityFontControls bookSlug={bookSlug} componentSlug={componentSlug} fonts={fonts} selectedSlot={presentation.answerFontAssetSlot} onSelect={setAnswerFont} onUploaded={recordUploadedFont} onMessage={onMessage} />
       <StudioField label="Answer text color" className="studio-quick-field"><input aria-label="Answer text color" type="color" value={presentation.color} onChange={(event) => changeResponse(question.id, "color", event.target.value)} /></StudioField>

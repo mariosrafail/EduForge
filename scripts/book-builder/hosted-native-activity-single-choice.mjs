@@ -23,7 +23,7 @@ export const createVisualHotspotCreator = (page) => async (bindingIndex) => {
   const hotspots = page.locator(hotspotSelector);
   const selected = page.getByRole("group", { name: selectedName });
   const initialHotspotCount = await hotspots.count();
-  await page.getByLabel("Option to map").selectOption({ index: bindingIndex });
+  if (bindingIndex !== null && bindingIndex !== undefined) await page.getByLabel("Option to map").selectOption({ index: bindingIndex });
   await page.getByRole("button", { name: "New hotspot" }).click();
   await selected.waitFor();
   assert.equal(await hotspots.count(), initialHotspotCount + 1, "New hotspot must immediately create exactly one hotspot");

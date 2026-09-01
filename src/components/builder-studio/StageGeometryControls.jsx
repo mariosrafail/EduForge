@@ -13,17 +13,15 @@ export function StageGeometryControls({
   aspectRatio = null,
   minWidth = 1,
   minHeight = 1,
-  precision = 0,
   label = "Geometry",
   className = "studio-number-grid",
 }) {
   if (!area) return null;
-  const update = (key, value) => onChange(updateStageGeometryField(area, key, value, stage, { aspectRatio, minWidth, minHeight, precision }));
-  const step = precision ? 1 / (10 ** precision) : 1;
+  const update = (key, value) => onChange(updateStageGeometryField(area, key, value, stage, { aspectRatio, minWidth, minHeight }));
   return <div className={className} role="group" aria-label={`${label} geometry`}>
-    <QuickNumber label="X" value={area.x} maximum={stage.width - area.width} step={step} disabled={locked} onChange={(value) => update("x", value)} />
-    <QuickNumber label="Y" value={area.y} maximum={stage.height - area.height} step={step} disabled={locked} onChange={(value) => update("y", value)} />
-    <QuickNumber label="Width" value={area.width} minimum={minWidth} maximum={stage.width - area.x} step={step} disabled={locked} onChange={(value) => update("width", value)} />
-    <QuickNumber label="Height" value={area.height} minimum={minHeight} maximum={stage.height - area.y} step={step} disabled={locked} onChange={(value) => update("height", value)} />
+    <QuickNumber label="X" value={area.x} maximum={stage.width - area.width} disabled={locked} onChange={(value) => update("x", value)} />
+    <QuickNumber label="Y" value={area.y} maximum={stage.height - area.height} disabled={locked} onChange={(value) => update("y", value)} />
+    <QuickNumber label="Width" value={area.width} minimum={minWidth} maximum={stage.width - area.x} disabled={locked} onChange={(value) => update("width", value)} />
+    <QuickNumber label="Height" value={area.height} minimum={minHeight} maximum={stage.height - area.y} disabled={locked} onChange={(value) => update("height", value)} />
   </div>;
 }

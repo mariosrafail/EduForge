@@ -1,4 +1,4 @@
-const DEFAULT_PRECISION = 3;
+const DEFAULT_PRECISION = 0;
 
 export const STAGE_RESIZE_HANDLES = Object.freeze(["nw", "ne", "sw", "se"]);
 
@@ -10,7 +10,19 @@ export function clampStageValue(value, minimum, maximum) {
 export function roundStageValue(value, precision = DEFAULT_PRECISION) {
   if (!Number.isFinite(value)) return 0;
   const factor = 10 ** precision;
-  return Math.round(value * factor) / factor;
+  const rounded = Math.round(value * factor) / factor;
+  return Object.is(rounded, -0) ? 0 : rounded;
+}
+
+export function normalizeStageGeometry(geometry, stage, { minWidth = 1, minHeight = 1 } = {}) {
+  const width = clampStageValue(roundStageValue(Number(geometry?.width)), Math.ceil(minWidth), Math.round(stage.width));
+  const height = clampStageValue(roundStageValue(Number(geometry?.height)), Math.ceil(minHeight), Math.round(stage.height));
+  return {
+    x: clampStageValue(roundStageValue(Number(geometry?.x)), 0, Math.max(0, Math.round(stage.width) - width)),
+    y: clampStageValue(roundStageValue(Number(geometry?.y)), 0, Math.max(0, Math.round(stage.height) - height)),
+    width,
+    height,
+  };
 }
 
 export function clientPointToStage({ clientX, clientY }, rect, stage) {
@@ -101,7 +113,11 @@ export function resizeStageGeometry(geometry, handle, delta, stage, {
   const next = preserveAspectRatio
     ? resizeWithAspectRatio(geometry, handle, delta, stage, minimums, aspectRatio)
     : resizeFreeform(geometry, handle, delta, stage, minimums);
-  return Object.fromEntries(Object.entries(next).map(([key, value]) => [key, roundStageValue(value, precision)]));
+  const rounded = Object.fromEntries(Object.entries(next).map(([key, value]) => [key, roundStageValue(value, precision)]));
+  if (!preserveAspectRatio) return rounded;
+  if (handle.includes("w")) rounded.x = roundStageValue(geometry.x + geometry.width, precision) - rounded.width;
+  if (handle.includes("n")) rounded.y = roundStageValue(geometry.y + geometry.height, precision) - rounded.height;
+  return rounded;
 }
 
 export function normalizeStageGeometryAspectRatio(geometry, stage, {

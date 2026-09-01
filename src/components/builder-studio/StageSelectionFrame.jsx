@@ -105,6 +105,7 @@ export function StageSelectionFrame({
     onPointerMove={move}
     onPointerUp={(event) => finish(event)}
     onPointerCancel={(event) => finish(event, true)}
+    onClick={(event) => event.stopPropagation()}
     onKeyDown={keyDown}
   >
     <span className="studio-selection-label" onPointerDown={moveFromGrip ? (event) => begin(event, "move") : undefined}>

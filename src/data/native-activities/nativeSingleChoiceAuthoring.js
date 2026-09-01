@@ -30,9 +30,20 @@ export function createNativeSingleChoiceHotspotArea(sourceWidth, sourceHeight, r
 }
 
 export function setNativeSingleChoiceHotspotArea(hotspot, area) {
-  hotspot.area = { x: area.x, y: area.y, width: area.width, height: area.height };
+  hotspot.area = Object.fromEntries(["x", "y", "width", "height"].map((key) => [key, Math.round(Number(area[key]))]));
   delete hotspot.highlightArea;
   return hotspot;
+}
+
+export function findNextUnusedNativeSingleChoiceBinding(questions, panels, preferredValue = "") {
+  const bindings = questions.flatMap((question) => question.options.map((option) => ({
+    questionId: question.id,
+    optionId: option.id,
+    value: `${question.id}:${option.id}`,
+  })));
+  const used = new Set(panels.flatMap((panel) => panel.hotspots.map((hotspot) => `${hotspot.questionId}:${hotspot.optionId}`)));
+  const preferred = bindings.find((binding) => binding.value === preferredValue && !used.has(binding.value));
+  return preferred || bindings.find((binding) => !used.has(binding.value)) || null;
 }
 
 export function alignNativeSingleChoiceAnswers(publicDocument, teacherDocument) {

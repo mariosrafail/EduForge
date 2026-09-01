@@ -1,4 +1,5 @@
 import { newBuilderClientMutationId } from "./builderContentApi.js";
+import { normalizeNativeActivityAuthoringVisualValues } from "./nativeActivityAuthoringProjection.js";
 
 const root = "/builder/api/native-activities";
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
@@ -69,9 +70,10 @@ export async function getNativeActivityCatalog({ bookSlug, componentSlug }, { si
 }
 
 export async function saveNativeActivityPair({ bookSlug, componentSlug, activityId, expectedPublicRevision, expectedTeacherRevision, publicDocument, teacherDocument }) {
+  const normalizedPublicDocument = normalizeNativeActivityAuthoringVisualValues(publicDocument);
   const response = await fetch(`${activityRoot(bookSlug, componentSlug, activityId)}/save`, {
     method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ expectedPublicRevision, expectedTeacherRevision, publicDocument, teacherDocument, clientMutationId: newBuilderClientMutationId() }),
+    body: JSON.stringify({ expectedPublicRevision, expectedTeacherRevision, publicDocument: normalizedPublicDocument, teacherDocument, clientMutationId: newBuilderClientMutationId() }),
   });
   const value = await payload(response);
   if (!response.ok) {

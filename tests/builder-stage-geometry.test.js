@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   clientPointToStage,
   moveStageGeometry,
+  normalizeStageGeometry,
   normalizeStageGeometryAspectRatio,
   percentGeometryToStage,
   resizeStageGeometry,
@@ -31,7 +32,7 @@ test("converts client coordinates through independent canvas scales", () => {
 test("moves and clamps geometry at every stage edge", () => {
   assert.deepEqual(moveStageGeometry(area, { x: -50, y: -50 }, stage), { ...area, x: 0, y: 0 });
   assert.deepEqual(moveStageGeometry(area, { x: 100, y: 100 }, stage), { ...area, x: 60, y: 50 });
-  assert.deepEqual(moveStageGeometry(area, { x: 5.1254, y: 4.4444 }, stage), { ...area, x: 25.125, y: 19.444 });
+  assert.deepEqual(moveStageGeometry(area, { x: 5.1254, y: 4.4444 }, stage), { ...area, x: 25, y: 19 });
 });
 
 test("locked geometry cannot move or resize", () => {
@@ -64,7 +65,7 @@ test("corner resize clamps to stage edges and minimum dimensions without crossin
 
 test("aspect-ratio resize preserves ratio and the opposite corner", () => {
   const next = resizeStageGeometry(area, "nw", { x: -10, y: -2 }, stage, { preserveAspectRatio: true });
-  assert.equal(next.width / next.height, area.width / area.height);
+  assert.ok(Math.abs(next.width / next.height - area.width / area.height) < .02);
   assert.equal(next.x + next.width, area.x + area.width);
   assert.equal(next.y + next.height, area.y + area.height);
   const clamped = resizeStageGeometry(area, "se", { x: 1000, y: 1000 }, stage, { preserveAspectRatio: true });
@@ -76,11 +77,11 @@ test("an explicit 1024:291 ratio normalizes around center and survives every anc
   const ratio = 1024 / 291;
   const source = { x: 780, y: 410, width: 210, height: 145 };
   const normalized = normalizeStageGeometryAspectRatio(source, { width: 1024, height: 582 }, { aspectRatio: ratio, minWidth: 16, minHeight: 16 });
-  assert.ok(Math.abs(normalized.width / normalized.height - ratio) < 0.0001);
+  assert.ok(Math.abs(normalized.width / normalized.height - ratio) < .02);
   assert.ok(normalized.x >= 0 && normalized.y >= 0 && normalized.x + normalized.width <= 1024 && normalized.y + normalized.height <= 582);
   for (const handle of ["nw", "ne", "sw", "se"]) {
     const resized = resizeStageGeometry(normalized, handle, { x: handle.includes("w") ? -900 : 900, y: handle.includes("n") ? -900 : 900 }, { width: 1024, height: 582 }, { preserveAspectRatio: true, aspectRatio: ratio, minWidth: 16, minHeight: 16 });
-    assert.ok(Math.abs(resized.width / resized.height - ratio) < 0.0001, `${handle}: ${JSON.stringify(resized)}`);
+    assert.ok(Math.abs(resized.width / resized.height - ratio) < .03, `${handle}: ${JSON.stringify(resized)}`);
     assert.ok(resized.x >= 0 && resized.y >= 0 && resized.x + resized.width <= 1024.001 && resized.y + resized.height <= 582.001, `${handle}: ${JSON.stringify(resized)}`);
   }
 });
@@ -90,12 +91,12 @@ test("fixed-ratio numeric width and height derive their partner while X/Y only r
   const stageValue = { width: 1024, height: 582 };
   const normalized = normalizeStageGeometryAspectRatio({ x: 100, y: 80, width: 300, height: 140 }, stageValue, { aspectRatio: ratio });
   const width = updateStageGeometryField(normalized, "width", 512, stageValue, { aspectRatio: ratio });
-  assert.ok(Math.abs(width.width / width.height - ratio) < 0.0001);
-  assert.equal(width.height, 145.5);
-  const fullWidth = updateStageGeometryField({ x: 0, y: 0, width: 512, height: 145.5 }, "height", 291, stageValue, { aspectRatio: ratio });
+  assert.ok(Math.abs(width.width / width.height - ratio) < .02);
+  assert.equal(width.height, 146);
+  const fullWidth = updateStageGeometryField({ x: 0, y: 0, width: 512, height: 146 }, "height", 291, stageValue, { aspectRatio: ratio });
   assert.deepEqual(fullWidth, { x: 0, y: 0, width: 1024, height: 291 });
   const height = updateStageGeometryField(normalized, "height", 200, stageValue, { aspectRatio: ratio });
-  assert.ok(Math.abs(height.width / height.height - ratio) < 0.0001);
+  assert.ok(Math.abs(height.width / height.height - ratio) < .02);
   const movedX = updateStageGeometryField(normalized, "x", 999, stageValue, { aspectRatio: ratio });
   const movedY = updateStageGeometryField(normalized, "y", 999, stageValue, { aspectRatio: ratio });
   assert.deepEqual({ width: movedX.width, height: movedX.height }, { width: normalized.width, height: normalized.height });
@@ -108,14 +109,22 @@ test("pointer transform uses the original geometry and avoids cumulative drift",
   const first = transformStageGeometry({ geometry: area, operation: "move", startPoint: { x: 10, y: 10 }, currentPoint: { x: 10.3333, y: 10.6666 }, stage });
   const repeated = transformStageGeometry({ geometry: area, operation: "move", startPoint: { x: 10, y: 10 }, currentPoint: { x: 10.3333, y: 10.6666 }, stage });
   assert.deepEqual(first, repeated);
-  assert.deepEqual(first, { ...area, x: 20.333, y: 15.667 });
+  assert.deepEqual(first, { ...area, x: 20, y: 16 });
 });
 
-test("percentage conversion round-trips fractional hotspot geometry", () => {
+test("percentage conversion canonicalizes historical fractional hotspot geometry", () => {
   const hotspot = { left: 2.123456, top: 9.876543, width: 33.333333, height: 12.345678 };
   const once = stageGeometryToPercent(percentGeometryToStage(hotspot));
   const twice = stageGeometryToPercent(percentGeometryToStage(once));
-  assert.deepEqual(once, { left: 2.123, top: 9.877, width: 33.333, height: 12.346 });
+  assert.deepEqual(once, { left: 2, top: 10, width: 33, height: 12 });
   assert.deepEqual(twice, once);
   assert.ok(Object.values(twice).every((value) => Number.isFinite(value) && value >= 0));
+});
+
+test("canonical geometry clamps historical decimals, minimums, and negative zero idempotently", () => {
+  const once = normalizeStageGeometry({ x: -0.4, y: 79.8, width: 120.2, height: 0.4 }, stage, { minWidth: 8, minHeight: 6 });
+  assert.deepEqual(once, { x: 0, y: 74, width: 100, height: 6 });
+  assert.ok(Object.values(once).every(Number.isSafeInteger));
+  assert.ok(!Object.values(once).some((value) => Object.is(value, -0)));
+  assert.deepEqual(normalizeStageGeometry(once, stage, { minWidth: 8, minHeight: 6 }), once);
 });

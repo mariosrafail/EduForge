@@ -5,7 +5,7 @@ import test from "node:test";
 import { assertPublicBuilderDocument, builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
-import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesPanel, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../src/data/native-activities/nativeCompleteSentencesAuthoring.js";
+import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesPanel, findNextUnusedNativeCompleteSentencesItemId, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../src/data/native-activities/nativeCompleteSentencesAuthoring.js";
 import { assessNativeCompleteSentencesReadiness, assessNativeCompleteSentencesSaveability, NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION, NATIVE_COMPLETE_SENTENCES_LEGACY_PANEL_ID, nativeCompleteSentencesFontFamilyAlias, nativeCompleteSentencesPromptParts, normalizeNativeCompleteSentencesInteraction, updateNativeCompleteSentencesRevealState } from "../src/data/native-activities/nativeCompleteSentences.js";
 import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
@@ -220,4 +220,16 @@ test("shared runtime/editor render synchronized geometry, safe typography, Stude
   assert.match(css, /teacher-target:focus-visible/);
   assert.doesNotMatch(editor, /fontSizeMaximum|maximum=\{96\}/);
   assert.doesNotMatch(editor, /Math\.min\(96/);
+});
+test("visual blank authoring selects the next unused stable item identity", () => {
+  const items = [{ id: "item-a", prompt: "Same" }, { id: "item-b", prompt: "Same" }, { id: "item-c", prompt: "Other" }];
+  const panels = [{ hotspots: [] }];
+  assert.equal(findNextUnusedNativeCompleteSentencesItemId(items, panels), "item-a");
+  panels[0].hotspots.push({ itemId: "item-a" });
+  assert.equal(findNextUnusedNativeCompleteSentencesItemId(items, panels), "item-b", "duplicate answer text does not affect identity ordering");
+  assert.equal(findNextUnusedNativeCompleteSentencesItemId(items, panels, "item-c"), "item-c", "an explicit unused override wins");
+  panels[0].hotspots.push({ itemId: "item-b" }, { itemId: "item-c" });
+  assert.equal(findNextUnusedNativeCompleteSentencesItemId(items, panels), null);
+  panels[0].hotspots = panels[0].hotspots.filter((hotspot) => hotspot.itemId !== "item-a");
+  assert.equal(findNextUnusedNativeCompleteSentencesItemId(items, panels), "item-a", "deletion restores eligibility in authored order");
 });

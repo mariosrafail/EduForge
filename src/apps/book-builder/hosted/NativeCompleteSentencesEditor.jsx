@@ -8,7 +8,7 @@ import { NativeCompleteSentencesStudentSurface, NativeCompleteSentencesTeacherSu
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { assessNativeCompleteSentencesReadiness, assessNativeCompleteSentencesSaveability, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION, NATIVE_COMPLETE_SENTENCES_LIMITS, normalizeNativeCompleteSentencesInteraction } from "../../../data/native-activities/nativeCompleteSentences.js";
-import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesPanel, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../../../data/native-activities/nativeCompleteSentencesAuthoring.js";
+import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesPanel, findNextUnusedNativeCompleteSentencesItemId, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../../../data/native-activities/nativeCompleteSentencesAuthoring.js";
 import { getBuilderContent } from "./builderContentApi.js";
 import { getBuilderFontLibrary, nativeFontPreviewUrl, saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import { NativeCompleteSentencesFontControls } from "./NativeCompleteSentencesFontControls.jsx";
@@ -127,6 +127,8 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   const items = interaction?.items || [];
   const presentation = interaction?.presentation;
   const panels = presentation?.panels || [];
+  const mappedItemIds = new Set(panels.flatMap((panel) => panel.hotspots.map((hotspot) => hotspot.itemId)));
+  const nextDrawItemId = findNextUnusedNativeCompleteSentencesItemId(items, panels, drawItemId);
   const selectedPanel = panels.find((panel) => panel.id === selectedPanelId) || panels[0] || null;
   const selectedItem = items.find((item) => item.id === selectedItemId) || null;
   const selectedAnswer = teacherDraft?.parts[0].solution.answers.find((entry) => entry.itemId === selectedItemId) || null;
@@ -143,6 +145,13 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   const assetUrl = (assetId) => previewRoot(bookSlug, componentSlug, activityId, assetId);
   const previewAssetUrl = (assetId) => publicDraft?.assets.find((asset) => asset.assetId === assetId)?.role === "activity_font" ? nativeFontPreviewUrl(bookSlug, componentSlug, assetId) : assetUrl(assetId);
   const backgroundReference = publicDraft?.assets.find((asset) => asset.slot === selectedPanel?.backgroundAssetSlot);
+
+  useEffect(() => {
+    const next = nextDrawItemId || "";
+    if (drawItemId === next) return;
+    setDrawItemId(next);
+    setDrawing(false);
+  }, [drawItemId, nextDrawItemId]);
 
   const addItem = () => {
     let id;
@@ -257,10 +266,11 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   };
   const recordUploadedFont = (font) => setFonts((current) => [...current.filter((entry) => entry.assetId !== font.assetId), font]);
   const createHotspot = (area) => {
-    if (!drawItemId || !selectedPanel || panels.some((panel) => panel.hotspots.some((hotspot) => hotspot.itemId === drawItemId))) return;
+    const itemId = findNextUnusedNativeCompleteSentencesItemId(items, panels, drawItemId);
+    if (!itemId || !selectedPanel) return;
     const hotspot = {
       id: createNativeChildId("hot"),
-      itemId: drawItemId,
+      itemId,
       area,
       presentation: {
         ...NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION,
@@ -340,7 +350,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
         {state.message}
       </section>
     );
-  const mapped = new Set(panels.flatMap((panel) => panel.hotspots.map((hotspot) => hotspot.itemId)));
+  const mapped = mappedItemIds;
   const readinessIssues = [...readiness.issues, ...authoringIssues, readableIncomplete ? "Complete the Readable Text setup." : "", videoIncomplete ? "Complete the Video setup." : ""].filter(Boolean);
   const readyToSave = saveability.saveable && !authoringIssues.length && !readableIncomplete && !videoIncomplete;
   const itemNavigation = (
@@ -550,7 +560,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                         minimum={NATIVE_COMPLETE_SENTENCES_LIMITS.fontSizeMinimum}
                         onChange={(value) =>
                           updateHotspot((hotspot) => {
-                            const fontSize = Number(value);
+                            const fontSize = Math.round(Number(value));
                             if (Number.isFinite(fontSize) && fontSize >= NATIVE_COMPLETE_SENTENCES_LIMITS.fontSizeMinimum) hotspot.presentation.fontSize = fontSize;
                           })
                         }

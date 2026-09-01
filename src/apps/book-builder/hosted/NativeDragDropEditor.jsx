@@ -38,7 +38,7 @@ function moveInArray(list, index, delta) {
 function DragDropTextStyleControls({ heading, style, fonts, bookSlug, componentSlug, onStyleChange, onFontSelect, onFontUploaded, onMessage }) {
   return <fieldset className="native-drag-drop-typography"><legend>{heading}</legend>
     <StudioField label={`${heading} family`}><select value={style.fontFamily} onChange={(event) => onStyleChange("fontFamily", event.target.value)}>{NATIVE_DRAG_DROP_FONT_FAMILIES.map((family) => <option key={family} value={family}>{family}</option>)}</select></StudioField>
-    <QuickNumber label={`${heading} size`} value={style.fontSize} minimum={NATIVE_DRAG_DROP_LIMITS.fontSizeMinimum} maximum={NATIVE_DRAG_DROP_LIMITS.fontSizeMaximum} onChange={(value) => onStyleChange("fontSize", Number(value))} />
+    <QuickNumber label={`${heading} size`} value={style.fontSize} minimum={NATIVE_DRAG_DROP_LIMITS.fontSizeMinimum} maximum={NATIVE_DRAG_DROP_LIMITS.fontSizeMaximum} onChange={(value) => onStyleChange("fontSize", Math.round(Number(value)))} />
     <StudioField label={`${heading} color`}><input aria-label={`${heading} color`} type="color" value={style.color} onChange={(event) => onStyleChange("color", event.target.value)} /></StudioField>
     <NativeActivityFontControls bookSlug={bookSlug} componentSlug={componentSlug} fonts={fonts} selectedSlot={style.fontAssetSlot} onSelect={onFontSelect} onUploaded={onFontUploaded} onMessage={onMessage} label={`${heading} managed font`} />
   </fieldset>;
@@ -210,7 +210,7 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
         {selectedTarget ? <>
           <StudioField label="Accessible label"><input value={selectedTarget.accessibleLabel} maxLength={NATIVE_DRAG_DROP_LIMITS.targetLabelLength} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).dropTargets.find((entry) => entry.id === selectedTarget.id).accessibleLabel = event.target.value; })} /></StudioField>
           <StudioField label="Correct word mapping"><select value={mappings.get(selectedTarget.id) || ""} onChange={(event) => setMapping(selectedTarget.id, event.target.value)}><option value="" disabled>Select correct word</option>{interaction.words.map((word, wordIndex) => <option key={word.id} value={word.id}>{word.text} · word {wordIndex + 1}</option>)}</select></StudioField>
-          <StageGeometryControls area={selectedTarget.area} stage={panel.surface} label={selectedTarget.accessibleLabel || "Drop target"} minWidth={8} minHeight={8} precision={3} onChange={(area) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).dropTargets.find((entry) => entry.id === selectedTarget.id).area = area; })} />
+          <StageGeometryControls area={selectedTarget.area} stage={panel.surface} label={selectedTarget.accessibleLabel || "Drop target"} minWidth={8} minHeight={8} onChange={(area) => mutatePublic((next) => { next.parts[0].interaction.panels.find((entry) => entry.id === panel.id).dropTargets.find((entry) => entry.id === selectedTarget.id).area = area; })} />
           <StudioButton variant="danger-ghost" onClick={deleteSelection}>Remove target</StudioButton>
         </> : null}
       </aside>
