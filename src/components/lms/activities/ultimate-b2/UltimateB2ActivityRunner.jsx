@@ -30,7 +30,7 @@ function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity, s
   const nativeActivity = publication.kind === "published" ? publication.projection?.nativeActivities?.[activityKey] : null;
   if (nativeActivity) {
     const capabilities = getActivityModeCapabilities(mode);
-    return <PublishedNativeActivityRunner entry={nativeActivity} publication={publication} teacherMode={capabilities.isReadOnly || capabilities.isPresentation} />;
+    return <PublishedNativeActivityRunner entry={nativeActivity} publication={publication} teacherMode={capabilities.isReadOnly || capabilities.isPresentation} showMetadataHeader={nativeActivity.kind !== "drag-drop"} />;
   }
   if (findStudentsBookImplementation(activityKey)) {
     if (publication.kind === "error") return <Card><div className="inline-status error">{publication.message}</div></Card>;

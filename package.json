@@ -47,6 +47,7 @@
     "production:inventory:demo-entitlements": "node scripts/inventory-production-demo-entitlements.mjs",
     "deploy:build": "node scripts/netlify-build.mjs",
     "build": "vite build",
+    "test:lms-native-drag-drop-layout": "node scripts/lms-native-drag-drop-playwright.mjs",
     "verify:web-bundle-safety": "node scripts/verify-web-bundle-safety.mjs",
     "build:netlify:lms": "node scripts/netlify/build-review-target.mjs lms",
     "build:cloudflare:lms": "node scripts/cloudflare/build-lms.mjs",

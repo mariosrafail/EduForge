@@ -80,7 +80,6 @@ export function NativeDragDropStudentSurface({
   const [selectedWordId, setSelectedWordId] = useState(null);
   const [incorrectTargetId, setIncorrectTargetId] = useState(null);
   const [dragOverTargetId, setDragOverTargetId] = useState(null);
-  const [statusMessage, setStatusMessage] = useState("");
   const [sessionWordIds, setSessionWordIds] = useState(() => shuffleNativeDragDropWordIds(interaction.words));
   const [dragPreview, setDragPreview] = useState(null);
   const dragRef = useRef(null);
@@ -102,7 +101,7 @@ export function NativeDragDropStudentSurface({
   const wordById = new Map(interaction.words.map((word) => [word.id, word]));
   const visibleWordIds = visibleNativeDragDropWordIds(sessionWordIds, responses, targetWordOverrides);
   const visibleWords = visibleWordIds.map((wordId) => wordById.get(wordId)).filter(Boolean);
-  const clearFeedback = () => { setIncorrectTargetId(null); setStatusMessage(""); };
+  const clearFeedback = () => { setIncorrectTargetId(null); };
   const clearReturnTimer = () => { if (returnTimer.current) globalThis.clearTimeout(returnTimer.current); returnTimer.current = null; };
   const clearDrag = () => { clearReturnTimer(); dragRef.current = null; setDragPreview(null); setDragOverTargetId(null); };
 
@@ -121,7 +120,6 @@ export function NativeDragDropStudentSurface({
     if (!wordId || readOnly || !wordById.has(wordId)) return false;
     if (evaluatePlacement && !evaluatePlacement(targetId, wordId)) {
       setIncorrectTargetId(targetId);
-      setStatusMessage("Incorrect placement. Try again.");
       setSelectedWordId(null);
       return false;
     }
@@ -218,7 +216,7 @@ export function NativeDragDropStudentSurface({
             const overrideWord = targetWordOverrides?.get(target.id) || null;
             const placedWord = wordById.get(responses[target.id]) || null;
             const visibleWord = overrideWord || placedWord;
-            return <button key={target.id} type="button" className={`native-drag-drop-target${presentationMode ? " native-drag-drop-teacher-target" : ""}`} style={{ ...logicalAreaStyle(target.area, panel.surface), zIndex: panel.images.length + 2 }} data-drag-drop-target-id={target.id} data-occupied={Boolean(placedWord) || undefined} data-revealed={Boolean(overrideWord) || undefined} data-incorrect={incorrectTargetId === target.id || undefined} data-drag-over={dragOverTargetId === target.id || undefined} disabled={readOnly} aria-label={`${target.accessibleLabel}${visibleWord ? `, contains ${visibleWord.text}` : ", empty"}${incorrectTargetId === target.id ? ", incorrect placement" : ""}`} onClick={() => {
+            return <button key={target.id} type="button" className={`native-drag-drop-target${presentationMode ? " native-drag-drop-teacher-target" : ""}`} style={{ ...logicalAreaStyle(target.area, panel.surface), zIndex: panel.images.length + 2 }} data-drag-drop-target-id={target.id} data-occupied={Boolean(placedWord) || undefined} data-revealed={Boolean(overrideWord) || undefined} data-incorrect={incorrectTargetId === target.id || undefined} data-drag-over={dragOverTargetId === target.id || undefined} disabled={readOnly} aria-label={`${target.accessibleLabel}${visibleWord ? `, contains ${visibleWord.text}` : ", empty"}`} onClick={() => {
               if (selectedWordId) place(target.id);
               else if (placedWord) { commit(removeNativeDragDropResponse(responses, target.id)); clearFeedback(); }
               else {
@@ -234,7 +232,7 @@ export function NativeDragDropStudentSurface({
           <div className="native-drag-drop-bank-items">
             {visibleWords.map((word) => <button key={word.id} type="button" className="native-drag-drop-word" style={{ fontFamily: bankFont, fontSize: `${(bankWordStyle.fontSize / panel.surface.width) * 100}cqw`, color: bankWordStyle.color }} aria-pressed={selectedWordId === word.id} data-drag-drop-word-id={word.id} data-dragging={dragPreview?.wordId === word.id && !dragPreview.returning || undefined} disabled={readOnly} onClick={() => { if (suppressClickWordId.current === word.id) { suppressClickWordId.current = null; return; } clearFeedback(); setSelectedWordId((current) => current === word.id ? null : word.id); }} onPointerDown={(event) => beginDrag(event, word.id)} onPointerMove={moveDrag} onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)} onLostPointerCapture={(event) => finishDrag(event, true)}>{word.text}</button>)}
           </div>
-          <span className="native-drag-drop-status" role="status" aria-live="polite" data-incorrect={Boolean(statusMessage) || undefined}>{statusMessage || (selectedWordId ? `${wordById.get(selectedWordId)?.text || "Word"} selected. Choose a target.` : "")}</span>
+          <span className="native-drag-drop-status" role="status" aria-live="polite">{selectedWordId ? `${wordById.get(selectedWordId)?.text || "Word"} selected. Choose a target.` : ""}</span>
         </div>
         </PanelArtwork>
       </div>

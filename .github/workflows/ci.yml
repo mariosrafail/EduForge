@@ -27,6 +27,7 @@ jobs:
       - run: npm run build:book-builder
       - run: npm run verify:book-builder-bundle-safety
       - run: npm run build
+      - run: npm run test:lms-native-drag-drop-layout
       - run: npm run verify:web-bundle-safety
       - run: npm run build:android-offline
       - run: npm run verify:android-student-bundle-safety

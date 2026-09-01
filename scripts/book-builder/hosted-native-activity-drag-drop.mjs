@@ -154,13 +154,14 @@ export async function exerciseValidatedDragDrop(page, surface, pair) {
   assert.equal(await target.getAttribute("data-occupied"), null);
   assert.equal(await target.getAttribute("data-incorrect"), "true");
   assert.equal(await wrongWord.count(), 1);
-  assert.equal(await surface.getByRole("status").textContent(), "Incorrect placement. Try again.");
+  assert.equal(await surface.getByRole("status").textContent(), "");
+  assert.doesNotMatch(await target.getAttribute("aria-label"), /incorrect|wrong/i);
   assert.equal(await target.evaluate((element) => getComputedStyle(element).borderColor), "rgb(185, 28, 28)");
   await dispatchImmediatePointerSequence(correctWord, target);
   assert.equal(await target.getAttribute("data-occupied"), "true");
   assert.equal(await target.getAttribute("data-incorrect"), null);
   assert.equal(await correctWord.count(), 0, "a correctly placed word leaves the bank");
-  assert.notEqual(await surface.getByRole("status").textContent(), "Incorrect placement. Try again.");
+  assert.equal(await surface.getByRole("status").textContent(), "");
   return target;
 }
 

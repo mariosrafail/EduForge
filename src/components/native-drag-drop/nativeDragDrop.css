@@ -39,7 +39,6 @@
 .native-drag-drop-drag-preview[data-returning] { transform: translate(-50%, -50%) scale(1); transition: left 160ms ease-out, top 160ms ease-out, transform 160ms ease-out; }
 @media (prefers-reduced-motion: reduce) { .native-drag-drop-drag-preview[data-returning] { transition: none; } }
 .native-drag-drop-status { display: block; min-height: 1.15em; margin-top: 1px; color: #334155; font: 700 clamp(.58rem, 1cqw, .76rem)/1.15 system-ui, sans-serif; }
-.native-drag-drop-status[data-incorrect] { color: #991b1b; }
 .native-drag-drop-panel-navigation { position: absolute; z-index: 200; top: 8px; left: 50%; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 4px 7px; border-radius: 8px; background: rgb(248 250 252 / 88%); font: 600 .86rem/1.15 system-ui, sans-serif; transform: translateX(-50%); }
 .native-drag-drop-panel-navigation button { padding: 5px 9px; }
 .native-drag-drop[data-read-only] .native-drag-drop-target, .native-drag-drop[data-read-only] .native-drag-drop-word { cursor: default; }

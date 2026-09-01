@@ -330,7 +330,7 @@ async function exerciseValidatedDragDrop(page, surface, publicDocument, teacherD
   const wrongWordId = publicDocument.parts[0].interaction.words.find((word) => word.id !== correctWordId)?.id;
   assert.ok(correctWordId && wrongWordId);
   const wrongWord = surface.locator(`[data-drag-drop-word-id="${wrongWordId}"]`);
-  await dragBetween(page, wrongWord, target); await expect(target).toHaveAttribute("data-incorrect", "true"); assert.equal(await target.getAttribute("data-occupied"), null); assert.equal(await wrongWord.count(), 1); await expect(surface.getByRole("status")).toHaveText("Incorrect placement. Try again."); assert.equal(await target.evaluate((element) => getComputedStyle(element).borderColor), "rgb(185, 28, 28)");
+  await dragBetween(page, wrongWord, target); await expect(target).toHaveAttribute("data-incorrect", "true"); assert.equal(await target.getAttribute("data-occupied"), null); assert.equal(await wrongWord.count(), 1); await expect(surface.getByRole("status")).toHaveText(""); assert.doesNotMatch(await target.getAttribute("aria-label"), /incorrect|wrong/i); assert.equal(await target.evaluate((element) => getComputedStyle(element).borderColor), "rgb(185, 28, 28)");
   const correctWord = surface.locator(`[data-drag-drop-word-id="${correctWordId}"]`); await dragBetween(page, correctWord, target); await expect(target).toHaveAttribute("data-occupied", "true"); assert.equal(await target.getAttribute("data-incorrect"), null); assert.equal(await correctWord.count(), 0, "a correctly placed word leaves the bank");
   return target;
 }
