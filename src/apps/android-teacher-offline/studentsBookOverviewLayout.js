@@ -42,10 +42,15 @@ export function buildStudentsBookOverviewEntries(unit) {
   }
 
   return configuration.map((entry, index) => {
+    const pages = entry.pageIds.map((id) => pagesById.get(id));
     const result = {
       ...entry,
       id: `unit-${unit.number}-overview-${index + 1}`,
-      pages: entry.pageIds.map((id) => pagesById.get(id)),
+      pages,
+      navigationTargets: pages.map((page) => ({
+        pageId: page.id,
+        pageLabel: `pg ${page.spreadNumber}`,
+      })),
     };
     return { ...result, physicalWeight: overviewEntryWeight(result) };
   });

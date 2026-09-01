@@ -5,10 +5,32 @@ import TeacherBookNavigation from "./TeacherBookNavigation.jsx";
 import { buildStudentsBookOverviewEntries } from "./studentsBookOverviewLayout.js";
 import { buildManagedOverviewEntries } from "./unitOverviewLayout.js";
 
+function PageThumbnail({ page }) {
+  return <img src={page.images?.[0]} alt="" loading="eager" decoding="async" draggable="false" />;
+}
+
 export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onBackToLibrary, selectedBookId = "students-book", onBookSwitch, unavailableBookIds }) {
   const entries = selectedBookId === "students-book" ? buildStudentsBookOverviewEntries(unit) : buildManagedOverviewEntries(unit);
   const unitNumber = Number(unit.number);
   const surfaceKey = `${selectedBookId}:overview:unit-${unitNumber}`;
+
+  const cardAttributes = (entry) => ({
+    className: "teacher-unit-page-card",
+    "data-overview-entry": entry.id,
+    "data-overview-row": entry.row,
+    "data-overview-weight": entry.physicalWeight,
+    "data-overview-column-start": entry.columnStart || undefined,
+    "data-overview-column-span": entry.columnSpan || undefined,
+    "data-page-ids": entry.pageIds.join(","),
+    style: entry.columnSpan ? { "--overview-column-start": entry.columnStart, "--overview-column-span": entry.columnSpan } : undefined,
+  });
+
+  const copy = (entry) => (
+    <span className="teacher-unit-page-copy">
+      {entry.label && <strong>{entry.label}</strong>}
+      <b>{entry.pageLabel}</b>
+    </span>
+  );
 
   return (
     <section className="teacher-offline-pages teacher-offline-unit-overview-screen" aria-label={`Unit ${unit.number} page overview`}>
@@ -22,29 +44,34 @@ export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onBackT
         <div id="teacher-unit-overview-panel" className={`teacher-offline-unit-overview legacy-overview-unit-${unitNumber}`} data-classroom-surface-id={surfaceKey} data-overview-book={selectedBookId} tabIndex={-1}>
           <ClassroomStageTransform surfaceKey={surfaceKey}>
           <div className="teacher-unit-overview-grid">
-            {entries.length ? entries.map((entry) => (
+            {entries.length ? entries.map((entry) => entry.navigationTargets?.length > 1 ? (
+              <div key={entry.id} {...cardAttributes(entry)} role="group" aria-label={`${entry.label || "Unit opener"}, ${entry.pageLabel}`}>
+                {copy(entry)}
+                <span className="teacher-unit-page-thumb grouped">
+                  {entry.pages.map((candidate, index) => (
+                    <button
+                      key={candidate.id}
+                      type="button"
+                      className="teacher-unit-page-target"
+                      onClick={() => onSelectPage(candidate.id)}
+                      aria-label={`Open ${entry.label || "Unit opener"}, ${entry.navigationTargets[index].pageLabel}`}
+                    >
+                      <PageThumbnail page={candidate} />
+                    </button>
+                  ))}
+                </span>
+              </div>
+            ) : (
               <button
                 key={entry.id}
                 type="button"
-                className="teacher-unit-page-card"
-                data-overview-entry={entry.id}
-                data-overview-row={entry.row}
-                data-overview-weight={entry.physicalWeight}
-                data-overview-column-start={entry.columnStart || undefined}
-                data-overview-column-span={entry.columnSpan || undefined}
-                data-page-ids={entry.pageIds.join(",")}
-                style={entry.columnSpan ? { "--overview-column-start": entry.columnStart, "--overview-column-span": entry.columnSpan } : undefined}
+                {...cardAttributes(entry)}
                 onClick={() => onSelectPage(entry.pageIds[0])}
                 aria-label={`Open ${entry.label || "Unit opener"}, ${entry.pageLabel}`}
               >
-                <span className="teacher-unit-page-copy">
-                  {entry.label && <strong>{entry.label}</strong>}
-                  <b>{entry.pageLabel}</b>
-                </span>
-                <span className={`teacher-unit-page-thumb ${entry.pages.length > 1 ? "grouped" : ""}`}>
-                  {entry.pages.map((candidate) => (
-                    <img key={candidate.id} src={candidate.images?.[0]} alt="" loading="eager" decoding="async" draggable="false" />
-                  ))}
+                {copy(entry)}
+                <span className="teacher-unit-page-thumb">
+                  <PageThumbnail page={entry.pages[0]} />
                 </span>
               </button>
             )) : <p className="teacher-unit-overview-empty" role="status">No pages are available for this Unit yet.</p>}

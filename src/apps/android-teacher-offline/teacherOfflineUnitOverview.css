@@ -179,6 +179,15 @@
   outline-offset: 2px;
 }
 
+.teacher-offline-unit-overview-screen .teacher-unit-page-card[role="group"] {
+  cursor: default;
+}
+
+.teacher-offline-unit-overview-screen .teacher-unit-page-card[role="group"]:hover {
+  filter: none;
+  transform: none;
+}
+
 .teacher-offline-unit-overview-screen .teacher-unit-page-copy {
   min-height: clamp(44px, 5.5vh, 62px);
   padding: 0 2px clamp(4px, 0.6vh, 7px);
@@ -244,6 +253,32 @@
   border: 0;
   border-radius: 0;
   box-shadow: none;
+}
+
+.teacher-offline-unit-overview-screen .teacher-unit-page-target {
+  min-width: 0;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.teacher-offline-unit-overview-screen .teacher-unit-page-target:hover,
+.teacher-offline-unit-overview-screen .teacher-unit-page-target:focus-visible {
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+}
+
+.teacher-offline-unit-overview-screen .teacher-unit-page-target:focus-visible {
+  outline: 3px solid #d7ff62;
+  outline-offset: -3px;
+}
+
+.teacher-offline-unit-overview-screen .teacher-unit-page-target img {
+  max-width: 100%;
 }
 
 .teacher-offline-unit-overview-screen .teacher-offline-unit-overview:is([data-overview-book="workbook"], [data-overview-book="grammar-book"]) .teacher-unit-page-thumb img {

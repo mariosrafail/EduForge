@@ -69,9 +69,18 @@ test("Student Units 1 and 2 retain their canonical grouping and physical 7/7 and
   assert.deepEqual(rowLabels(unit1, 1), ["pg 5", "pg 6-7", "pg 8-9", "pg 10-11"]);
   assert.deepEqual(rowLabels(unit1, 2), ["pg 12", "pg 13", "pg 14-15", "pg 16", "pg 17-18"]);
   assert.deepEqual([rowWeight(unit1, 1), rowWeight(unit1, 2)], [7, 7]);
+  assert.deepEqual(unit1.at(-1).navigationTargets, [
+    { pageId: "ub2-sb-unit-1-part-9", pageLabel: "pg 17" },
+    { pageId: "ub2-sb-unit-1-part-10", pageLabel: "pg 18" },
+  ]);
   assert.deepEqual(rowLabels(unit2, 1), ["pg 19", "pg 20-21", "pg 22-23", "pg 24-25", "pg 26"]);
   assert.deepEqual(rowLabels(unit2, 2), ["pg 27", "pg 28-29", "pg 30", "pg 31-32", "pg 33-34"]);
   assert.deepEqual([rowWeight(unit2, 1), rowWeight(unit2, 2)], [8, 8]);
+  assert.deepEqual(unit2.find((entry) => entry.pageIds[0] === "grammar-24-25").navigationTargets, [
+    { pageId: "grammar-24-25", pageLabel: "pg 24-25" },
+  ], "one canonical spread remains one navigation target");
+  assert.deepEqual(unit2.find((entry) => entry.pageIds[0] === "practice-31").navigationTargets.map((target) => target.pageId), ["practice-31", "practice-32"]);
+  assert.deepEqual(unit2.find((entry) => entry.pageIds[0] === "progress-check-33").navigationTargets.map((target) => target.pageId), ["progress-check-33", "progress-check-34"]);
 });
 
 test("Student Units 3-10 keep every atomic page once and derive rows from physical pages", () => {
