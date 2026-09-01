@@ -3,7 +3,7 @@ import { nativeActivityFontFamilyAlias } from "./nativeActivityFont.js";
 import { normalizeNativePedagogicalText, normalizeNativeSingleLineText } from "./nativePedagogicalText.js";
 
 export const NATIVE_COMPLETE_SENTENCES_LIMITS = Object.freeze({
-  items: 30, panels: 8, hotspots: 30, promptLength: 2_000, answerLength: 500, acceptedAnswers: 20,
+  items: 30, panels: 8, hotspots: 30, promptLength: 2_000, answerLength: 500, acceptedTextMaximum: 20,
   sourceDimension: 16_384, fontSizeMinimum: 1,
 });
 export const NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN = "[[blank]]";
@@ -135,7 +135,7 @@ export function normalizeNativeCompleteSentencesSolution(input) {
     if (!isNativeChildId(answer.itemId, "item") || ids.has(answer.itemId)) throw new Error("Complete the Sentences answer identity is invalid or duplicate.");
     const text = normalizeNativeSingleLineText(answer.text, "Complete the Sentences answer", NATIVE_COMPLETE_SENTENCES_LIMITS.answerLength);
     if (!hasAcceptedTexts) { ids.add(answer.itemId); return { itemId: answer.itemId, text }; }
-    if (!Array.isArray(answer.acceptedTexts) || !answer.acceptedTexts.length || answer.acceptedTexts.length > NATIVE_COMPLETE_SENTENCES_LIMITS.acceptedAnswers) throw new Error("Complete the Sentences accepted answers are invalid.");
+    if (!Array.isArray(answer.acceptedTexts) || !answer.acceptedTexts.length || answer.acceptedTexts.length > NATIVE_COMPLETE_SENTENCES_LIMITS.acceptedTextMaximum) throw new Error("Complete the Sentences accepted answers are invalid.");
     const acceptedTexts = answer.acceptedTexts.map((acceptedText, acceptedIndex) => normalizeNativeSingleLineText(acceptedText, `Complete the Sentences accepted answers[${acceptedIndex}]`, NATIVE_COMPLETE_SENTENCES_LIMITS.answerLength, { required: true }));
     if (new Set(acceptedTexts).size !== acceptedTexts.length) throw new Error("Complete the Sentences accepted answers must be unique.");
     ids.add(answer.itemId); return { itemId: answer.itemId, text: text || acceptedTexts.join("/"), acceptedTexts };

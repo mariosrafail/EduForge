@@ -612,7 +612,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                     <input value={selectedAnswer?.text || ""} maxLength={NATIVE_COMPLETE_SENTENCES_LIMITS.answerLength} onChange={(event) => updateAnswer(event.target.value)} />
                   </StudioField>
                   <fieldset><legend>Accepted typed answers</legend>{acceptedTexts.map((acceptedText, index) => <div className="native-complete-accepted-answer" key={index}><input aria-label={`Accepted answer ${index + 1}`} value={acceptedText} maxLength={NATIVE_COMPLETE_SENTENCES_LIMITS.answerLength} onChange={(event) => updateAcceptedText(index, event.target.value)} /><button type="button" aria-label={`Move accepted answer ${index + 1} up`} disabled={!index} onClick={() => moveAcceptedText(index, -1)}>↑</button><button type="button" aria-label={`Move accepted answer ${index + 1} down`} disabled={index === acceptedTexts.length - 1} onClick={() => moveAcceptedText(index, 1)}>↓</button><button type="button" disabled={acceptedTexts.length <= 1} onClick={() => removeAcceptedText(index)}>Remove</button></div>)}</fieldset>
-                  <StudioButton disabled={acceptedTexts.length >= NATIVE_COMPLETE_SENTENCES_LIMITS.acceptedAnswers} onClick={addAcceptedText}><Plus aria-hidden="true" />Add accepted answer</StudioButton>
+                  <StudioButton disabled={acceptedTexts.length >= NATIVE_COMPLETE_SENTENCES_LIMITS.acceptedTextMaximum} onClick={addAcceptedText}><Plus aria-hidden="true" />Add accepted answer</StudioButton>
                 </section>
               ) : (
                 <p>Add a sentence to begin.</p>
