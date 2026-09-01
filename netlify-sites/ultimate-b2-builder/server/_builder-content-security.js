@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 const forbiddenPublicDocumentKeys = new Set([
   "acceptedanswers",
   "acceptedanswer",
+  "acceptedtexts",
   "correctanswer",
   "correctanswers",
   "correctoptionid",
@@ -10,6 +11,7 @@ const forbiddenPublicDocumentKeys = new Set([
   "answerkey",
   "modelanswer",
   "modelanswers",
+  "modelanswertexts",
   "teachersolution",
   "teachersolutions",
   "revealtext",

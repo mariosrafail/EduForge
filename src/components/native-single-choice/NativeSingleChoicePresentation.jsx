@@ -15,10 +15,10 @@ function TextSingleChoice({ questions, responses, update, readOnly, disabledQues
   return questions.map((question, questionIndex) => <fieldset key={question.id} disabled={readOnly || disabledQuestionIds.has(question.id)}>
     <legend>{questionIndex + 1}. {question.prompt}</legend>
     {question.options.map((option) => {
-      const selected = responses[question.id] === option.id;
+      const selected = question.selectionMode === "multiple" ? (responses[question.id] || []).includes?.(option.id) === true : responses[question.id] === option.id;
       const answerState = optionStates[option.id];
       return <label key={option.id} data-answer-state={answerState || undefined}>
-        <input type="radio" name={question.id} value={option.id} checked={selected} onChange={() => update(question.id, option.id)} />
+        <input type={question.selectionMode === "multiple" ? "checkbox" : "radio"} name={question.id} value={option.id} checked={selected} onChange={() => update(question.id, option.id)} />
         <span>{option.text}</span>
         {answerState ? <strong className="native-single-choice-feedback" role="status">{feedbackText(answerState)}</strong> : null}
       </label>;
@@ -38,7 +38,7 @@ function VisualPanel({ panel, panelIndex, document, assetUrl, responses, update,
       {panel.hotspots.map((hotspot) => {
         const question = questionById.get(hotspot.questionId);
         const option = question?.options.find((entry) => entry.id === hotspot.optionId);
-        const selected = responses[hotspot.questionId] === hotspot.optionId;
+        const selected = question?.selectionMode === "multiple" ? (responses[hotspot.questionId] || []).includes?.(hotspot.optionId) === true : responses[hotspot.questionId] === hotspot.optionId;
         const answerState = optionStates[hotspot.optionId];
         const feedback = feedbackText(answerState);
         const stateProps = { "data-selected": selected || undefined, "data-answer-state": answerState || undefined };
@@ -109,7 +109,8 @@ export function NativeSingleChoicePresentation({
   const responses = controlledResponses && typeof controlledResponses === "object" ? controlledResponses : localResponses;
   const update = (questionId, optionId) => {
     if (readOnly || disabledQuestionIds.has(questionId)) return;
-    const next = selectNativeSingleChoiceResponse(responses, questionId, optionId);
+    const question = document.parts[0].interaction.questions.find((entry) => entry.id === questionId);
+    const next = selectNativeSingleChoiceResponse(responses, questionId, optionId, question);
     if (controlledResponses === null) setLocalResponses(next);
     onResponsesChange?.(next);
     onSelect?.({ questionId, optionId, responses: next });

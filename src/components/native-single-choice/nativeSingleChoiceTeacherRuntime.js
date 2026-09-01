@@ -1,3 +1,6 @@
+import { nativeSingleChoiceCorrectOptionIds } from "../../data/native-activities/nativeSingleChoice.js";
+import { selectNativeSingleChoiceResponse } from "../../data/native-activities/nativeSingleChoiceRuntime.js";
+
 function visualPanels(document) {
   const presentation = document?.parts?.[0]?.interaction?.presentation;
   return presentation?.kind === "image-hotspot" ? presentation.panels || [] : [];
@@ -8,7 +11,7 @@ function questions(document) {
 }
 
 function correctAnswers(teacherDocument) {
-  return new Map((teacherDocument?.parts?.[0]?.solution?.correctAnswers || []).map((answer) => [answer.questionId, answer.correctOptionId]));
+  return new Map((teacherDocument?.parts?.[0]?.solution?.correctAnswers || []).map((answer) => [answer.questionId, nativeSingleChoiceCorrectOptionIds(answer)]));
 }
 
 function panelIndexForQuestion(document, questionId) {
@@ -31,18 +34,28 @@ export function updateNativeSingleChoiceTeacherSession(state, publicDocument, te
   const answers = correctAnswers(teacherDocument);
   if (action?.type === "select") {
     if (current.solvedQuestionIds.has(action.questionId)) return current;
-    const correct = answers.get(action.questionId) === action.optionId;
+    const question = questions(publicDocument).find((entry) => entry.id === action.questionId);
+    const correctOptionIds = answers.get(action.questionId) || [];
+    const responses = selectNativeSingleChoiceResponse(current.responses, action.questionId, action.optionId, question);
+    const selectedOptionIds = question?.selectionMode === "multiple" ? responses[action.questionId] || [] : [responses[action.questionId]].filter(Boolean);
+    const correct = selectedOptionIds.length === correctOptionIds.length && selectedOptionIds.every((optionId) => correctOptionIds.includes(optionId));
+    const optionStates = { ...current.optionStates };
+    if (question?.selectionMode === "multiple") {
+      delete optionStates[action.optionId];
+      if (selectedOptionIds.includes(action.optionId) && !correctOptionIds.includes(action.optionId)) optionStates[action.optionId] = "incorrect";
+      if (correct) correctOptionIds.forEach((optionId) => { optionStates[optionId] = "correct"; });
+    } else optionStates[action.optionId] = correct ? "correct" : "incorrect";
     return {
-      responses: { ...current.responses, [action.questionId]: action.optionId },
-      optionStates: { ...current.optionStates, [action.optionId]: correct ? "correct" : "incorrect" },
+      responses,
+      optionStates,
       solvedQuestionIds: correct ? new Set(current.solvedQuestionIds).add(action.questionId) : current.solvedQuestionIds,
       panelIndex: current.panelIndex,
     };
   }
 
   const unrevealed = questions(publicDocument).filter((question) => {
-    const correctOptionId = answers.get(question.id);
-    return correctOptionId && current.optionStates[correctOptionId] !== "correct";
+    const correctOptionIds = answers.get(question.id) || [];
+    return correctOptionIds.length && correctOptionIds.some((optionId) => current.optionStates[optionId] !== "correct");
   });
   if (action?.type !== "show-all" && action?.type !== "show-next") return current;
   const revealQuestions = action.type === "show-next" ? unrevealed.slice(0, 1) : unrevealed;
@@ -51,9 +64,9 @@ export function updateNativeSingleChoiceTeacherSession(state, publicDocument, te
   const optionStates = { ...current.optionStates };
   const solvedQuestionIds = new Set(current.solvedQuestionIds);
   for (const question of revealQuestions) {
-    const correctOptionId = answers.get(question.id);
-    responses[question.id] = correctOptionId;
-    optionStates[correctOptionId] = "correct";
+    const correctOptionIds = answers.get(question.id) || [];
+    responses[question.id] = question.selectionMode === "multiple" ? [...correctOptionIds] : correctOptionIds[0];
+    correctOptionIds.forEach((optionId) => { optionStates[optionId] = "correct"; });
     solvedQuestionIds.add(question.id);
   }
   return {
@@ -71,8 +84,8 @@ export function nativeSingleChoiceTeacherPresentationState(state, publicDocument
   const answers = correctAnswers(teacherDocument);
   const activityQuestions = questions(publicDocument);
   const revealed = activityQuestions.filter((question) => {
-    const correctOptionId = answers.get(question.id);
-    return correctOptionId && current.optionStates[correctOptionId] === "correct";
+    const correctOptionIds = answers.get(question.id) || [];
+    return correctOptionIds.length && correctOptionIds.every((optionId) => current.optionStates[optionId] === "correct");
   }).length;
   return {
     panelIndex: current.panelIndex,

@@ -94,6 +94,30 @@ test("Complete the Sentences readiness requires explicit answer, background, and
   assert.match(kind.assessReadiness(publicDocument, teacherDocument).issues.join(" "), /blank hotspot/);
 });
 
+test("Complete the Sentences preserves legacy answers and validates explicit exact alternatives privately", () => {
+  const kind = resolveNativeActivityKind("complete-sentences");
+  const legacy = completePair();
+  const legacyNormalized = kind.normalizeTeacher(legacy.teacherDocument, activityId);
+  assert.deepEqual(legacyNormalized.parts[0].solution.answers[0], { itemId: legacy.teacherDocument.parts[0].solution.answers[0].itemId, text: "catching up on" });
+  assert.equal(Object.hasOwn(kind.normalizePublic(legacy.publicDocument, activityId).parts[0].interaction, "evaluationMode"), false);
+
+  const current = completePair();
+  current.publicDocument.parts[0].interaction.evaluationMode = "exact-answer";
+  current.teacherDocument.parts[0].solution.answers[0] = {
+    itemId: current.teacherDocument.parts[0].solution.answers[0].itemId,
+    text: "catching up/catching up on",
+    acceptedTexts: ["catching up", "catching up on"],
+  };
+  assert.equal(kind.validatePair(current.publicDocument, current.teacherDocument), true);
+  assert.deepEqual(kind.normalizeTeacher(current.teacherDocument, activityId).parts[0].solution.answers[0].acceptedTexts, ["catching up", "catching up on"]);
+  const leaked = structuredClone(current.publicDocument);
+  leaked.parts[0].interaction.acceptedTexts = ["private"];
+  assert.throws(() => assertPublicBuilderDocument(leaked), /acceptedTexts/);
+  const duplicate = structuredClone(current.teacherDocument);
+  duplicate.parts[0].solution.answers[0].acceptedTexts = ["same", "same"];
+  assert.throws(() => kind.normalizeTeacher(duplicate, activityId), /unique/);
+});
+
 test("valid unmapped drafts and empty panels are saveable but explicitly not publication-ready", () => {
   const { publicDocument, teacherDocument } = completePair();
   publicDocument.parts[0].interaction.presentation.panels[0].hotspots = [];

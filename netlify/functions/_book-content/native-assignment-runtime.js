@@ -3,6 +3,10 @@ import {
   verifyImmutableComponentRelease,
 } from "../../../netlify-sites/ultimate-b2-builder/server/_builder-publication-compilers.js";
 import { accessiblePackageIds, isValidUuid } from "./shared.js";
+import { nativeCompleteSentencesAcceptedTexts, NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE } from "../../../src/data/native-activities/nativeCompleteSentences.js";
+import { nativeOpenResponseModelAnswerTexts } from "../../../src/data/native-activities/nativeOpenResponse.js";
+import { nativeSingleChoiceCorrectOptionIds, nativeSingleChoiceSelectionMode } from "../../../src/data/native-activities/nativeSingleChoice.js";
+import { normalizeNativeLineEndings } from "../../../src/data/native-activities/nativePedagogicalText.js";
 
 export const NATIVE_ASSIGNMENT_TARGET_KIND = "published_native";
 export const NATIVE_RESPONSE_SCHEMA_VERSION = "native-response.v1";
@@ -26,35 +30,51 @@ function normalizeSingleChoice(publicDocument, rawEnvelope) {
   const seen = new Set(); const values = new Map();
   for (const item of rawEnvelope.items) {
     if (!item || typeof item !== "object" || Array.isArray(item) || Object.keys(item).sort().join(",") !== "id,value") return { error: "Each response item must contain exactly id and value" };
-    const id = String(item.id || ""); const value = String(item.value || ""); const question = questionById.get(id);
+    const id = String(item.id || ""); const question = questionById.get(id);
     if (!question) return { error: `Unexpected response id: ${id}` };
     if (seen.has(id)) return { error: `Duplicate response id: ${id}` };
-    if (typeof item.value !== "string" || !question.options.some((option) => String(option.id) === value)) return { error: `Response ${id} must select an option belonging to that question` };
-    seen.add(id); values.set(id, value);
+    if (nativeSingleChoiceSelectionMode(question) === "multiple") {
+      if (!Array.isArray(item.value) || !item.value.length || item.value.some((optionId) => typeof optionId !== "string") || new Set(item.value).size !== item.value.length) return { error: `Response ${id} must select unique options belonging to that question` };
+      const selected = new Set(item.value);
+      if (item.value.some((optionId) => !question.options.some((option) => String(option.id) === optionId))) return { error: `Response ${id} must select unique options belonging to that question` };
+      values.set(id, question.options.map((option) => String(option.id)).filter((optionId) => selected.has(optionId)));
+    } else {
+      const value = String(item.value || "");
+      if (typeof item.value !== "string" || !question.options.some((option) => String(option.id) === value)) return { error: `Response ${id} must select an option belonging to that question` };
+      values.set(id, value);
+    }
+    seen.add(id);
   }
   return { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, payload: { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, kind: "single-choice", items: questions.filter((question) => values.has(String(question.id))).map((question) => ({ id: String(question.id), value: values.get(String(question.id)) })) } };
 }
 
 function scoreSingleChoice(publicDocument, teacherDocument, payload) {
   const questions = openResponseQuestions(publicDocument);
-  const responses = new Map((payload.items || []).map((item) => [String(item.id), String(item.value)]));
-  const correct = new Map((teacherDocument.parts?.[0]?.solution?.correctAnswers || []).map((answer) => [String(answer.questionId), String(answer.correctOptionId)]));
-  const correctCount = questions.filter((question) => responses.get(String(question.id)) === correct.get(String(question.id))).length;
+  const responses = new Map((payload.items || []).map((item) => [String(item.id), Array.isArray(item.value) ? item.value.map(String) : [String(item.value)]]));
+  const correct = new Map((teacherDocument.parts?.[0]?.solution?.correctAnswers || []).map((answer) => [String(answer.questionId), nativeSingleChoiceCorrectOptionIds(answer).map(String)]));
+  const correctCount = questions.filter((question) => {
+    const selected = responses.get(String(question.id)) || [];
+    const expected = correct.get(String(question.id)) || [];
+    return selected.length === expected.length && selected.every((optionId) => expected.includes(optionId));
+  }).length;
   const totalCount = questions.length;
   return { status: "submitted", correctCount, totalCount, scorePercent: totalCount ? Math.round((correctCount / totalCount) * 100) : 0 };
 }
 
 function singleChoiceReview(publicDocument, teacherDocument, payload = {}) {
-  const responses = new Map((payload.items || []).map((item) => [String(item.id), String(item.value)]));
-  const correct = new Map((teacherDocument.parts?.[0]?.solution?.correctAnswers || []).map((answer) => [String(answer.questionId), String(answer.correctOptionId)]));
+  const responses = new Map((payload.items || []).map((item) => [String(item.id), Array.isArray(item.value) ? item.value.map(String) : [String(item.value)]]));
+  const correct = new Map((teacherDocument.parts?.[0]?.solution?.correctAnswers || []).map((answer) => [String(answer.questionId), nativeSingleChoiceCorrectOptionIds(answer).map(String)]));
   return openResponseQuestions(publicDocument).map((question) => {
-    const selectedOptionId = responses.get(String(question.id)) || null;
-    const correctOptionId = correct.get(String(question.id));
+    const selectedOptionIds = responses.get(String(question.id)) || [];
+    const correctOptionIds = correct.get(String(question.id)) || [];
+    const selectedTexts = question.options.filter((option) => selectedOptionIds.includes(String(option.id))).map((option) => option.text);
+    const correctTexts = question.options.filter((option) => correctOptionIds.includes(String(option.id))).map((option) => option.text);
     return {
       questionId: String(question.id), prompt: question.prompt || "",
-      answer: question.options.find((option) => option.id === selectedOptionId)?.text || "",
-      modelAnswer: question.options.find((option) => option.id === correctOptionId)?.text || "",
-      isCorrect: selectedOptionId !== null && selectedOptionId === correctOptionId, feedback: "",
+      answer: selectedTexts.join("; "),
+      modelAnswer: correctTexts.join("; "),
+      ...(nativeSingleChoiceSelectionMode(question) === "multiple" ? { answers: selectedTexts, modelAnswers: correctTexts } : {}),
+      isCorrect: selectedOptionIds.length > 0 && selectedOptionIds.length === correctOptionIds.length && selectedOptionIds.every((optionId) => correctOptionIds.includes(optionId)), feedback: "",
     };
   });
 }
@@ -115,12 +135,13 @@ function normalizeOldschoolListening(publicDocument, rawEnvelope) { return norma
 function openResponseReview(publicDocument, teacherDocument, payload = {}) {
   const responses = new Map((payload.items || []).map((item) => [String(item.id), String(item.value ?? "")]));
   const modelAnswers = new Map((teacherDocument?.parts?.[0]?.solution?.modelAnswers || [])
-    .map((answer) => [String(answer.questionId), String(answer.text ?? "")]));
+    .map((answer) => [String(answer.questionId), nativeOpenResponseModelAnswerTexts(answer)]));
   return openResponseQuestions(publicDocument).map((question) => ({
     questionId: String(question.id),
     prompt: question.prompt || "",
     answer: responses.get(String(question.id)) || "",
-    modelAnswer: modelAnswers.get(String(question.id)) || "",
+    modelAnswer: modelAnswers.get(String(question.id))?.[0] || "",
+    ...(modelAnswers.get(String(question.id))?.length > 1 ? { modelAnswers: modelAnswers.get(String(question.id)) } : {}),
     isCorrect: null,
     feedback: "",
   }));
@@ -146,10 +167,28 @@ function normalizeCompleteSentences(publicDocument, rawEnvelope) {
   return { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, payload: { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, kind: "complete-sentences", items: items.filter((item) => values.has(String(item.id))).map((item) => ({ id: String(item.id), value: values.get(String(item.id)) })) }, status: "awaiting_review", scorePercent: null, correctCount: null, totalCount: null };
 }
 
+const canonicalTypedAnswer = (value) => normalizeNativeLineEndings(String(value ?? "")).trim();
+
+function scoreCompleteSentences(publicDocument, teacherDocument, payload = {}) {
+  const items = completeSentenceItems(publicDocument);
+  const responses = new Map((payload.items || []).map((item) => [String(item.id), canonicalTypedAnswer(item.value)]));
+  const accepted = new Map((teacherDocument.parts?.[0]?.solution?.answers || []).map((answer) => [String(answer.itemId), nativeCompleteSentencesAcceptedTexts(answer).map(canonicalTypedAnswer)]));
+  const correctCount = items.filter((item) => accepted.get(String(item.id))?.includes(responses.get(String(item.id))) === true).length;
+  const totalCount = items.length;
+  return { status: "submitted", correctCount, totalCount, scorePercent: totalCount ? Math.round(correctCount / totalCount * 100) : 0 };
+}
+
 function completeSentencesReview(publicDocument, teacherDocument, payload = {}) {
   const responses = new Map((payload.items || []).map((item) => [String(item.id), String(item.value ?? "")]));
-  const answers = new Map((teacherDocument?.parts?.[0]?.solution?.answers || []).map((answer) => [String(answer.itemId), String(answer.text ?? "")]));
-  return completeSentenceItems(publicDocument).map((item) => ({ questionId: String(item.id), prompt: item.prompt || "", answer: responses.get(String(item.id)) || "", modelAnswer: answers.get(String(item.id)) || "", isCorrect: null, feedback: "" }));
+  const solutionAnswers = teacherDocument?.parts?.[0]?.solution?.answers || [];
+  const answers = new Map(solutionAnswers.map((answer) => [String(answer.itemId), answer]));
+  const exact = publicDocument.parts?.[0]?.interaction?.evaluationMode === NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE;
+  return completeSentenceItems(publicDocument).map((item) => {
+    const authored = answers.get(String(item.id));
+    const acceptedTexts = nativeCompleteSentencesAcceptedTexts(authored);
+    const response = responses.get(String(item.id)) || "";
+    return { questionId: String(item.id), prompt: item.prompt || "", answer: response, modelAnswer: authored?.text || acceptedTexts.join("/"), ...(acceptedTexts.length > 1 ? { acceptedAnswers: acceptedTexts } : {}), isCorrect: exact ? acceptedTexts.map(canonicalTypedAnswer).includes(canonicalTypedAnswer(response)) : null, feedback: "" };
+  });
 }
 
 function dragDropTargets(document = {}) {
@@ -262,14 +301,18 @@ const capabilities = Object.freeze({
   }),
 });
 
-export function nativeAssignmentCapability(kind) {
-  return capabilities[String(kind || "")] || null;
+export function nativeAssignmentCapability(kind, publicDocument = null) {
+  const capability = capabilities[String(kind || "")] || null;
+  if (kind === "complete-sentences" && publicDocument?.parts?.[0]?.interaction?.evaluationMode === NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE) {
+    return Object.freeze({ ...capability, reviewMode: "auto-scored", evaluateResponse: scoreCompleteSentences });
+  }
+  return capability;
 }
 
 export function containsClientTeacherMaterial(value) {
   if (Array.isArray(value)) return value.some(containsClientTeacherMaterial);
   if (!value || typeof value !== "object") return false;
-  const forbidden = new Set(["modelAnswer", "modelAnswers", "correctOptionId", "correctAnswers", "mappings", "solution", "teacherDocument", "teacherProjection"]);
+  const forbidden = new Set(["acceptedAnswers", "acceptedTexts", "modelAnswer", "modelAnswers", "modelAnswerTexts", "correctOptionId", "correctOptionIds", "correctAnswers", "mappings", "solution", "teacherDocument", "teacherProjection"]);
   return Object.entries(value).some(([key, child]) => forbidden.has(key) || containsClientTeacherMaterial(child));
 }
 
@@ -300,7 +343,7 @@ function verifiedNative(row, nativeActivityId) {
   const publicEntry = verified.publicProjection?.nativeActivities?.[nativeActivityId];
   const teacherEntry = verified.teacherProjection?.nativeActivities?.[nativeActivityId];
   if (!publicEntry || !teacherEntry || publicEntry.kind !== teacherEntry.kind) return null;
-  return { row, verified, publicEntry, teacherEntry, capability: nativeAssignmentCapability(publicEntry.kind) };
+  return { row, verified, publicEntry, teacherEntry, capability: nativeAssignmentCapability(publicEntry.kind, publicEntry.document) };
 }
 
 export async function resolveNativeAssignmentTarget(sql, currentUser, rawTarget, { requireActive = true } = {}) {
@@ -397,7 +440,7 @@ export async function listPublishedNativeAssignmentTargets(sql, currentUser) {
     for (const [nativeActivityId, publicEntry] of Object.entries(verified.publicProjection?.nativeActivities || {})) {
       const teacherEntry = verified.teacherProjection?.nativeActivities?.[nativeActivityId];
       if (!teacherEntry || teacherEntry.kind !== publicEntry.kind) continue;
-      const capability = nativeAssignmentCapability(publicEntry.kind);
+      const capability = nativeAssignmentCapability(publicEntry.kind, publicEntry.document);
       targets.push({
         target: { kind: NATIVE_ASSIGNMENT_TARGET_KIND, releaseId: row.id, nativeActivityId },
         title: publicEntry.document?.metadata?.title || nativeActivityId,

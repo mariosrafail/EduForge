@@ -120,6 +120,26 @@ test("visual Single Choice normalizes strict student-safe panels and source-pixe
   assert.equal(Object.hasOwn(normalized.parts[0].interaction.presentation.panels[0].hotspots[0], "highlightArea"), false, "old records stay byte-stable and the runtime deterministically falls back to area");
 });
 
+test("Single Choice supports canonical private exact sets while preserving legacy scalar answers", () => {
+  const legacy = visualPair();
+  assert.deepEqual(kind.normalizeTeacher(legacy.teacherDocument, activityId).parts[0].solution.correctAnswers[0], {
+    questionId: ids.questions[0], correctOptionId: ids.options[0][1],
+  });
+  assert.equal(Object.hasOwn(kind.normalizePublic(legacy.publicDocument, activityId).parts[0].interaction.questions[0], "selectionMode"), false);
+
+  const current = visualPair();
+  current.publicDocument.parts[0].interaction.questions[0].selectionMode = "multiple";
+  current.teacherDocument.parts[0].solution.correctAnswers[0] = { questionId: ids.questions[0], correctOptionIds: ids.options[0] };
+  assert.equal(kind.validatePair(current.publicDocument, current.teacherDocument), true);
+  assert.deepEqual(kind.normalizeTeacher(current.teacherDocument, activityId).parts[0].solution.correctAnswers[0].correctOptionIds, ids.options[0]);
+  const nonCanonical = structuredClone(current.teacherDocument);
+  nonCanonical.parts[0].solution.correctAnswers[0].correctOptionIds.reverse();
+  assert.throws(() => kind.validatePair(current.publicDocument, nonCanonical), /exactly match/);
+  const wrongMode = structuredClone(current.publicDocument);
+  wrongMode.parts[0].interaction.questions[0].selectionMode = "single";
+  assert.throws(() => kind.validatePair(wrongMode, current.teacherDocument), /exactly match/);
+});
+
 test("legacy optional highlight geometry remains accepted without changing canonical area", () => {
   const pair = visualPair();
   const hotspot = pair.publicDocument.parts[0].interaction.presentation.panels[0].hotspots[0];
@@ -294,6 +314,25 @@ test("Teacher external navigation and answer reveal commands preserve attempts a
   assert.deepEqual(session.optionStates, {});
   assert.equal(session.solvedQuestionIds.size, 0);
   assert.equal(session.panelIndex, 0);
+});
+
+test("Teacher multiple-answer interaction solves only the exact set and reveals every correct option", () => {
+  const pair = visualPair();
+  const question = pair.publicDocument.parts[0].interaction.questions[0];
+  question.selectionMode = "multiple";
+  pair.teacherDocument.parts[0].solution.correctAnswers[0] = { questionId: question.id, correctOptionIds: [...ids.options[0]] };
+  let session = createNativeSingleChoiceTeacherSession();
+  session = updateNativeSingleChoiceTeacherSession(session, pair.publicDocument, pair.teacherDocument, { type: "select", questionId: question.id, optionId: ids.options[0][0] });
+  assert.deepEqual(session.responses[question.id], [ids.options[0][0]]);
+  assert.equal(session.solvedQuestionIds.has(question.id), false, "a proper subset is not solved");
+  session = updateNativeSingleChoiceTeacherSession(session, pair.publicDocument, pair.teacherDocument, { type: "select", questionId: question.id, optionId: ids.options[0][1] });
+  assert.equal(session.solvedQuestionIds.has(question.id), true);
+  assert.deepEqual(ids.options[0].map((optionId) => session.optionStates[optionId]), ["correct", "correct"]);
+
+  session = createNativeSingleChoiceTeacherSession();
+  session = updateNativeSingleChoiceTeacherSession(session, pair.publicDocument, pair.teacherDocument, { type: "show-next" });
+  assert.deepEqual(session.responses[question.id], ids.options[0]);
+  assert.deepEqual(ids.options[0].map((optionId) => session.optionStates[optionId]), ["correct", "correct"]);
 });
 
 test("Teacher presentation state contains counts only and never answer identities", () => {

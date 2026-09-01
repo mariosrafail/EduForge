@@ -1,6 +1,6 @@
 import { createNativeChildId } from "./nativeChildIdentity.js";
 import { removeNativeManagedAssetReferenceIfUnused } from "./nativeActivityPublic.js";
-import { createNativeSingleChoiceQuestion } from "./nativeSingleChoice.js";
+import { createNativeSingleChoiceQuestion, nativeSingleChoiceCorrectOptionIds } from "./nativeSingleChoice.js";
 
 function interaction(publicDocument) {
   return publicDocument.parts[0].interaction;
@@ -50,7 +50,12 @@ export function alignNativeSingleChoiceAnswers(publicDocument, teacherDocument) 
   const answers = new Map(solution(teacherDocument).correctAnswers.map((answer) => [answer.questionId, answer]));
   solution(teacherDocument).correctAnswers = interaction(publicDocument).questions.flatMap((question) => {
     const answer = answers.get(question.id);
-    return answer && question.options.some((option) => option.id === answer.correctOptionId) ? [answer] : [];
+    if (!answer) return [];
+    const existingIds = nativeSingleChoiceCorrectOptionIds(answer);
+    const correctOptionIds = question.options.map((option) => option.id).filter((optionId) => existingIds.includes(optionId));
+    if (!correctOptionIds.length) { delete question.selectionMode; return []; }
+    question.selectionMode = correctOptionIds.length > 1 ? "multiple" : "single";
+    return [{ questionId: question.id, correctOptionIds }];
   });
   return teacherDocument;
 }
@@ -64,12 +69,25 @@ export function addUnansweredNativeSingleChoiceQuestion(publicDocument, teacherD
 }
 
 export function setNativeSingleChoiceCorrectAnswer(publicDocument, teacherDocument, questionId, correctOptionId) {
+  return setNativeSingleChoiceCorrectAnswers(publicDocument, teacherDocument, questionId, [correctOptionId]);
+}
+
+export function setNativeSingleChoiceCorrectAnswers(publicDocument, teacherDocument, questionId, requestedOptionIds) {
   const question = interaction(publicDocument).questions.find((entry) => entry.id === questionId);
-  if (!question || !question.options.some((option) => option.id === correctOptionId)) throw new Error("Correct answer must reference an option on its question.");
+  if (!question || !Array.isArray(requestedOptionIds) || new Set(requestedOptionIds).size !== requestedOptionIds.length || requestedOptionIds.some((optionId) => !question.options.some((option) => option.id === optionId))) throw new Error("Correct answers must reference unique options on their question.");
+  const correctOptionIds = question.options.map((option) => option.id).filter((optionId) => requestedOptionIds.includes(optionId));
   const answers = solution(teacherDocument).correctAnswers;
   const current = answers.find((answer) => answer.questionId === questionId);
-  if (current) current.correctOptionId = correctOptionId;
-  else answers.push({ questionId, correctOptionId });
+  if (!correctOptionIds.length) {
+    delete question.selectionMode;
+    solution(teacherDocument).correctAnswers = answers.filter((answer) => answer.questionId !== questionId);
+    return teacherDocument;
+  }
+  question.selectionMode = correctOptionIds.length > 1 ? "multiple" : "single";
+  if (current) {
+    delete current.correctOptionId;
+    current.correctOptionIds = correctOptionIds;
+  } else answers.push({ questionId, correctOptionIds });
   alignNativeSingleChoiceAnswers(publicDocument, teacherDocument);
   return teacherDocument;
 }

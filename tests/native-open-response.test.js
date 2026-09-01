@@ -53,6 +53,25 @@ test("blank, one-question, and multi-question native Open Response drafts normal
   }
 });
 
+test("Open Response accepts one or two private multiline variants and preserves legacy shape", () => {
+  const legacy = pair([q1]);
+  assert.deepEqual(kind.normalizeTeacher(legacy.teacherDocument, activityId).parts[0].solution.modelAnswers[0], { questionId: q1, text: "Answer 1" });
+
+  const current = pair([q1]);
+  current.teacherDocument.parts[0].solution.modelAnswers[0] = { questionId: q1, modelAnswerTexts: ["First\r\nline", "Second variant"] };
+  assert.equal(kind.validatePair(current.publicDocument, current.teacherDocument), true);
+  assert.deepEqual(kind.normalizeTeacher(current.teacherDocument, activityId).parts[0].solution.modelAnswers[0].modelAnswerTexts, ["First\nline", "Second variant"]);
+  assert.doesNotThrow(() => assertPublicBuilderDocument(current.publicDocument));
+  const leaked = structuredClone(current.publicDocument);
+  leaked.parts[0].interaction.modelAnswerTexts = ["private"];
+  assert.throws(() => assertPublicBuilderDocument(leaked), /modelAnswerTexts/);
+  for (const invalidTexts of [[], ["one", "two", "three"]]) {
+    const invalid = structuredClone(current.teacherDocument);
+    invalid.parts[0].solution.modelAnswers[0].modelAnswerTexts = invalidTexts;
+    assert.throws(() => kind.normalizeTeacher(invalid, activityId), /one or two variants/);
+  }
+});
+
 test("Open Response answer typography reuses canonical component fonts without changing legacy documents", () => {
   const legacy = pair([q1]).publicDocument;
   const legacyNormalized = kind.normalizePublic(legacy);

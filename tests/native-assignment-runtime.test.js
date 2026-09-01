@@ -126,6 +126,23 @@ test("Complete the Sentences response uses public item order and joins private a
   assert.match(capability.normalizeResponse(publicComplete, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: "forged", value: "x" }] }).error, /invalid/);
 });
 
+test("Complete the Sentences exact mode scores private alternatives case-sensitively and keeps legacy reviewed", () => {
+  const itemId = "item-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const publicExact = { parts: [{ interaction: { kind: "complete-sentences", evaluationMode: "exact-answer", items: [{ id: itemId, prompt: "Use UK spelling: _____." }] } }] };
+  const teacherExact = { parts: [{ solution: { kind: "complete-sentences", answers: [{ itemId, text: "colour/color", acceptedTexts: ["colour", "color"] }] } }] };
+  const capability = nativeAssignmentCapability("complete-sentences", publicExact);
+  assert.equal(capability.reviewMode, "auto-scored");
+  const envelope = (value) => ({ schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: value === undefined ? [] : [{ id: itemId, value }] });
+  const accepted = capability.normalizeResponse(publicExact, envelope("  color  "));
+  assert.deepEqual(capability.evaluateResponse(publicExact, teacherExact, accepted.payload), { status: "submitted", correctCount: 1, totalCount: 1, scorePercent: 100 });
+  const wrongCase = capability.normalizeResponse(publicExact, envelope("Color"));
+  assert.equal(capability.evaluateResponse(publicExact, teacherExact, wrongCase.payload).correctCount, 0);
+  assert.equal(capability.evaluateResponse(publicExact, teacherExact, capability.normalizeResponse(publicExact, envelope()).payload).correctCount, 0);
+  assert.deepEqual(capability.teacherReviewProjection(publicExact, teacherExact, accepted.payload)[0].acceptedAnswers, ["colour", "color"]);
+  assert.equal(nativeAssignmentCapability("complete-sentences").reviewMode, "teacher-reviewed");
+  assert.equal(nativeAssignmentCapability("complete-sentences").evaluateResponse, undefined);
+});
+
 test("Single Choice validates option ownership and scores the immutable Teacher key with unanswered items incorrect", () => {
   const compiled = compilePublicationV2Fixture();
   const publicChoice = compiled.publicProjection.nativeActivities[publicationV2Fixture.singleChoiceId].document;
@@ -143,6 +160,23 @@ test("Single Choice validates option ownership and scores the immutable Teacher 
   assert.equal(review[0].isCorrect, true);
   assert.equal(review[1].answer, "");
   assert.equal(review[1].isCorrect, false);
+});
+
+test("Multiple-answer Single Choice canonicalizes selections and requires the exact set", () => {
+  const publicChoice = { parts: [{ interaction: { questions: [{ id: "q-multi", selectionMode: "multiple", prompt: "Choose both", options: [
+    { id: "o-a", text: "A" }, { id: "o-b", text: "B" }, { id: "o-c", text: "C" },
+  ] }] } }] };
+  const teacherChoice = { parts: [{ solution: { correctAnswers: [{ questionId: "q-multi", correctOptionIds: ["o-a", "o-c"] }] } }] };
+  const capability = nativeAssignmentCapability("single-choice");
+  const envelope = (value) => ({ schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: "q-multi", value }] });
+  const exact = capability.normalizeResponse(publicChoice, envelope(["o-c", "o-a"]));
+  assert.deepEqual(exact.payload.items[0].value, ["o-a", "o-c"], "response order follows public option order");
+  assert.equal(capability.evaluateResponse(publicChoice, teacherChoice, exact.payload).scorePercent, 100);
+  assert.equal(capability.evaluateResponse(publicChoice, teacherChoice, capability.normalizeResponse(publicChoice, envelope(["o-a"])).payload).scorePercent, 0);
+  assert.equal(capability.evaluateResponse(publicChoice, teacherChoice, capability.normalizeResponse(publicChoice, envelope(["o-a", "o-b", "o-c"])).payload).scorePercent, 0);
+  assert.match(capability.normalizeResponse(publicChoice, envelope(["o-a", "o-a"])).error, /unique options/);
+  assert.match(capability.normalizeResponse(publicChoice, envelope("o-a")).error, /unique options/);
+  assert.deepEqual(capability.teacherReviewProjection(publicChoice, teacherChoice, exact.payload)[0].modelAnswers, ["A", "C"]);
 });
 
 test("Open Response adapter canonicalizes stable IDs in document order without changing text", () => {
@@ -194,6 +228,21 @@ test("Teacher review projection combines pinned public prompts and protected Tea
     { questionId: "q-first", prompt: "First prompt", answer: "Student one", modelAnswer: "Private model one" },
     { questionId: "q-second", prompt: "Second prompt", answer: "Student two", modelAnswer: "Private model two" },
   ]);
+});
+
+test("Open Response review exposes one or two protected model variants without auto-scoring", () => {
+  const capability = nativeAssignmentCapability("open-response");
+  const teacherDocument = { parts: [{ solution: { modelAnswers: [
+    { questionId: "q-first", modelAnswerTexts: ["First\nvariant", "Alternative variant"] },
+    { questionId: "q-second", modelAnswerTexts: ["Only variant"] },
+  ] } }] };
+  const review = capability.teacherReviewProjection(publicDocument, teacherDocument, { items: [] });
+  assert.equal(capability.reviewMode, "teacher-reviewed");
+  assert.equal(capability.evaluateResponse, undefined);
+  assert.deepEqual(review[0].modelAnswers, ["First\nvariant", "Alternative variant"]);
+  assert.equal(review[0].modelAnswer, "First\nvariant");
+  assert.equal(Object.hasOwn(review[1], "modelAnswers"), false);
+  assert.equal(review[1].modelAnswer, "Only variant");
 });
 
 test("native idempotency identity includes the pinned release and activity", () => {

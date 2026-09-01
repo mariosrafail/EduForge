@@ -337,6 +337,9 @@
 .teacher-review-responses article span { color: #475467; font-size: 12px; font-weight: 850; }
 
 .teacher-review-responses article p { margin: 5px 0 0; white-space: pre-wrap; }
+.teacher-review-model-answers { display: grid; gap: 4px; margin-top: 6px; }
+.teacher-review-model-answers small { display: grid; }
+.teacher-review-model-answers small span { overflow-wrap: anywhere; white-space: pre-wrap; }
 
 .teacher-review-editor { display: grid; grid-template-columns: minmax(150px, 0.28fr) minmax(260px, 1fr); gap: 12px; align-items: end; }
 

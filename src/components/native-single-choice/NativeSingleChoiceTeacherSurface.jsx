@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 
 import { NativeSingleChoicePresentation } from "./NativeSingleChoicePresentation.jsx";
 import { createNativeSingleChoiceTeacherSession, nativeSingleChoiceTeacherPresentationState, updateNativeSingleChoiceTeacherSession } from "./nativeSingleChoiceTeacherRuntime.js";
+import { nativeSingleChoiceCorrectOptionIds } from "../../data/native-activities/nativeSingleChoice.js";
+import { selectNativeSingleChoiceResponse } from "../../data/native-activities/nativeSingleChoiceRuntime.js";
 
 function NativeSingleChoiceTeacherSession({ publicDocument, teacherDocument, assetUrl, presentation, audioHotspotPresentation }) {
   const [session, setSession] = useState(createNativeSingleChoiceTeacherSession);
@@ -22,11 +24,14 @@ function NativeSingleChoiceTeacherSession({ publicDocument, teacherDocument, ass
 
   const choose = ({ questionId, optionId }) => {
     if (session.solvedQuestionIds.has(questionId)) return;
-    const correctOptionId = teacherDocument.parts[0].solution.correctAnswers.find((answer) => answer.questionId === questionId)?.correctOptionId;
-    const correct = correctOptionId === optionId;
+    const question = publicDocument.parts[0].interaction.questions.find((entry) => entry.id === questionId);
+    const correctOptionIds = nativeSingleChoiceCorrectOptionIds(teacherDocument.parts[0].solution.correctAnswers.find((answer) => answer.questionId === questionId));
+    const nextResponses = selectNativeSingleChoiceResponse(session.responses, questionId, optionId, question);
+    const selectedOptionIds = question?.selectionMode === "multiple" ? nextResponses[questionId] || [] : [nextResponses[questionId]].filter(Boolean);
+    const correct = selectedOptionIds.length === correctOptionIds.length && selectedOptionIds.every((id) => correctOptionIds.includes(id));
     setSession((current) => updateNativeSingleChoiceTeacherSession(current, publicDocument, teacherDocument, { type: "select", questionId, optionId }));
     const questionNumber = publicDocument.parts[0].interaction.questions.findIndex((question) => question.id === questionId) + 1;
-    setAnnouncement(`Question ${questionNumber}: ${correct ? "correct" : "incorrect"}.`);
+    setAnnouncement(`Question ${questionNumber}: ${correct ? "correct" : question?.selectionMode === "multiple" ? "selection updated" : "incorrect"}.`);
   };
   return <>
     <NativeSingleChoicePresentation

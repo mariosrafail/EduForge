@@ -3,12 +3,13 @@ import { nativeActivityFontFamilyAlias } from "./nativeActivityFont.js";
 import { normalizeNativePedagogicalText, normalizeNativeSingleLineText } from "./nativePedagogicalText.js";
 
 export const NATIVE_COMPLETE_SENTENCES_LIMITS = Object.freeze({
-  items: 30, panels: 8, hotspots: 30, promptLength: 2_000, answerLength: 500,
+  items: 30, panels: 8, hotspots: 30, promptLength: 2_000, answerLength: 500, acceptedAnswers: 20,
   sourceDimension: 16_384, fontSizeMinimum: 1,
 });
 export const NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN = "[[blank]]";
 export const NATIVE_COMPLETE_SENTENCES_LEGACY_PANEL_ID = "panel-00000000000000000000000000000001";
 export const NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION = Object.freeze({ fontSize: 21, color: "#12304b", fontAssetSlot: null });
+export const NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE = "exact-answer";
 
 export function nativeCompleteSentencesPromptParts(prompt) {
   const source = String(prompt || "");
@@ -104,8 +105,10 @@ function normalizePresentation(input, { items, assets }) {
 
 export function normalizeNativeCompleteSentencesInteraction(input, { assets = [] } = {}) {
   const value = structuredClone(object(input, "Native Complete the Sentences interaction"));
-  exact(value, ["kind", "items", "presentation"], "Native Complete the Sentences interaction");
+  const hasEvaluationMode = Object.hasOwn(value, "evaluationMode");
+  exact(value, ["kind", "items", "presentation", ...(hasEvaluationMode ? ["evaluationMode"] : [])], "Native Complete the Sentences interaction");
   if (value.kind !== "complete-sentences" || !Array.isArray(value.items) || value.items.length > NATIVE_COMPLETE_SENTENCES_LIMITS.items) throw new Error("Native Complete the Sentences interaction is invalid.");
+  if (hasEvaluationMode && value.evaluationMode !== NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE) throw new Error("Complete the Sentences evaluation mode is invalid.");
   const ids = new Set();
   const items = value.items.map((item, index) => {
     exact(item, ["id", "prompt"], `Complete the Sentences items[${index}]`);
@@ -114,7 +117,11 @@ export function normalizeNativeCompleteSentencesInteraction(input, { assets = []
     if (prompt.split(NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN).length > 2) throw new Error("Complete the Sentences prompt can contain only one blank token.");
     ids.add(item.id); return { id: item.id, prompt };
   });
-  return { kind: "complete-sentences", items, presentation: normalizePresentation(value.presentation, { items, assets }) };
+  return { kind: "complete-sentences", ...(hasEvaluationMode ? { evaluationMode: value.evaluationMode } : {}), items, presentation: normalizePresentation(value.presentation, { items, assets }) };
+}
+
+export function nativeCompleteSentencesAcceptedTexts(answer) {
+  return Array.isArray(answer?.acceptedTexts) ? answer.acceptedTexts : typeof answer?.text === "string" ? [answer.text] : [];
 }
 
 export function normalizeNativeCompleteSentencesSolution(input) {
@@ -123,9 +130,15 @@ export function normalizeNativeCompleteSentencesSolution(input) {
   if (value.kind !== "complete-sentences" || !Array.isArray(value.answers) || value.answers.length > NATIVE_COMPLETE_SENTENCES_LIMITS.items) throw new Error("Complete the Sentences Teacher solution is invalid.");
   const ids = new Set();
   return { kind: "complete-sentences", answers: value.answers.map((answer, index) => {
-    exact(answer, ["itemId", "text"], `Complete the Sentences answers[${index}]`);
+    const hasAcceptedTexts = Object.hasOwn(answer, "acceptedTexts");
+    exact(answer, ["itemId", "text", ...(hasAcceptedTexts ? ["acceptedTexts"] : [])], `Complete the Sentences answers[${index}]`);
     if (!isNativeChildId(answer.itemId, "item") || ids.has(answer.itemId)) throw new Error("Complete the Sentences answer identity is invalid or duplicate.");
-    ids.add(answer.itemId); return { itemId: answer.itemId, text: normalizeNativeSingleLineText(answer.text, "Complete the Sentences answer", NATIVE_COMPLETE_SENTENCES_LIMITS.answerLength) };
+    const text = normalizeNativeSingleLineText(answer.text, "Complete the Sentences answer", NATIVE_COMPLETE_SENTENCES_LIMITS.answerLength);
+    if (!hasAcceptedTexts) { ids.add(answer.itemId); return { itemId: answer.itemId, text }; }
+    if (!Array.isArray(answer.acceptedTexts) || !answer.acceptedTexts.length || answer.acceptedTexts.length > NATIVE_COMPLETE_SENTENCES_LIMITS.acceptedAnswers) throw new Error("Complete the Sentences accepted answers are invalid.");
+    const acceptedTexts = answer.acceptedTexts.map((acceptedText, acceptedIndex) => normalizeNativeSingleLineText(acceptedText, `Complete the Sentences accepted answers[${acceptedIndex}]`, NATIVE_COMPLETE_SENTENCES_LIMITS.answerLength, { required: true }));
+    if (new Set(acceptedTexts).size !== acceptedTexts.length) throw new Error("Complete the Sentences accepted answers must be unique.");
+    ids.add(answer.itemId); return { itemId: answer.itemId, text: text || acceptedTexts.join("/"), acceptedTexts };
   }) };
 }
 
@@ -139,12 +152,12 @@ export function validateNativeCompleteSentencesTopology(publicDocument, teacherD
 
 function contentIssues(publicDocument, teacherDocument) {
   const interaction = publicDocument.parts[0].interaction;
-  const answers = new Map(teacherDocument.parts[0].solution.answers.map((answer) => [answer.itemId, answer.text]));
+  const answers = new Map(teacherDocument.parts[0].solution.answers.map((answer) => [answer.itemId, nativeCompleteSentencesAcceptedTexts(answer)]));
   const issues = [];
   if (!interaction.items.length) issues.push("Add at least one sentence item.");
   interaction.items.forEach((item, index) => {
     if (!item.prompt) issues.push(`Item ${index + 1} needs a sentence prompt.`);
-    if (!answers.get(item.id)) issues.push(`Item ${index + 1} needs a private correct word or phrase.`);
+    if (!answers.get(item.id)?.some((answer) => answer.trim())) issues.push(`Item ${index + 1} needs a private correct word or phrase.`);
   });
   return issues;
 }

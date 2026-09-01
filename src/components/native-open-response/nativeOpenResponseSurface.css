@@ -3,3 +3,7 @@
 .native-or-panel-navigation { display: flex; align-items: center; justify-content: center; gap: 14px; }
 .native-or-panel-navigation button { min-width: 96px; min-height: 42px; }
 .native-activity-font-fallback { margin: 0; padding: 7px 10px; color: #9a3412; background: #fff1e8; border: 1px solid #fdba74; border-radius: 6px; font: 700 13px/1.3 system-ui, sans-serif; }
+.native-or-answer-variants { box-sizing: border-box; display: grid; gap: 4px; width: 100%; height: 100%; padding: 4px; overflow: auto; color: #111827; background: rgb(255 255 255 / 92%); font: 600 clamp(8px, 1.15cqw, 16px)/1.2 Arial, sans-serif; text-align: left; }
+.native-or-answer-variants > span { display: grid; gap: 1px; }
+.native-or-answer-variants strong { font-size: .72em; text-transform: uppercase; }
+.native-or-answer-variants > span > span { overflow-wrap: anywhere; white-space: pre-wrap; }

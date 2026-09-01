@@ -540,12 +540,19 @@ export function normalizeNativeOpenResponseSolution(input) {
     kind: "open-response",
     modelAnswers: value.modelAnswers.map((answer, index) => {
       const label = `Native Open Response modelAnswers[${index}]`;
-      exactKeys(answer, ["questionId", "text"], label);
+      const variantsShape = Object.hasOwn(answer, "modelAnswerTexts");
+      exactKeys(answer, ["questionId", variantsShape ? "modelAnswerTexts" : "text"], label);
       if (!isNativeChildId(answer.questionId, "q") || ids.has(answer.questionId)) throw new Error(`${label}.questionId is invalid or duplicate.`);
       ids.add(answer.questionId);
-      return { questionId: answer.questionId, text: normalizeNativePedagogicalText(answer.text, `${label}.text`, NATIVE_OPEN_RESPONSE_LIMITS.modelAnswerLength) };
+      if (!variantsShape) return { questionId: answer.questionId, text: normalizeNativePedagogicalText(answer.text, `${label}.text`, NATIVE_OPEN_RESPONSE_LIMITS.modelAnswerLength) };
+      if (!Array.isArray(answer.modelAnswerTexts) || answer.modelAnswerTexts.length < 1 || answer.modelAnswerTexts.length > 2) throw new Error(`${label}.modelAnswerTexts must contain one or two variants.`);
+      return { questionId: answer.questionId, modelAnswerTexts: answer.modelAnswerTexts.map((text, variantIndex) => normalizeNativePedagogicalText(text, `${label}.modelAnswerTexts[${variantIndex}]`, NATIVE_OPEN_RESPONSE_LIMITS.modelAnswerLength)) };
     }),
   };
+}
+
+export function nativeOpenResponseModelAnswerTexts(answer) {
+  return Array.isArray(answer?.modelAnswerTexts) ? answer.modelAnswerTexts : typeof answer?.text === "string" ? [answer.text] : [];
 }
 
 export function validateNativeOpenResponseTopology(publicDocument, teacherDocument) {
@@ -578,7 +585,7 @@ export function createNativeOpenResponseQuestion(id, index = 0) {
 export function assessNativeOpenResponseReadiness(publicDocument, teacherDocument) {
   const issues = [];
   const questions = publicDocument.parts[0].interaction.questions;
-  const answers = new Map(teacherDocument.parts[0].solution.modelAnswers.map((answer) => [answer.questionId, answer.text]));
+  const answers = new Map(teacherDocument.parts[0].solution.modelAnswers.map((answer) => [answer.questionId, nativeOpenResponseModelAnswerTexts(answer)]));
   if (!questions.length) issues.push("Add at least one question.");
   const panels = nativeOpenResponsePanels(publicDocument.parts[0].interaction);
   if (!panels.length) issues.push("Add at least one visual panel.");
@@ -586,9 +593,11 @@ export function assessNativeOpenResponseReadiness(publicDocument, teacherDocumen
   for (const [index, questionValue] of questions.entries()) {
     if (!questionValue.prompt.trim()) issues.push(`Question ${index + 1} needs a prompt.`);
     if (!membership.has(questionValue.id)) issues.push(`Question ${index + 1} must be assigned to a panel.`);
-    const modelAnswer = answers.get(questionValue.id) || "";
-    if (!modelAnswer.trim()) issues.push(`Question ${index + 1} needs a model answer.`);
-    else if (!autoFitNativeOpenResponseAnswer({ text: modelAnswer, responseRegion: questionValue.responseRegion }).fits) issues.push(`Question ${index + 1} model answer does not fit its authored lines.`);
+    const modelAnswers = answers.get(questionValue.id) || [];
+    if (!modelAnswers.length || modelAnswers.some((modelAnswer) => !modelAnswer.trim())) issues.push(`Question ${index + 1} needs one or two model answers.`);
+    else modelAnswers.forEach((modelAnswer, answerIndex) => {
+      if (!autoFitNativeOpenResponseAnswer({ text: modelAnswer, responseRegion: questionValue.responseRegion }).fits) issues.push(`Question ${index + 1} model answer ${answerIndex + 1} does not fit its authored lines.`);
+    });
   }
   panels.forEach((panel, panelIndex) => panel.images.forEach((item, imageIndex) => {
     if (!item.decorative && !item.altText.trim()) issues.push(`Panel ${panelIndex + 1} image ${imageIndex + 1} needs alt text or must be marked decorative.`);

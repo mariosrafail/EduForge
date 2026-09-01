@@ -1,5 +1,15 @@
-export function selectNativeSingleChoiceResponse(responses, questionId, optionId) {
-  return { ...(responses || {}), [questionId]: optionId };
+export function selectNativeSingleChoiceResponse(responses, questionId, optionId, question = null) {
+  const next = { ...(responses || {}) };
+  if (question?.selectionMode !== "multiple") {
+    next[questionId] = optionId;
+    return next;
+  }
+  const current = Array.isArray(next[questionId]) ? next[questionId] : [];
+  const selected = new Set(current);
+  if (selected.has(optionId)) selected.delete(optionId); else selected.add(optionId);
+  const canonical = (question.options || []).map((option) => option.id).filter((id) => selected.has(id));
+  if (canonical.length) next[questionId] = canonical; else delete next[questionId];
+  return next;
 }
 
 export function updateNativeSingleChoiceVisualNavigation(state, panelCount, action) {

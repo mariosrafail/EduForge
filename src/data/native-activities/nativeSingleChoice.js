@@ -11,6 +11,15 @@ export const NATIVE_SINGLE_CHOICE_LIMITS = Object.freeze({
   hotspots: 120,
   sourceDimension: 16_384,
 });
+export const NATIVE_SINGLE_CHOICE_SELECTION_MODES = Object.freeze(["single", "multiple"]);
+
+export function nativeSingleChoiceSelectionMode(question) {
+  return question?.selectionMode === "multiple" ? "multiple" : "single";
+}
+
+export function nativeSingleChoiceCorrectOptionIds(answer) {
+  return Array.isArray(answer?.correctOptionIds) ? answer.correctOptionIds : typeof answer?.correctOptionId === "string" ? [answer.correctOptionId] : [];
+}
 
 function object(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object.`);
@@ -112,12 +121,15 @@ export function normalizeNativeSingleChoiceInteraction(input, { assets = [] } = 
     kind: "single-choice",
     questions: value.questions.map((entry, questionIndex) => {
       const label = `Native Single Choice questions[${questionIndex}]`;
-      exactKeys(entry, ["id", "prompt", "options"], label);
+      const hasSelectionMode = Object.hasOwn(entry, "selectionMode");
+      exactKeys(entry, ["id", "prompt", "options", ...(hasSelectionMode ? ["selectionMode"] : [])], label);
       if (!isNativeChildId(entry.id, "q") || questionIds.has(entry.id) || !Array.isArray(entry.options) || entry.options.length > NATIVE_SINGLE_CHOICE_LIMITS.optionsMaximum) throw new Error(`${label} is invalid.`);
+      if (hasSelectionMode && !NATIVE_SINGLE_CHOICE_SELECTION_MODES.includes(entry.selectionMode)) throw new Error(`${label}.selectionMode is invalid.`);
       questionIds.add(entry.id);
       const optionIds = new Set();
       return {
         id: entry.id,
+        ...(hasSelectionMode ? { selectionMode: entry.selectionMode } : {}),
         prompt: normalizeNativePedagogicalText(entry.prompt, `${label}.prompt`, NATIVE_SINGLE_CHOICE_LIMITS.promptLength),
         options: entry.options.map((option, optionIndex) => {
           const optionLabel = `${label}.options[${optionIndex}]`;
@@ -140,17 +152,29 @@ export function normalizeNativeSingleChoiceSolution(input) {
   const ids = new Set();
   return { kind: "single-choice", correctAnswers: value.correctAnswers.map((answer, index) => {
     const label = `Native Single Choice correctAnswers[${index}]`;
-    exactKeys(answer, ["questionId", "correctOptionId"], label);
-    if (!isNativeChildId(answer.questionId, "q") || !isNativeChildId(answer.correctOptionId, "opt") || ids.has(answer.questionId)) throw new Error(`${label} is invalid or duplicate.`);
+    const collectionShape = Object.hasOwn(answer, "correctOptionIds");
+    exactKeys(answer, ["questionId", collectionShape ? "correctOptionIds" : "correctOptionId"], label);
+    if (!isNativeChildId(answer.questionId, "q") || ids.has(answer.questionId)) throw new Error(`${label} is invalid or duplicate.`);
+    const correctOptionIds = collectionShape ? answer.correctOptionIds : [answer.correctOptionId];
+    if (!Array.isArray(correctOptionIds) || !correctOptionIds.length || correctOptionIds.length > NATIVE_SINGLE_CHOICE_LIMITS.optionsMaximum || correctOptionIds.some((id) => !isNativeChildId(id, "opt")) || new Set(correctOptionIds).size !== correctOptionIds.length) throw new Error(`${label} is invalid or duplicate.`);
     ids.add(answer.questionId);
-    return { questionId: answer.questionId, correctOptionId: answer.correctOptionId };
+    return collectionShape ? { questionId: answer.questionId, correctOptionIds } : { questionId: answer.questionId, correctOptionId: answer.correctOptionId };
   }) };
 }
 
 export function validateNativeSingleChoiceTopology(publicDocument, teacherDocument) {
   const questions = publicDocument.parts[0].interaction.questions;
   const answers = teacherDocument.parts[0].solution.correctAnswers;
-  if (questions.length !== answers.length || questions.some((question, index) => question.id !== answers[index]?.questionId || !question.options.some((option) => option.id === answers[index]?.correctOptionId))) {
+  if (questions.length !== answers.length || questions.some((question, index) => {
+    const answer = answers[index];
+    const correctOptionIds = nativeSingleChoiceCorrectOptionIds(answer);
+    const mode = nativeSingleChoiceSelectionMode(question);
+    const canonicalOptionIds = question.options.map((option) => option.id).filter((optionId) => correctOptionIds.includes(optionId));
+    return question.id !== answer?.questionId
+      || correctOptionIds.some((optionId) => !question.options.some((option) => option.id === optionId))
+      || canonicalOptionIds.some((optionId, optionIndex) => correctOptionIds[optionIndex] !== optionId)
+      || (mode === "single" ? correctOptionIds.length !== 1 : correctOptionIds.length < 2);
+  })) {
     throw new Error("Native Single Choice answers must exactly match public question identity, order, and options.");
   }
   const presentation = publicDocument.parts[0].interaction.presentation;
@@ -178,14 +202,16 @@ export function validateNativeSingleChoiceTopology(publicDocument, teacherDocume
 export function assessNativeSingleChoiceReadiness(publicDocument, teacherDocument) {
   const interaction = publicDocument.parts[0].interaction;
   const questions = interaction.questions;
-  const answers = new Map(teacherDocument.parts[0].solution.correctAnswers.map((answer) => [answer.questionId, answer.correctOptionId]));
+  const answers = new Map(teacherDocument.parts[0].solution.correctAnswers.map((answer) => [answer.questionId, nativeSingleChoiceCorrectOptionIds(answer)]));
   const issues = [];
   if (!questions.length) issues.push("Add at least one question.");
   questions.forEach((question, index) => {
     if (!question.prompt) issues.push(`Question ${index + 1} needs a prompt.`);
     if (question.options.length < NATIVE_SINGLE_CHOICE_LIMITS.optionsMinimum) issues.push(`Question ${index + 1} needs at least two options.`);
     question.options.forEach((option, optionIndex) => { if (!option.text) issues.push(`Question ${index + 1}, option ${optionIndex + 1} needs text.`); });
-    if (!question.options.some((option) => option.id === answers.get(question.id))) issues.push(`Question ${index + 1} needs a correct option.`);
+    const correctOptionIds = answers.get(question.id) || [];
+    if (!correctOptionIds.length || correctOptionIds.some((optionId) => !question.options.some((option) => option.id === optionId))) issues.push(`Question ${index + 1} needs a correct option.`);
+    else if (nativeSingleChoiceSelectionMode(question) === "multiple" ? correctOptionIds.length < 2 : correctOptionIds.length !== 1) issues.push(`Question ${index + 1} selection mode must match its correct options.`);
   });
   const presentation = interaction.presentation;
   if (presentation) {

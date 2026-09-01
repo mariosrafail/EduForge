@@ -7,7 +7,7 @@ import { NativeCompleteSentencesHotspotCanvas } from "../../../components/native
 import { NativeCompleteSentencesStudentSurface, NativeCompleteSentencesTeacherSurface } from "../../../components/native-complete-sentences/NativeCompleteSentencesSurface.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
-import { assessNativeCompleteSentencesReadiness, assessNativeCompleteSentencesSaveability, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION, NATIVE_COMPLETE_SENTENCES_LIMITS, normalizeNativeCompleteSentencesInteraction } from "../../../data/native-activities/nativeCompleteSentences.js";
+import { assessNativeCompleteSentencesReadiness, assessNativeCompleteSentencesSaveability, nativeCompleteSentencesAcceptedTexts, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION, NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE, NATIVE_COMPLETE_SENTENCES_LIMITS, normalizeNativeCompleteSentencesInteraction } from "../../../data/native-activities/nativeCompleteSentences.js";
 import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesPanel, findNextUnusedNativeCompleteSentencesItemId, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../../../data/native-activities/nativeCompleteSentencesAuthoring.js";
 import { getBuilderContent } from "./builderContentApi.js";
 import { getBuilderFontLibrary, nativeFontPreviewUrl, saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
@@ -108,6 +108,14 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
     });
     changed();
   };
+  const mutateTeacher = (mutator) => {
+    setTeacherDraft((current) => {
+      const next = clone(current);
+      mutator(next);
+      return next;
+    });
+    changed();
+  };
   const mutatePair = (mutator) => {
     const nextPublic = clone(publicDraft);
     const nextTeacher = clone(teacherDraft);
@@ -200,7 +208,9 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
     }
     mutatePair((nextPublic, nextTeacher) => {
       nextPublic.parts[0].interaction.items.find((item) => item.id === selectedItem.id).prompt = parsed.prompt;
-      nextTeacher.parts[0].solution.answers.find((entry) => entry.itemId === selectedItem.id).text = parsed.answer;
+      const answer = nextTeacher.parts[0].solution.answers.find((entry) => entry.itemId === selectedItem.id);
+      answer.text = parsed.answer;
+      delete answer.acceptedTexts;
     });
   };
   const updateAnswer = (value) => {
@@ -212,6 +222,27 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
       nextTeacher.parts[0].solution.answers.find((entry) => entry.itemId === selectedItem.id).text = value;
     });
   };
+  const acceptedTexts = nativeCompleteSentencesAcceptedTexts(selectedAnswer);
+  const updateAcceptedText = (index, value) => mutateTeacher((nextTeacher) => {
+    const answer = nextTeacher.parts[0].solution.answers.find((entry) => entry.itemId === selectedItem.id);
+    const values = nativeCompleteSentencesAcceptedTexts(answer);
+    values[index] = value;
+    answer.acceptedTexts = values;
+  });
+  const addAcceptedText = () => mutateTeacher((nextTeacher) => {
+    const answer = nextTeacher.parts[0].solution.answers.find((entry) => entry.itemId === selectedItem.id);
+    answer.acceptedTexts = [...nativeCompleteSentencesAcceptedTexts(answer), ""];
+  });
+  const moveAcceptedText = (index, offset) => mutateTeacher((nextTeacher) => {
+    const answer = nextTeacher.parts[0].solution.answers.find((entry) => entry.itemId === selectedItem.id);
+    const values = nativeCompleteSentencesAcceptedTexts(answer);
+    [values[index], values[index + offset]] = [values[index + offset], values[index]];
+    answer.acceptedTexts = values;
+  });
+  const removeAcceptedText = (index) => mutateTeacher((nextTeacher) => {
+    const answer = nextTeacher.parts[0].solution.answers.find((entry) => entry.itemId === selectedItem.id);
+    answer.acceptedTexts = nativeCompleteSentencesAcceptedTexts(answer).filter((_, valueIndex) => valueIndex !== index);
+  });
   const uploadBackground = async (file) => {
     if (!file || !selectedPanel) return;
     setUploading(true);
@@ -587,9 +618,12 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                 <section className="native-or-question-editor">
                   <strong>Sentence {items.indexOf(selectedItem) + 1}</strong>
                   <p>{selectedItem.prompt}</p>
-                  <StudioField label="Correct answer">
+                  <label><input type="checkbox" checked={interaction.evaluationMode === NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE} onChange={(event) => mutatePublic((next) => { if (event.target.checked) next.parts[0].interaction.evaluationMode = NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE; else delete next.parts[0].interaction.evaluationMode; })} /> Exact-answer evaluation</label>
+                  <StudioField label="Teacher display text">
                     <input value={selectedAnswer?.text || ""} maxLength={NATIVE_COMPLETE_SENTENCES_LIMITS.answerLength} onChange={(event) => updateAnswer(event.target.value)} />
                   </StudioField>
+                  <fieldset><legend>Accepted typed answers</legend>{acceptedTexts.map((acceptedText, index) => <div className="native-complete-accepted-answer" key={index}><input aria-label={`Accepted answer ${index + 1}`} value={acceptedText} maxLength={NATIVE_COMPLETE_SENTENCES_LIMITS.answerLength} onChange={(event) => updateAcceptedText(index, event.target.value)} /><button type="button" aria-label={`Move accepted answer ${index + 1} up`} disabled={!index} onClick={() => moveAcceptedText(index, -1)}>↑</button><button type="button" aria-label={`Move accepted answer ${index + 1} down`} disabled={index === acceptedTexts.length - 1} onClick={() => moveAcceptedText(index, 1)}>↓</button><button type="button" disabled={acceptedTexts.length <= 1} onClick={() => removeAcceptedText(index)}>Remove</button></div>)}</fieldset>
+                  <StudioButton disabled={acceptedTexts.length >= NATIVE_COMPLETE_SENTENCES_LIMITS.acceptedAnswers} onClick={addAcceptedText}><Plus aria-hidden="true" />Add accepted answer</StudioButton>
                 </section>
               ) : (
                 <p>Add a sentence to begin.</p>

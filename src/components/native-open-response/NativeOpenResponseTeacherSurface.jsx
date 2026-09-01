@@ -4,17 +4,17 @@ import { nativeActivitySelectedFontState, useNativeActivityFonts } from "../nati
 import { logicalAreaStyle, NativeOpenResponseFontSurface, nativeOpenResponseResponseAriaLabel } from "./NativeOpenResponseSurface.jsx";
 import { fitNativeOpenResponseRuntimeAnswer } from "./nativeOpenResponseRuntimeFit.js";
 import { nextNativeOpenResponseReveal, updateNativeOpenResponseReveals } from "./nativeOpenResponseTeacherRuntime.js";
-import { nativeOpenResponseAnswerFontFamily, nativeOpenResponsePanelResponseIds, nativeOpenResponsePanels } from "../../data/native-activities/nativeOpenResponse.js";
+import { nativeOpenResponseAnswerFontFamily, nativeOpenResponseModelAnswerTexts, nativeOpenResponsePanelResponseIds, nativeOpenResponsePanels } from "../../data/native-activities/nativeOpenResponse.js";
 
-function TeacherAnswer({ publicDocument, fontState, panel, question, text, visible, onToggle, onOverflow }) {
+function TeacherAnswer({ publicDocument, fontState, panel, question, texts, visible, onToggle, onOverflow }) {
   const { responseRegion } = question;
   const { presentation } = responseRegion;
   const fontFamily = nativeOpenResponseAnswerFontFamily(publicDocument, presentation);
   const selectedFont = nativeActivitySelectedFontState(fontState, publicDocument, presentation.answerFontAssetSlot);
-  const fit = fitNativeOpenResponseRuntimeAnswer({ text, responseRegion, fontFamily, fontStatus: selectedFont.status });
+  const fit = fitNativeOpenResponseRuntimeAnswer({ text: texts[0] || "", responseRegion, fontFamily, fontStatus: selectedFont.status });
   useEffect(() => { if (!fit.fits) onOverflow(question.id, fit.overflowReason); }, [fit.fits, fit.overflowReason, onOverflow, question.id]);
-  return <button type="button" className="native-or-answer-layer" style={logicalAreaStyle(responseRegion.area, panel.surface)} aria-label={`${visible ? "Hide" : "Reveal"} model answer for ${nativeOpenResponseResponseAriaLabel(question)}`} aria-pressed={visible} onClick={onToggle} data-fit={fit.fits ? "true" : "false"} data-requested-font-size={presentation.answerFontSizeMax} data-effective-font-size={fit.fontSize} data-font-status={selectedFont.status} data-overflow-reason={fit.overflowReason || undefined}>
-    {visible ? fit.lines.slice(0, fit.baselines.length).map((line, index) => <span key={index} className="native-or-answer-line" style={{ left: `${(presentation.paddingX / responseRegion.area.width) * 100}%`, top: `${(presentation.linePositions[index] / responseRegion.area.height) * 100}%`, width: `${(presentation.lineWidth / responseRegion.area.width) * 100}%`, fontFamily, fontSize: `${(fit.fontSize / panel.surface.width) * 100}cqw`, color: presentation.color, textAlign: presentation.align }}>{line}</span>) : null}
+  return <button type="button" className="native-or-answer-layer" style={logicalAreaStyle(responseRegion.area, panel.surface)} aria-label={`${visible ? "Hide" : "Reveal"} model answer${texts.length > 1 ? "s" : ""} for ${nativeOpenResponseResponseAriaLabel(question)}`} aria-pressed={visible} onClick={onToggle} data-fit={texts.length > 1 || fit.fits ? "true" : "false"} data-requested-font-size={presentation.answerFontSizeMax} data-effective-font-size={fit.fontSize} data-font-status={selectedFont.status} data-overflow-reason={fit.overflowReason || undefined}>
+    {visible && texts.length > 1 ? <span className="native-or-answer-variants">{texts.map((text, index) => <span key={index}><strong>Model answer {index + 1}</strong><span>{text}</span></span>)}</span> : visible ? fit.lines.slice(0, fit.baselines.length).map((line, index) => <span key={index} className="native-or-answer-line" style={{ left: `${(presentation.paddingX / responseRegion.area.width) * 100}%`, top: `${(presentation.linePositions[index] / responseRegion.area.height) * 100}%`, width: `${(presentation.lineWidth / responseRegion.area.width) * 100}%`, fontFamily, fontSize: `${(fit.fontSize / panel.surface.width) * 100}cqw`, color: presentation.color, textAlign: presentation.align }}>{line}</span>) : null}
   </button>;
 }
 
@@ -25,7 +25,7 @@ function NativeOpenResponseTeacherSession({ publicDocument, teacherDocument, ass
   const panels = nativeOpenResponsePanels(interaction);
   const panel = panels[panelIndex] || panels[0];
   const fontState = useNativeActivityFonts(publicDocument, assetUrl);
-  const answers = new Map(teacherDocument.parts[0].solution.modelAnswers.map((answer) => [answer.questionId, answer.text]));
+  const answers = new Map(teacherDocument.parts[0].solution.modelAnswers.map((answer) => [answer.questionId, nativeOpenResponseModelAnswerTexts(answer)]));
   const responseMembership = new Set(panels.flatMap(nativeOpenResponsePanelResponseIds));
   const questionIds = interaction.questions.map((question) => question.id).filter((questionId) => responseMembership.has(questionId));
   const lastCommandToken = useRef(presentation?.command?.token);
@@ -62,7 +62,7 @@ function NativeOpenResponseTeacherSession({ publicDocument, teacherDocument, ass
   const visibleResponseIds = nativeOpenResponsePanelResponseIds(panel);
   const visibleQuestions = interaction.questions.filter((question) => visibleResponseIds.includes(question.id));
   return <section className="native-or-panel-session">{fontState.failures.length ? <p className="native-activity-font-fallback" role="alert">Selected font could not be loaded; using the default font.</p> : null}<NativeOpenResponseFontSurface document={publicDocument} panel={panel} assetUrl={assetUrl} audioHotspotPresentation={audioHotspotPresentation}>
-    {visibleQuestions.map((question) => <TeacherAnswer key={question.id} publicDocument={publicDocument} fontState={fontState} panel={panel} question={question} text={answers.get(question.id) || ""} visible={revealed.has(question.id)} onToggle={() => toggle(question.id)} onOverflow={onOverflow} />)}
+    {visibleQuestions.map((question) => <TeacherAnswer key={question.id} publicDocument={publicDocument} fontState={fontState} panel={panel} question={question} texts={answers.get(question.id) || []} visible={revealed.has(question.id)} onToggle={() => toggle(question.id)} onOverflow={onOverflow} />)}
   </NativeOpenResponseFontSurface>{!presentation && panels.length > 1 ? <nav className="native-or-panel-navigation" aria-label="Open Response panels"><button type="button" disabled={panelIndex === 0} onClick={() => setPanelIndex((current) => Math.max(0, current - 1))}>Previous</button><span>Panel {panelIndex + 1} of {panels.length}</span><button type="button" disabled={panelIndex === panels.length - 1} onClick={() => setPanelIndex((current) => Math.min(panels.length - 1, current + 1))}>Next</button></nav> : null}</section>;
 }
 
