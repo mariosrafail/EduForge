@@ -6,6 +6,7 @@ import { QuickNumber, StageGeometryControls } from "../../../components/builder-
 import { NativeCompleteSentencesHotspotCanvas } from "../../../components/native-complete-sentences/NativeCompleteSentencesHotspotCanvas.jsx";
 import { NativeCompleteSentencesStudentSurface, NativeCompleteSentencesTeacherSurface } from "../../../components/native-complete-sentences/NativeCompleteSentencesSurface.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
+import { generateNativeBulkCandidate } from "../../../data/native-activities/nativeBulkAuthoring.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { assessNativeCompleteSentencesReadiness, assessNativeCompleteSentencesSaveability, nativeCompleteSentencesAcceptedTexts, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION, NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE, NATIVE_COMPLETE_SENTENCES_LIMITS, normalizeNativeCompleteSentencesInteraction } from "../../../data/native-activities/nativeCompleteSentences.js";
 import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesPanel, findNextUnusedNativeCompleteSentencesItemId, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../../../data/native-activities/nativeCompleteSentencesAuthoring.js";
@@ -16,6 +17,7 @@ import { NativeCompleteSentencesFontControls } from "./NativeCompleteSentencesFo
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
 import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
+import { NativeBulkGenerator } from "./NativeBulkGenerator.jsx";
 
 const clone = (value) => structuredClone(value);
 const previewRoot = (bookSlug, componentSlug, activityId, assetId) => `/builder/api/native-activities/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/activities/${encodeURIComponent(activityId)}/assets/${encodeURIComponent(assetId)}/preview`;
@@ -147,6 +149,14 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   const previewAssetUrl = (assetId) => publicDraft?.assets.find((asset) => asset.assetId === assetId)?.role === "activity_font" ? nativeFontPreviewUrl(bookSlug, componentSlug, assetId) : assetUrl(assetId);
   const backgroundReference = publicDraft?.assets.find((asset) => asset.slot === selectedPanel?.backgroundAssetSlot);
 
+  const generateBulk = (source, options) => {
+    const result = generateNativeBulkCandidate({ kind: "complete-sentences", source, publicDocument: publicDraft, teacherDocument: teacherDraft, ...options });
+    setPublicDraft(result.publicDocument); setTeacherDraft(result.teacherDocument);
+    const answers = new Map(result.teacherDocument.parts[0].solution.answers.map((answer) => [answer.itemId, answer.text]));
+    setAuthoringSentences(Object.fromEntries(result.publicDocument.parts[0].interaction.items.map((item) => [item.id, nativeCompleteSentencesMarkedSentence(item.prompt, answers.get(item.id) || "")])));
+    setSelectedItemId(result.publicDocument.parts[0].interaction.items[0]?.id || null); setSelectedHotspotId(null); changed();
+    return result;
+  };
   useEffect(() => {
     const next = nextDrawItemId || "";
     if (drawItemId === next) return;
@@ -197,52 +207,30 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
     setSelectedHotspotId(null);
   };
   const updateMarkedSentence = (value) => {
-    setAuthoringSentences((current) => ({
-      ...current,
-      [selectedItem.id]: value,
-    }));
+    setAuthoringSentences((current) => ({ ...current, [selectedItem.id]: value }));
     const parsed = parseNativeCompleteSentencesMarkedSentence(value);
-    if (!parsed.valid) {
-      changed();
-      return;
-    }
+    if (!parsed.valid) { changed(); return; }
     mutatePair((nextPublic, nextTeacher) => {
       nextPublic.parts[0].interaction.items.find((item) => item.id === selectedItem.id).prompt = parsed.prompt;
       const answer = nextTeacher.parts[0].solution.answers.find((entry) => entry.itemId === selectedItem.id);
+      const answerChanged = parsed.answer !== answer.text;
       answer.text = parsed.answer;
-      delete answer.acceptedTexts;
+      if (Object.hasOwn(answer, "acceptedTexts") && answerChanged) answer.acceptedTexts = [parsed.answer];
     });
   };
   const updateAnswer = (value) => {
-    setAuthoringSentences((current) => ({
-      ...current,
-      [selectedItem.id]: nativeCompleteSentencesMarkedSentence(selectedItem.prompt, value),
-    }));
-    mutatePair((_nextPublic, nextTeacher) => {
-      nextTeacher.parts[0].solution.answers.find((entry) => entry.itemId === selectedItem.id).text = value;
-    });
+    setAuthoringSentences((current) => ({ ...current, [selectedItem.id]: nativeCompleteSentencesMarkedSentence(selectedItem.prompt, value) }));
+    mutatePair((_nextPublic, nextTeacher) => { nextTeacher.parts[0].solution.answers.find((entry) => entry.itemId === selectedItem.id).text = value; });
   };
   const acceptedTexts = nativeCompleteSentencesAcceptedTexts(selectedAnswer);
-  const updateAcceptedText = (index, value) => mutateTeacher((nextTeacher) => {
+  const mutateAcceptedTexts = (mutator) => mutateTeacher((nextTeacher) => {
     const answer = nextTeacher.parts[0].solution.answers.find((entry) => entry.itemId === selectedItem.id);
-    const values = nativeCompleteSentencesAcceptedTexts(answer);
-    values[index] = value;
-    answer.acceptedTexts = values;
+    const values = nativeCompleteSentencesAcceptedTexts(answer); mutator(values); answer.acceptedTexts = values;
   });
-  const addAcceptedText = () => mutateTeacher((nextTeacher) => {
-    const answer = nextTeacher.parts[0].solution.answers.find((entry) => entry.itemId === selectedItem.id);
-    answer.acceptedTexts = [...nativeCompleteSentencesAcceptedTexts(answer), ""];
-  });
-  const moveAcceptedText = (index, offset) => mutateTeacher((nextTeacher) => {
-    const answer = nextTeacher.parts[0].solution.answers.find((entry) => entry.itemId === selectedItem.id);
-    const values = nativeCompleteSentencesAcceptedTexts(answer);
-    [values[index], values[index + offset]] = [values[index + offset], values[index]];
-    answer.acceptedTexts = values;
-  });
-  const removeAcceptedText = (index) => mutateTeacher((nextTeacher) => {
-    const answer = nextTeacher.parts[0].solution.answers.find((entry) => entry.itemId === selectedItem.id);
-    answer.acceptedTexts = nativeCompleteSentencesAcceptedTexts(answer).filter((_, valueIndex) => valueIndex !== index);
-  });
+  const updateAcceptedText = (index, value) => mutateAcceptedTexts((values) => { values[index] = value; });
+  const addAcceptedText = () => mutateAcceptedTexts((values) => values.push(""));
+  const moveAcceptedText = (index, offset) => mutateAcceptedTexts((values) => { [values[index], values[index + offset]] = [values[index + offset], values[index]]; });
+  const removeAcceptedText = (index) => mutateAcceptedTexts((values) => values.splice(index, 1));
   const uploadBackground = async (file) => {
     if (!file || !selectedPanel) return;
     setUploading(true);
@@ -393,6 +381,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
       >
         {tab === "content" ? (
           <div className="native-single-choice-back">
+            <NativeBulkGenerator kind="complete-sentences" hasExistingContent={items.length > 0} onGenerate={generateBulk} />
             <section className="studio-content-panel">
               <StudioField label="Activity title">
                 <input

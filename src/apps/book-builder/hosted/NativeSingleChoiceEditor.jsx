@@ -6,6 +6,7 @@ import { NativeSingleChoiceHotspotCanvas } from "../../../components/native-sing
 import { NativeSingleChoiceStudentSurface } from "../../../components/native-single-choice/NativeSingleChoiceStudentSurface.jsx";
 import { NativeSingleChoiceTeacherSurface } from "../../../components/native-single-choice/NativeSingleChoiceTeacherSurface.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
+import { generateNativeBulkCandidate } from "../../../data/native-activities/nativeBulkAuthoring.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { assessNativeSingleChoiceReadiness, nativeSingleChoiceCorrectOptionIds, NATIVE_SINGLE_CHOICE_LIMITS } from "../../../data/native-activities/nativeSingleChoice.js";
 import {
@@ -26,6 +27,7 @@ import { saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNati
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
 import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
+import { NativeBulkGenerator } from "./NativeBulkGenerator.jsx";
 
 const clone = (value) => structuredClone(value);
 const clamp = (value, minimum, maximum) => Math.min(Math.max(value, minimum), maximum);
@@ -95,6 +97,16 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
     return reference ? previewRoot(bookSlug, componentSlug, activityId, reference.assetId) : "";
   };
   const assetUrl = (assetId) => previewRoot(bookSlug, componentSlug, activityId, assetId);
+
+  const generateBulk = (source, options) => {
+    const result = generateNativeBulkCandidate({ kind: "single-choice", source, publicDocument: publicDraft, teacherDocument: teacherDraft, ...options });
+    setPublicDraft(result.publicDocument);
+    setTeacherDraft(result.teacherDocument);
+    setSelectedQuestionId(result.publicDocument.parts[0].interaction.questions[0]?.id || null);
+    setSelectedHotspotId(null);
+    changed();
+    return result;
+  };
 
   const addQuestion = () => {
     let questionId;
@@ -241,7 +253,7 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
     <StudioTabWorkspace id="native-single-choice-tabs" value={mode} onChange={setMode} tabs={tabs} label="Multiple Choice authoring modes">
 
     {["content", "visual", "answer-key", "preview"].includes(mode) ? <div className="native-single-choice-back" data-authoring-mode={mode}>
-      {mode === "content" ? <section className="studio-content-panel"><header><div><span className="studio-section-icon"><FileText aria-hidden="true" /></span><div><h3>Activity content</h3><p>Edit the learner-facing title and questions.</p></div></div></header><div className="studio-form-grid"><StudioField label="Activity title"><input maxLength={300} value={publicDraft.metadata.title} onChange={(event) => mutatePublic((next) => { next.metadata.title = event.target.value; })} /></StudioField></div></section> : null}
+      {mode === "content" ? <><NativeBulkGenerator kind="single-choice" hasExistingContent={questions.length > 0} onGenerate={generateBulk} /><section className="studio-content-panel"><header><div><span className="studio-section-icon"><FileText aria-hidden="true" /></span><div><h3>Activity content</h3><p>Edit the learner-facing title and questions.</p></div></div></header><div className="studio-form-grid"><StudioField label="Activity title"><input maxLength={300} value={publicDraft.metadata.title} onChange={(event) => mutatePublic((next) => { next.metadata.title = event.target.value; })} /></StudioField></div></section></> : null}
 
       {["content", "answer-key"].includes(mode) ?
       <div className="native-or-question-workspace"><aside><StudioButton onClick={addQuestion} disabled={questions.length >= NATIVE_SINGLE_CHOICE_LIMITS.questions}><Plus aria-hidden="true" />Add Question</StudioButton>{questions.map((question, index) => <button type="button" key={question.id} aria-current={selectedQuestionId === question.id ? "true" : undefined} onClick={() => setSelectedQuestionId(question.id)}><strong>Question {index + 1}</strong><span>{question.prompt.trim() || "Untitled question"}</span>{teacherDraft.parts[0].solution.correctAnswers.some((entry) => entry.questionId === question.id) ? null : <em>Needs answer</em>}<code>{question.id}</code></button>)}</aside>
