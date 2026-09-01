@@ -94,8 +94,15 @@ test("CI builds the teacher pack before its internal verification", async () => 
   const teacherBuild = scripts["build:android-teacher-offline"];
 
   assert.doesNotMatch(workflow, /npm run verify:android-teacher-pack/);
-  assert.match(workflow, /npm run build:android-offline[\s\S]*npm run verify:android-student-bundle-safety[\s\S]*npm run build:android-teacher-offline[\s\S]*npx playwright install/);
+  assert.match(workflow, /npm run build:android-offline[\s\S]*npm run verify:android-student-bundle-safety[\s\S]*npm run build:android-teacher-offline/);
   assert.ok(teacherBuild.indexOf("build-pack.mjs") < teacherBuild.indexOf("verify-pack.mjs"));
+});
+
+test("CI installs Chromium before the first Playwright browser gate", async () => {
+  const workflow = await readFile(".github/workflows/ci.yml", "utf8");
+
+  assert.equal(workflow.match(/npx playwright install --with-deps chromium/g)?.length, 1);
+  assert.match(workflow, /npx playwright install --with-deps chromium[\s\S]*npm run test:lms-native-drag-drop-layout/);
 });
 
 test("teacher viewport profiles use available width and height rather than device identity", () => {
