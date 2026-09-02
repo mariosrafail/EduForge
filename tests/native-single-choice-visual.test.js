@@ -154,14 +154,11 @@ test("legacy optional highlight geometry remains accepted without changing canon
 });
 
 test("new hotspot area is deterministic, integral, positive, and fully source-bounded", () => {
-  const cases = [
-    { random: 0, expected: { x: 0, y: 0, width: 25, height: 25 } },
-    { random: .5, expected: { x: 488, y: 279, width: 25, height: 25 } },
-    { random: 1 - Number.EPSILON, expected: { x: 975, y: 557, width: 25, height: 25 } },
-  ];
-  for (const entry of cases) assert.deepEqual(createNativeSingleChoiceHotspotArea(1000, 582, () => entry.random), entry.expected);
-  assert.deepEqual(createNativeSingleChoiceHotspotArea(12, 8, () => 1), { x: 0, y: 0, width: 12, height: 8 });
-  assert.deepEqual(createNativeSingleChoiceHotspotArea(25, 25, () => -.5), { x: 0, y: 0, width: 25, height: 25 });
+  assert.deepEqual(createNativeSingleChoiceHotspotArea(1000, 582), { x: 487, y: 278, width: 25, height: 25 });
+  assert.deepEqual(createNativeSingleChoiceHotspotArea(1001, 583), { x: 488, y: 279, width: 25, height: 25 });
+  assert.deepEqual(createNativeSingleChoiceHotspotArea(12, 8), { x: 0, y: 0, width: 12, height: 8 });
+  assert.deepEqual(createNativeSingleChoiceHotspotArea(25, 25), { x: 0, y: 0, width: 25, height: 25 });
+  assert.deepEqual(createNativeSingleChoiceHotspotArea(1000, 582), createNativeSingleChoiceHotspotArea(1000, 582));
   assert.throws(() => createNativeSingleChoiceHotspotArea(0, 25), /positive integers/);
 });
 

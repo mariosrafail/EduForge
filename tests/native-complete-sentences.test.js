@@ -5,7 +5,7 @@ import test from "node:test";
 import { assertPublicBuilderDocument, builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
-import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesPanel, findNextUnusedNativeCompleteSentencesItemId, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../src/data/native-activities/nativeCompleteSentencesAuthoring.js";
+import { addNativeCompleteSentencesItem, addNextNativeCompleteSentencesHotspot, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesHotspotArea, createNativeCompleteSentencesPanel, findNextUnusedNativeCompleteSentencesItemId, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../src/data/native-activities/nativeCompleteSentencesAuthoring.js";
 import { assessNativeCompleteSentencesReadiness, assessNativeCompleteSentencesSaveability, NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION, NATIVE_COMPLETE_SENTENCES_LEGACY_PANEL_ID, nativeCompleteSentencesFontFamilyAlias, nativeCompleteSentencesPromptParts, normalizeNativeCompleteSentencesInteraction, updateNativeCompleteSentencesRevealState } from "../src/data/native-activities/nativeCompleteSentences.js";
 import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
@@ -59,10 +59,11 @@ test("legacy hotspots receive deterministic safe typography and authored present
   const legacy = { ...canonical, presentation: { kind: "image-hotspot", backgroundAssetSlot: panel.backgroundAssetSlot, sourceWidth: panel.sourceWidth, sourceHeight: panel.sourceHeight, hotspots: panel.hotspots } };
   const normalizedLegacy = normalizeNativeCompleteSentencesInteraction(legacy, { assets: publicDocument.assets });
   assert.equal(normalizedLegacy.presentation.panels[0].id, NATIVE_COMPLETE_SENTENCES_LEGACY_PANEL_ID);
-  assert.deepEqual(normalizedLegacy.presentation.panels[0].hotspots[0].presentation, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION);
+  assert.deepEqual(normalizedLegacy.presentation.answerStyle, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION);
+  assert.equal(Object.hasOwn(normalizedLegacy.presentation.panels[0].hotspots[0], "presentation"), false);
   legacy.presentation.hotspots[0].presentation = { fontSize: 240, color: "#E40083" };
   const authored = normalizeNativeCompleteSentencesInteraction(legacy, { assets: publicDocument.assets });
-  assert.deepEqual(authored.presentation.panels[0].hotspots[0].presentation, { fontSize: 240, color: "#e40083", fontAssetSlot: null });
+  assert.deepEqual(authored.presentation.answerStyle, { fontSize: 240, color: "#e40083", fontAssetSlot: null });
   assert.doesNotMatch(JSON.stringify(authored.presentation.panels[0].hotspots[0]), /catching up on|correct|answer/i);
   for (const presentation of [{ fontSize: 0, color: "#12304b" }, { fontSize: -10, color: "#12304b" }, { fontSize: Number.POSITIVE_INFINITY, color: "#12304b" }, { fontSize: 21, color: "red" }, { fontSize: 21, color: "url(javascript:1)" }]) {
     const invalid = structuredClone(legacy); invalid.presentation.hotspots[0].presentation = presentation;
@@ -159,7 +160,7 @@ test("panel reorder preserves IDs and mappings; deletion preserves content and c
   assert.equal(publicDocument.parts[0].interaction.presentation.panels[1].hotspots[0].itemId, firstMapping);
   removeNativeCompleteSentencesPanel(publicDocument, secondPanel.id);
   assert.equal(publicDocument.assets.some((entry) => entry.slot === secondAsset.slot), false);
-  assert.equal(publicDocument.assets.some((entry) => entry.slot === fontAsset.slot), false);
+  assert.equal(publicDocument.assets.some((entry) => entry.slot === fontAsset.slot), true, "the activity-wide style may remain valid with no hotspots");
   assert.equal(publicDocument.assets.some((entry) => entry.slot === asset.slot), true);
   assert.equal(publicDocument.parts[0].interaction.items.length, 2);
   assert.equal(teacherDocument.parts[0].solution.answers.length, 2);
@@ -181,15 +182,29 @@ test("background replacement preserves geometry only when intrinsic dimensions m
 test("component font references use safe aliases and preserve large exact sizes and colors", () => {
   const { publicDocument } = completePair();
   publicDocument.assets.push(fontAsset);
-  const hotspot = publicDocument.parts[0].interaction.presentation.panels[0].hotspots[0];
-  hotspot.presentation = { fontSize: 1_000_000.5, color: "#Ab12Ef", fontAssetSlot: fontAsset.slot };
+  publicDocument.parts[0].interaction.presentation.answerStyle = { fontSize: 1_000_000.5, color: "#Ab12Ef", fontAssetSlot: fontAsset.slot };
   const normalized = normalizeNativeCompleteSentencesInteraction(publicDocument.parts[0].interaction, { assets: publicDocument.assets });
-  assert.deepEqual(normalized.presentation.panels[0].hotspots[0].presentation, { fontSize: 1_000_000.5, color: "#ab12ef", fontAssetSlot: fontAsset.slot });
+  assert.deepEqual(normalized.presentation.answerStyle, { fontSize: 1_000_000.5, color: "#ab12ef", fontAssetSlot: fontAsset.slot });
   assert.equal(nativeCompleteSentencesFontFamilyAlias(fontAsset.assetId), "hh-native-font-20000000000040008000000000000096");
   const foreign = structuredClone(publicDocument.parts[0].interaction);
   assert.throws(() => normalizeNativeCompleteSentencesInteraction(foreign, { assets: [asset] }), /authorized font/);
-  foreign.presentation.panels[0].hotspots[0].presentation.extra = "unsafe";
+  foreign.presentation.answerStyle.extra = "unsafe";
   assert.throws(() => normalizeNativeCompleteSentencesInteraction(foreign, { assets: publicDocument.assets }), /missing or unknown fields/);
+});
+
+test("new Complete the Sentences hotspots are centered 80x30, clamp safely, and bind next-unused across panels", () => {
+  assert.deepEqual(createNativeCompleteSentencesHotspotArea(1200, 800), { x: 560, y: 385, width: 80, height: 30 });
+  assert.deepEqual(createNativeCompleteSentencesHotspotArea(121, 81), { x: 20, y: 25, width: 80, height: 30 });
+  assert.deepEqual(createNativeCompleteSentencesHotspotArea(12, 8), { x: 0, y: 0, width: 12, height: 8 });
+  const { publicDocument, second } = completePair();
+  const panel = publicDocument.parts[0].interaction.presentation.panels[0];
+  panel.hotspots = panel.hotspots.filter((hotspot) => hotspot.itemId !== second);
+  const created = addNextNativeCompleteSentencesHotspot(publicDocument, panel.id, null, () => "hot-00000000000000000000000000009999");
+  assert.equal(created.itemId, second);
+  assert.deepEqual(created.area, { x: 560, y: 385, width: 80, height: 30 });
+  const before = structuredClone(publicDocument);
+  assert.equal(addNextNativeCompleteSentencesHotspot(publicDocument, panel.id), null);
+  assert.deepEqual(publicDocument, before);
 });
 
 test("individual Teacher reveal is stable by itemId and lower commands skip revealed items", () => {
@@ -210,7 +225,7 @@ test("individual Teacher reveal is stable by itemId and lower commands skip reve
 test("Complete the Sentences compiles through v2 with public/Teacher separation and managed background", () => {
   const pair = completePair(); const sources = createPublicationV2FixtureSources();
   pair.publicDocument.assets.push(fontAsset);
-  pair.publicDocument.parts[0].interaction.presentation.panels[0].hotspots[0].presentation = { fontSize: 240, color: "#e40083", fontAssetSlot: fontAsset.slot };
+  pair.publicDocument.parts[0].interaction.presentation.answerStyle = { fontSize: 240, color: "#e40083", fontAssetSlot: fontAsset.slot };
   const entry = { activityId, kind: "complete-sentences", placement: { pageId: publicationV2Fixture.pageId }, sortOrder: 4 };
   sources.native.index.payload.activities.push(entry); sources.native.index = source(sources.native.index.payload, sources.native.index.revision);
   sources.native.activities[activityId] = { index: entry, public: source(pair.publicDocument), teacher: source(pair.teacherDocument) };

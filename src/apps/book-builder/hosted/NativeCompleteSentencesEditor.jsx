@@ -8,8 +8,8 @@ import { NativeCompleteSentencesStudentSurface, NativeCompleteSentencesTeacherSu
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { generateNativeBulkCandidate } from "../../../data/native-activities/nativeBulkAuthoring.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
-import { assessNativeCompleteSentencesReadiness, assessNativeCompleteSentencesSaveability, nativeCompleteSentencesAcceptedTexts, NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION, NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE, NATIVE_COMPLETE_SENTENCES_LIMITS, normalizeNativeCompleteSentencesInteraction } from "../../../data/native-activities/nativeCompleteSentences.js";
-import { addNativeCompleteSentencesItem, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesPanel, findNextUnusedNativeCompleteSentencesItemId, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../../../data/native-activities/nativeCompleteSentencesAuthoring.js";
+import { assessNativeCompleteSentencesReadiness, assessNativeCompleteSentencesSaveability, nativeCompleteSentencesAcceptedTexts, NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE, NATIVE_COMPLETE_SENTENCES_LIMITS, normalizeNativeCompleteSentencesInteraction } from "../../../data/native-activities/nativeCompleteSentences.js";
+import { addNativeCompleteSentencesItem, addNextNativeCompleteSentencesHotspot, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesPanel, findNextUnusedNativeCompleteSentencesItemId, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../../../data/native-activities/nativeCompleteSentencesAuthoring.js";
 import { getBuilderContent } from "./builderContentApi.js";
 import { getBuilderFontLibrary, nativeFontPreviewUrl, saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import { NATIVE_COMPLETE_SENTENCES_TABS, NativeCompleteSentencesEditorHeader, NativeCompleteSentencesItemNavigation } from "./NativeCompleteSentencesEditorControls.jsx";
@@ -130,6 +130,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   const items = interaction?.items || [];
   const presentation = interaction?.presentation;
   const panels = presentation?.panels || [];
+  const answerStyle = presentation?.answerStyle;
   const mappedItemIds = new Set(panels.flatMap((panel) => panel.hotspots.map((hotspot) => hotspot.itemId)));
   const nextDrawItemId = findNextUnusedNativeCompleteSentencesItemId(items, panels, drawItemId);
   const selectedPanel = panels.find((panel) => panel.id === selectedPanelId) || panels[0] || null;
@@ -263,34 +264,40 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
       setUploading(false);
     }
   };
-  const setHotspotFont = (font) => {
-    if (!selectedHotspot) return;
+  const setAnswerFont = (font) => {
     mutatePublic((next) => {
-      const hotspot = next.parts[0].interaction.presentation.panels.find((panel) => panel.id === selectedPanel.id)?.hotspots.find((entry) => entry.id === selectedHotspot.id);
-      if (!hotspot) return;
-      const previousSlot = hotspot.presentation.fontAssetSlot;
+      const style = next.parts[0].interaction.presentation.answerStyle;
+      const previousSlot = style.fontAssetSlot;
       if (font) {
         next.assets = mergeNativeManagedAssetReference(next.assets, { assetId: font.assetId, checksumSha256: font.checksumSha256, role: font.role, slot: font.slot });
-        hotspot.presentation.fontAssetSlot = font.slot;
-      } else hotspot.presentation.fontAssetSlot = null;
-      if (previousSlot && previousSlot !== hotspot.presentation.fontAssetSlot) removeNativeManagedAssetReferenceIfUnused(next, previousSlot);
+        style.fontAssetSlot = font.slot;
+      } else style.fontAssetSlot = null;
+      if (previousSlot && previousSlot !== style.fontAssetSlot) removeNativeManagedAssetReferenceIfUnused(next, previousSlot);
+      next.assets.filter((asset) => asset.role === "activity_font" && asset.slot !== style.fontAssetSlot)
+        .map((asset) => asset.slot).forEach((slot) => removeNativeManagedAssetReferenceIfUnused(next, slot));
     });
   };
   const recordUploadedFont = (font) => setFonts((current) => [...current.filter((entry) => entry.assetId !== font.assetId), font]);
   const createHotspot = (area) => {
     const itemId = findNextUnusedNativeCompleteSentencesItemId(items, panels, drawItemId);
     if (!itemId || !selectedPanel) return;
-    const hotspot = {
-      id: createNativeChildId("hot"),
-      itemId,
-      area,
-      presentation: {
-        ...NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION,
-      },
-    };
+    const hotspot = { id: createNativeChildId("hot"), itemId, area };
     mutatePublic((next) => next.parts[0].interaction.presentation.panels.find((panel) => panel.id === selectedPanel.id).hotspots.push(hotspot));
     setSelectedHotspotId(hotspot.id);
     setDrawing(false);
+  };
+  const createDefaultHotspot = () => {
+    if (!selectedPanel || !backgroundReference) return;
+    if (!nextDrawItemId) {
+      setState((current) => ({ ...current, message: "Every sentence already has a hotspot." }));
+      return;
+    }
+    let hotspot = null;
+    mutatePublic((next) => { hotspot = addNextNativeCompleteSentencesHotspot(next, selectedPanel.id, drawItemId); });
+    if (!hotspot) return;
+    setSelectedHotspotId(hotspot.id);
+    setDrawing(false);
+    setState((current) => ({ ...current, message: "Centered blank hotspot created and selected." }));
   };
   const updateHotspot = (mutator) =>
     mutatePublic((next) => {
@@ -306,9 +313,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   const deleteHotspot = () => {
     mutatePublic((next) => {
       const panel = next.parts[0].interaction.presentation.panels.find((entry) => entry.id === selectedPanelId);
-      const fontSlot = panel.hotspots.find((entry) => entry.id === selectedHotspotId)?.presentation?.fontAssetSlot;
       panel.hotspots = panel.hotspots.filter((entry) => entry.id !== selectedHotspotId);
-      if (fontSlot) removeNativeManagedAssetReferenceIfUnused(next, fontSlot);
     });
     setSelectedHotspotId(null);
   };
@@ -489,6 +494,28 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                       }}
                     />
                   </label>
+                  <fieldset className="studio-content-panel native-complete-sentences-answer-style">
+                    <legend>Activity-wide answer style</legend>
+                    <p>Applied to every Student answer and Teacher revealed answer on every panel.</p>
+                    <QuickNumber
+                      label="Answer font size"
+                      value={answerStyle.fontSize}
+                      minimum={NATIVE_COMPLETE_SENTENCES_LIMITS.fontSizeMinimum}
+                      onChange={(value) => mutatePublic((next) => { const fontSize = Math.round(Number(value)); if (Number.isFinite(fontSize) && fontSize >= NATIVE_COMPLETE_SENTENCES_LIMITS.fontSizeMinimum) next.parts[0].interaction.presentation.answerStyle.fontSize = fontSize; })}
+                    />
+                    <NativeCompleteSentencesFontControls
+                      bookSlug={bookSlug}
+                      componentSlug={componentSlug}
+                      fonts={fonts}
+                      selectedSlot={answerStyle.fontAssetSlot}
+                      onSelect={setAnswerFont}
+                      onUploaded={recordUploadedFont}
+                      onMessage={(message) => setState((current) => ({ ...current, message }))}
+                    />
+                    <StudioField label="Answer text color" className="studio-quick-field">
+                      <input aria-label="Answer text color" type="color" value={answerStyle.color} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.presentation.answerStyle.color = event.target.value; })} />
+                    </StudioField>
+                  </fieldset>
                   <StudioField label="Sentence to map">
                     <select
                       value={drawItemId}
@@ -505,9 +532,10 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                       ))}
                     </select>
                   </StudioField>
-                  <StudioButton variant="primary" selected={drawing} disabled={!drawItemId || !backgroundReference || Boolean(selectedHotspot) || mapped.has(drawItemId)} onClick={() => setDrawing((current) => !current)}>
-                    Draw blank hotspot
+                  <StudioButton variant="primary" disabled={!nextDrawItemId || !backgroundReference} reason={!backgroundReference ? "Upload a background first" : !nextDrawItemId ? "Every sentence already has a hotspot" : ""} onClick={createDefaultHotspot}>
+                    New hotspot
                   </StudioButton>
+                  <StudioButton selected={drawing} disabled={!drawItemId || !backgroundReference || Boolean(selectedHotspot) || mapped.has(drawItemId)} onClick={() => setDrawing((current) => !current)}>{drawing ? "Cancel custom drawing" : "Draw custom hotspot"}</StudioButton>
                   {selectedHotspot ? (
                     <>
                       <StudioField label="Hotspot binding">
@@ -542,38 +570,6 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                         Lock hotspot position
                       </label>
                       <StageGeometryControls area={selectedHotspot.area} stage={{ width: selectedPanel.sourceWidth, height: selectedPanel.sourceHeight }} label="Complete Sentences hotspot" minWidth={4} minHeight={4} locked={selectedHotspotLocked} onChange={updateHotspotArea} />
-                      <QuickNumber
-                        label="Answer font size"
-                        value={selectedHotspot.presentation.fontSize}
-                        minimum={NATIVE_COMPLETE_SENTENCES_LIMITS.fontSizeMinimum}
-                        onChange={(value) =>
-                          updateHotspot((hotspot) => {
-                            const fontSize = Math.round(Number(value));
-                            if (Number.isFinite(fontSize) && fontSize >= NATIVE_COMPLETE_SENTENCES_LIMITS.fontSizeMinimum) hotspot.presentation.fontSize = fontSize;
-                          })
-                        }
-                      />
-                      <NativeCompleteSentencesFontControls
-                        bookSlug={bookSlug}
-                        componentSlug={componentSlug}
-                        fonts={fonts}
-                        selectedSlot={selectedHotspot.presentation.fontAssetSlot}
-                        onSelect={setHotspotFont}
-                        onUploaded={recordUploadedFont}
-                        onMessage={(message) => setState((current) => ({ ...current, message }))}
-                      />
-                      <StudioField label="Answer text color" className="studio-quick-field">
-                        <input
-                          aria-label="Answer text color"
-                          type="color"
-                          value={selectedHotspot.presentation.color}
-                          onChange={(event) =>
-                            updateHotspot((hotspot) => {
-                              hotspot.presentation.color = event.target.value;
-                            })
-                          }
-                        />
-                      </StudioField>
                       <StudioButton variant="danger-ghost" onClick={deleteHotspot}>
                         <Trash2 />
                         Delete Hotspot

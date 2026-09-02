@@ -8,7 +8,8 @@ export const NATIVE_COMPLETE_SENTENCES_LIMITS = Object.freeze({
 });
 export const NATIVE_COMPLETE_SENTENCES_BLANK_TOKEN = "[[blank]]";
 export const NATIVE_COMPLETE_SENTENCES_LEGACY_PANEL_ID = "panel-00000000000000000000000000000001";
-export const NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION = Object.freeze({ fontSize: 21, color: "#12304b", fontAssetSlot: null });
+export const NATIVE_COMPLETE_SENTENCES_DEFAULT_ANSWER_STYLE = Object.freeze({ fontSize: 21, color: "#12304b", fontAssetSlot: null });
+export const NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION = NATIVE_COMPLETE_SENTENCES_DEFAULT_ANSWER_STYLE;
 export const NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE = "exact-answer";
 
 export function nativeCompleteSentencesPromptParts(prompt) {
@@ -59,7 +60,7 @@ export function nativeCompleteSentencesFontFamilyAlias(assetId) {
 }
 
 export function normalizeNativeCompleteSentencesHotspotPresentation(input, label = "Complete the Sentences hotspot presentation", { assets = null } = {}) {
-  if (input === undefined) return { ...NATIVE_COMPLETE_SENTENCES_DEFAULT_HOTSPOT_PRESENTATION };
+  if (input === undefined) return { ...NATIVE_COMPLETE_SENTENCES_DEFAULT_ANSWER_STYLE };
   const hasFont = Object.hasOwn(input, "fontAssetSlot");
   exact(input, ["fontSize", "color", ...(hasFont ? ["fontAssetSlot"] : [])], label);
   const fontSize = Number(input.fontSize);
@@ -80,13 +81,16 @@ function legacyPanel(presentation) {
 function normalizePresentation(input, { items, assets }) {
   const value = structuredClone(object(input, "Complete the Sentences presentation"));
   const panelShape = Object.hasOwn(value, "panels");
-  exact(value, panelShape ? ["kind", "panels"] : ["kind", "backgroundAssetSlot", "sourceWidth", "sourceHeight", "hotspots"], "Complete the Sentences presentation");
+  const hasAnswerStyle = Object.hasOwn(value, "answerStyle");
+  exact(value, panelShape ? ["kind", "panels", ...(hasAnswerStyle ? ["answerStyle"] : [])] : ["kind", "backgroundAssetSlot", "sourceWidth", "sourceHeight", "hotspots", ...(hasAnswerStyle ? ["answerStyle"] : [])], "Complete the Sentences presentation");
   const rawPanels = panelShape ? value.panels : [legacyPanel(value)];
   if (value.kind !== "image-hotspot" || !Array.isArray(rawPanels) || rawPanels.length < 1 || rawPanels.length > NATIVE_COMPLETE_SENTENCES_LIMITS.panels) throw new Error("Complete the Sentences presentation is invalid.");
   const itemIds = new Set(items.map((item) => item.id));
   const assetSlots = new Set(assets.map((asset) => asset.slot));
+  const legacyStyle = rawPanels.flatMap((panel) => Array.isArray(panel?.hotspots) ? panel.hotspots : []).find((hotspot) => Object.hasOwn(hotspot || {}, "presentation"))?.presentation;
+  const answerStyle = normalizeNativeCompleteSentencesHotspotPresentation(hasAnswerStyle ? value.answerStyle : legacyStyle, "Complete the Sentences answer style", { assets });
   const panelIds = new Set(); const hotspotIds = new Set(); const mappedItems = new Set();
-  return { kind: "image-hotspot", panels: rawPanels.map((entry, panelIndex) => {
+  return { kind: "image-hotspot", answerStyle, panels: rawPanels.map((entry, panelIndex) => {
     const label = `Complete the Sentences panels[${panelIndex}]`;
     exact(entry, ["id", "backgroundAssetSlot", "sourceWidth", "sourceHeight", "hotspots"], label);
     if (!isNativeChildId(entry.id, "panel") || panelIds.has(entry.id) || typeof entry.backgroundAssetSlot !== "string" || (entry.backgroundAssetSlot && !assetSlots.has(entry.backgroundAssetSlot)) || !Array.isArray(entry.hotspots) || entry.hotspots.length > NATIVE_COMPLETE_SENTENCES_LIMITS.hotspots) throw new Error(`${label} is invalid.`);
@@ -98,7 +102,8 @@ function normalizePresentation(input, { items, assets }) {
       exact(hotspot, ["id", "itemId", "area", ...(hasPresentation ? ["presentation"] : [])], hotspotLabel);
       if (!isNativeChildId(hotspot.id, "hot") || hotspotIds.has(hotspot.id) || !itemIds.has(hotspot.itemId) || mappedItems.has(hotspot.itemId)) throw new Error("Complete the Sentences hotspot binding is invalid or duplicate.");
       hotspotIds.add(hotspot.id); mappedItems.add(hotspot.itemId);
-      return { id: hotspot.id, itemId: hotspot.itemId, area: area(hotspot.area, panel, `${hotspotLabel}.area`), presentation: normalizeNativeCompleteSentencesHotspotPresentation(hotspot.presentation, `${hotspotLabel}.presentation`, { assets }) };
+      if (hasPresentation) normalizeNativeCompleteSentencesHotspotPresentation(hotspot.presentation, `${hotspotLabel}.presentation`, { assets });
+      return { id: hotspot.id, itemId: hotspot.itemId, area: area(hotspot.area, panel, `${hotspotLabel}.area`) };
     }) };
   }) };
 }
@@ -184,10 +189,7 @@ export function nativeCompleteSentencesAssetRequirements(publicDocument) {
   const presentation = publicDocument?.parts?.[0]?.interaction?.presentation;
   if (presentation?.kind !== "image-hotspot" || !Array.isArray(presentation.panels)) return [];
   const requirements = presentation.panels.flatMap((panel, index) => panel.backgroundAssetSlot ? [{ slot: panel.backgroundAssetSlot, width: panel.sourceWidth, height: panel.sourceHeight, label: `Complete the Sentences panel ${index + 1} background` }] : []);
-  const fontSlots = new Set();
-  for (const panel of presentation.panels) for (const hotspot of panel.hotspots) {
-    const slot = hotspot.presentation?.fontAssetSlot;
-    if (slot && !fontSlots.has(slot)) { fontSlots.add(slot); requirements.push({ slot, mediaType: "font/ttf", label: "Complete the Sentences font" }); }
-  }
+  const slot = presentation.answerStyle?.fontAssetSlot;
+  if (slot) requirements.push({ slot, mediaType: "font/ttf", label: "Complete the Sentences answer font" });
   return requirements;
 }

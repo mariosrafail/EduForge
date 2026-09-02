@@ -25,6 +25,7 @@ function Presentation({ document, assetUrl, responses, onChange, readOnly, panel
   const panels = interaction.presentation.panels;
   const normalizedIndex = Math.min(Math.max(Number.isSafeInteger(panelIndex) ? panelIndex : 0, 0), Math.max(0, panels.length - 1));
   const panel = panels[normalizedIndex];
+  const answerStyle = normalizeNativeCompleteSentencesHotspotPresentation(interaction.presentation.answerStyle);
   const fontState = useNativeActivityFonts(document, assetUrl);
   useEffect(() => { audioHotspotPresentation?.onPanelChange(panel?.id || null); }, [audioHotspotPresentation, panel?.id]);
   if (!panel) return <p role="status">No Complete the Sentences panel is available.</p>;
@@ -35,13 +36,12 @@ function Presentation({ document, assetUrl, responses, onChange, readOnly, panel
       {reference ? <img src={assetUrl(reference.assetId)} alt="" /> : <p role="status">Panel background is unavailable.</p>}
       {panel.hotspots.map((hotspot, index) => {
         const item = interaction.items.find((candidate) => candidate.id === hotspot.itemId);
-        const hotspotPresentation = normalizeNativeCompleteSentencesHotspotPresentation(hotspot.presentation);
-        const fontReference = hotspotPresentation.fontAssetSlot ? document.assets.find((asset) => asset.slot === hotspotPresentation.fontAssetSlot && asset.role === "activity_font") : null;
-        const selectedFont = nativeActivitySelectedFontState(fontState, document, hotspotPresentation.fontAssetSlot);
+        const fontReference = answerStyle.fontAssetSlot ? document.assets.find((asset) => asset.slot === answerStyle.fontAssetSlot && asset.role === "activity_font") : null;
+        const selectedFont = nativeActivitySelectedFontState(fontState, document, answerStyle.fontAssetSlot);
         const hotspotStyle = {
           ...logicalAreaStyle(hotspot.area, { width: panel.sourceWidth, height: panel.sourceHeight }),
-          "--native-complete-answer-font-size": `${(hotspotPresentation.fontSize / panel.sourceWidth) * 100}cqw`,
-          "--native-complete-answer-color": hotspotPresentation.color,
+          "--native-complete-answer-font-size": `${(answerStyle.fontSize / panel.sourceWidth) * 100}cqw`,
+          "--native-complete-answer-color": answerStyle.color,
           "--native-complete-answer-font-family": fontReference ? nativeCompleteSentencesFontFamilyAlias(fontReference.assetId) : "system-ui, sans-serif",
         };
         const teacherAnswer = revealed.has(hotspot.itemId) ? answers.get(hotspot.itemId) || "" : null;

@@ -30,6 +30,23 @@ export function findNextUnusedNativeCompleteSentencesItemId(items, panels, prefe
   return items.find((item) => !used.has(item.id))?.id || null;
 }
 
+export function createNativeCompleteSentencesHotspotArea(sourceWidth, sourceHeight) {
+  if (!Number.isSafeInteger(sourceWidth) || sourceWidth < 1 || !Number.isSafeInteger(sourceHeight) || sourceHeight < 1) throw new Error("Complete the Sentences hotspot source dimensions must be positive integers.");
+  const width = Math.min(80, sourceWidth);
+  const height = Math.min(30, sourceHeight);
+  return { x: Math.floor((sourceWidth - width) / 2), y: Math.floor((sourceHeight - height) / 2), width, height };
+}
+
+export function addNextNativeCompleteSentencesHotspot(publicDocument, panelId, preferredItemId = "", createId = createNativeChildId) {
+  const current = interaction(publicDocument);
+  const panel = current.presentation.panels.find((entry) => entry.id === panelId);
+  const itemId = findNextUnusedNativeCompleteSentencesItemId(current.items, current.presentation.panels, preferredItemId);
+  if (!panel || !itemId) return null;
+  const hotspot = { id: createId("hot"), itemId, area: createNativeCompleteSentencesHotspotArea(panel.sourceWidth, panel.sourceHeight) };
+  panel.hotspots.push(hotspot);
+  return hotspot;
+}
+
 export function addNativeCompleteSentencesItem(publicDocument, teacherDocument, createId = createNativeChildId) {
   const itemId = createId("item");
   interaction(publicDocument).items.push({ id: itemId, prompt: "" });
@@ -44,12 +61,9 @@ export function alignNativeCompleteSentencesAnswers(publicDocument, teacherDocum
 
 export function removeNativeCompleteSentencesItem(publicDocument, teacherDocument, itemId) {
   interaction(publicDocument).items = interaction(publicDocument).items.filter((item) => item.id !== itemId);
-  const fontSlots = [];
   for (const panel of interaction(publicDocument).presentation.panels) {
-    fontSlots.push(...panel.hotspots.filter((hotspot) => hotspot.itemId === itemId).map((hotspot) => hotspot.presentation?.fontAssetSlot).filter(Boolean));
     panel.hotspots = panel.hotspots.filter((hotspot) => hotspot.itemId !== itemId);
   }
-  fontSlots.forEach((slot) => removeNativeManagedAssetReferenceIfUnused(publicDocument, slot));
   alignNativeCompleteSentencesAnswers(publicDocument, teacherDocument);
 }
 
@@ -62,13 +76,11 @@ export function replaceNativeCompleteSentencesBackground(publicDocument, panelId
   if (!panel) throw new Error("Complete the Sentences panel is unavailable.");
   const previous = panel.backgroundAssetSlot;
   const dimensionsChanged = panel.sourceWidth !== dimensions.width || panel.sourceHeight !== dimensions.height;
-  const removedFontSlots = dimensionsChanged ? panel.hotspots.map((hotspot) => hotspot.presentation?.fontAssetSlot).filter(Boolean) : [];
   panel.backgroundAssetSlot = reference.slot;
   panel.sourceWidth = dimensions.width;
   panel.sourceHeight = dimensions.height;
   if (dimensionsChanged) panel.hotspots = [];
   if (previous && previous !== reference.slot) removeNativeManagedAssetReferenceIfUnused(publicDocument, previous);
-  removedFontSlots.forEach((slot) => removeNativeManagedAssetReferenceIfUnused(publicDocument, slot));
   return { dimensionsChanged };
 }
 
@@ -79,6 +91,5 @@ export function removeNativeCompleteSentencesPanel(publicDocument, panelId) {
   if (!panel) return false;
   presentation.panels = presentation.panels.filter((entry) => entry.id !== panelId);
   if (panel.backgroundAssetSlot) removeNativeManagedAssetReferenceIfUnused(publicDocument, panel.backgroundAssetSlot);
-  panel.hotspots.map((hotspot) => hotspot.presentation?.fontAssetSlot).filter(Boolean).forEach((slot) => removeNativeManagedAssetReferenceIfUnused(publicDocument, slot));
   return true;
 }
