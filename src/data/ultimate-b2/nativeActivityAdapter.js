@@ -1,4 +1,5 @@
 import { NATIVE_ACTIVITY_KINDS } from "../native-activities/nativeActivityKinds.js";
+import { NativeActivityPlacementError } from "../native-activities/nativeActivityPlacementError.js";
 import { nextUltimateB2PublisherActivityId } from "./publisherCreatedActivities.js";
 import { ultimateB2StudentsBookAuthoringActivities, ultimateB2StudentsBookAuthoringPages } from "./studentsBookAuthoringCatalog.js";
 
@@ -13,9 +14,9 @@ export const ultimateB2NativeActivityPlacements = Object.freeze(ultimateB2Studen
 })));
 
 export function normalizeUltimateB2NativeActivityPlacement(input) {
-  if (!input || typeof input !== "object" || Array.isArray(input) || Object.keys(input).length !== 1 || typeof input.pageId !== "string") throw new Error("Ultimate B2 native activity placement is invalid.");
+  if (!input || typeof input !== "object" || Array.isArray(input) || Object.keys(input).length !== 1 || typeof input.pageId !== "string") throw new NativeActivityPlacementError("Ultimate B2 native activity placement is invalid.");
   const page = ultimateB2NativeActivityPlacements.find((candidate) => candidate.pageId === input.pageId);
-  if (!page) throw new Error("Ultimate B2 native activity placement is unknown.");
+  if (!page) throw new NativeActivityPlacementError("Ultimate B2 native activity placement is unknown.");
   return page;
 }
 
@@ -39,7 +40,7 @@ export const ultimateB2NativeActivityAdapter = Object.freeze({
   normalizePlacement: normalizeUltimateB2NativeActivityPlacement,
   async normalizeDestinationPlacement(input, { sql, bookSlug, componentSlug } = {}) {
     const placement = normalizeUltimateB2NativeActivityPlacement(input);
-    if (bookSlug !== "ultimate-b2" || componentSlug !== "ultimate-b2-students-book") throw new Error("Ultimate B2 native activity placement is invalid.");
+    if (bookSlug !== "ultimate-b2" || componentSlug !== "ultimate-b2-students-book") throw new NativeActivityPlacementError("Ultimate B2 native activity placement is invalid.");
     if (typeof sql === "function") {
       const stableKey = `${componentSlug}/pages/${placement.pageId}`;
       const rows = await sql`
@@ -48,13 +49,13 @@ export const ultimateB2NativeActivityAdapter = Object.freeze({
         join book_components component on component.id=page.book_component_id and component.book_package_id=package.id
         where package.slug=${bookSlug} and component.slug=${componentSlug} and page.stable_key=${stableKey} limit 1
       `;
-      if (rows[0]?.source_metadata?.is_deleted === true || rows[0]?.source_metadata?.is_permanently_deleted === true) throw new Error("Ultimate B2 native activity placement is inactive.");
+      if (rows[0]?.source_metadata?.is_deleted === true || rows[0]?.source_metadata?.is_permanently_deleted === true) throw new NativeActivityPlacementError("Ultimate B2 native activity placement is inactive.");
     }
     return placement;
   },
   async resolveExistingPlacement(input, { sql, bookSlug, componentSlug } = {}) {
     const placement = normalizeUltimateB2NativeActivityPlacement(input);
-    if (bookSlug !== "ultimate-b2" || componentSlug !== "ultimate-b2-students-book") throw new Error("Ultimate B2 native activity placement is invalid.");
+    if (bookSlug !== "ultimate-b2" || componentSlug !== "ultimate-b2-students-book") throw new NativeActivityPlacementError("Ultimate B2 native activity placement is invalid.");
     let active = true;
     if (typeof sql === "function") {
       const stableKey = `${componentSlug}/pages/${placement.pageId}`;

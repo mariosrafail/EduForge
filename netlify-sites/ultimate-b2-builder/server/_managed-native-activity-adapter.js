@@ -1,4 +1,5 @@
 import { NATIVE_ACTIVITY_KINDS } from "../../../src/data/native-activities/nativeActivityKinds.js";
+import { NativeActivityPlacementError } from "../../../src/data/native-activities/nativeActivityPlacementError.js";
 import { resolveBuilderServerComponent } from "./_builder-component-registry.js";
 
 const SAFE_PAGE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
@@ -18,7 +19,7 @@ export function createManagedNativeActivityAdapter(value) {
   const pagePrefix = `${registration.pageCatalog.pagePrefix}-page-`;
   async function resolvePlacement(input, context, { allowUnavailable }) {
     const { sql, bookSlug, componentSlug: requestedComponentSlug } = context || {};
-    if (!SAFE_PAGE_ID.test(String(input?.pageId || "")) || typeof sql !== "function" || bookSlug !== registration.bookSlug || requestedComponentSlug !== componentSlug) throw new Error("Managed native activity placement is invalid.");
+    if (!SAFE_PAGE_ID.test(String(input?.pageId || "")) || typeof sql !== "function" || bookSlug !== registration.bookSlug || requestedComponentSlug !== componentSlug) throw new NativeActivityPlacementError("Managed native activity placement is invalid.");
     const stableKey = `${componentSlug}/pages/${input.pageId}`;
     const rows = await sql`
       select page.stable_key,page.sort_order,page.source_metadata,unit.id unit_id,unit.unit_number,unit.title unit_title
@@ -33,7 +34,7 @@ export function createManagedNativeActivityAdapter(value) {
     const unitNumber = Number(row?.unit_number);
     const hasValidUnit = row?.unit_id != null && Number.isInteger(unitNumber) && unitNumber >= 1 && unitNumber <= 10;
     if (!row || !hasValidUnit) {
-      if (!allowUnavailable) throw new Error("Managed native activity placement is unknown.");
+      if (!allowUnavailable) throw new NativeActivityPlacementError("Managed native activity placement is unknown.");
       return {
         pageId: input.pageId,
         sourcePageId: input.pageId,
@@ -42,7 +43,7 @@ export function createManagedNativeActivityAdapter(value) {
       };
     }
     const active = row.source_metadata?.is_active === true && row.source_metadata?.is_permanently_deleted !== true;
-    if (!allowUnavailable && !active) throw new Error("Managed native activity placement is inactive.");
+    if (!allowUnavailable && !active) throw new NativeActivityPlacementError("Managed native activity placement is inactive.");
     return {
       pageId: input.pageId,
       sourcePageId: input.pageId,

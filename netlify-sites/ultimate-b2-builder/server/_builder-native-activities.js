@@ -16,6 +16,7 @@ import { nativeListeningAssetRequirements } from "../../../src/data/native-activ
 import { nativeOldschoolListeningAssetRequirements } from "../../../src/data/native-activities/nativeOldschoolListening.js";
 import { nativeDragDropAssetRequirements } from "../../../src/data/native-activities/nativeDragDrop.js";
 import { nativeOpenResponseAssetRequirements } from "../../../src/data/native-activities/nativeOpenResponse.js";
+import { isNativeActivityPlacementError } from "../../../src/data/native-activities/nativeActivityPlacementError.js";
 import { currentUltimateB2ActivityLifecycleEntry, updateUltimateB2ActivityLifecycle } from "../../../src/data/ultimate-b2/activityLifecycle.js";
 import { ultimateB2StudentsBookAuthoringActivities } from "../../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import { pruneComponentActivityHotspots } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
@@ -600,8 +601,49 @@ async function finalizeAsset(dependencies, sql, auth, parsedRoute, event) {
   }
 }
 
-function nativeCatalogBoundary(message) {
-  return Object.assign(new Error(message), { code: "native_catalog_boundary_invalid" });
+const nativeCatalogBoundaryStages = new Set([
+  "catalog_scope_unavailable",
+  "activity_identity_outside_component",
+  "placement_resolution_failed",
+  "placement_mismatch",
+  "activity_kind_unsupported",
+  "activity_resources_unavailable",
+  "asset_component_mismatch",
+  "asset_activity_mismatch",
+]);
+const nativeCatalogSafeContextFields = new Set(["bookSlug", "componentSlug", "activityId", "kind", "pageId"]);
+
+function safeNativeCatalogContext(context) {
+  if (!context || typeof context !== "object" || Array.isArray(context)) return {};
+  return Object.fromEntries(Object.entries(context).filter(([key, value]) => nativeCatalogSafeContextFields.has(key) && typeof value === "string" && safeId.test(value)));
+}
+
+function nativeCatalogBoundary(stage, message, context = {}) {
+  if (!nativeCatalogBoundaryStages.has(stage)) throw new Error("Native catalog boundary stage is invalid.");
+  return Object.assign(new Error(message), {
+    code: "native_catalog_boundary_invalid",
+    boundaryStage: stage,
+    safeContext: safeNativeCatalogContext(context),
+  });
+}
+
+function nativeCatalogIdentityContext(parsedRoute, entry) {
+  return {
+    bookSlug: parsedRoute.bookSlug,
+    componentSlug: parsedRoute.componentSlug,
+    activityId: entry?.activityId,
+    kind: entry?.kind,
+    pageId: entry?.placement?.pageId,
+  };
+}
+
+function nativeActivityFailureLogFields(error) {
+  const candidateCode = String(error?.code || "");
+  const code = /^[A-Za-z0-9_.-]{1,80}$/.test(candidateCode) ? candidateCode : "unknown";
+  const fields = { code };
+  if (code !== "native_catalog_boundary_invalid" || !nativeCatalogBoundaryStages.has(error?.boundaryStage)) return fields;
+  fields.boundaryStage = error.boundaryStage;
+  return Object.assign(fields, safeNativeCatalogContext(error.safeContext));
 }
 
 function normalizeCatalogSource(candidate, resource) {
@@ -637,7 +679,7 @@ function nativeAssetRequirements(publicDocument) {
 async function nativeCatalog(dependencies, sql, parsedRoute) {
   const sources = await dependencies.collectCatalog(sql, { bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug });
   const adapter = dependencies.resolveAdapter(parsedRoute.bookSlug, parsedRoute.componentSlug);
-  if (!adapter || !sources?.native || !sources.native.activities) throw nativeCatalogBoundary("Native activity catalog scope is unavailable.");
+  if (!adapter || !sources?.native || !sources.native.activities) throw nativeCatalogBoundary("catalog_scope_unavailable", "Native activity catalog scope is unavailable.", parsedRoute);
   const invalidActivities = [];
   const quarantine = (entry, code, stage) => {
     const diagnostic = { activityId: entry.activityId, kind: entry.kind, pageId: entry.placement.pageId, code, stage, loadable: false, ready: false };
@@ -648,17 +690,20 @@ async function nativeCatalog(dependencies, sql, parsedRoute) {
   };
   const candidates = [];
   for (const entry of sources.native.index?.payload?.activities || []) {
-    if (!adapter.ownsActivityId?.(entry.activityId) || !adapter.kinds.includes(entry.kind)) throw nativeCatalogBoundary("Native activity catalog identity is outside its component.");
+    const identityContext = nativeCatalogIdentityContext(parsedRoute, entry);
+    if (!adapter.ownsActivityId?.(entry.activityId)) throw nativeCatalogBoundary("activity_identity_outside_component", "Native activity catalog identity is outside its component.", identityContext);
+    if (!adapter.kinds.includes(entry.kind)) throw nativeCatalogBoundary("activity_kind_unsupported", "Native activity catalog kind is unsupported.", identityContext);
     let placement;
     try {
       placement = await (adapter.resolveExistingPlacement || adapter.normalizePlacement)(entry.placement, { sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug });
-    } catch {
-      throw nativeCatalogBoundary("Native activity catalog placement is outside its component.");
+    } catch (error) {
+      if (!isNativeActivityPlacementError(error)) throw error;
+      throw nativeCatalogBoundary("placement_resolution_failed", "Native activity catalog placement is outside its component.", identityContext);
     }
-    if (placement.pageId !== entry.placement.pageId) throw nativeCatalogBoundary("Native activity catalog placement is outside its component.");
+    if (placement.pageId !== entry.placement.pageId) throw nativeCatalogBoundary("placement_mismatch", "Native activity catalog placement does not match its stored source.", identityContext);
     const pair = sources.native.activities[entry.activityId];
     const kind = resolveNativeActivityKind(entry.kind);
-    if (!kind) throw nativeCatalogBoundary("Native activity catalog kind is unsupported.");
+    if (!kind) throw nativeCatalogBoundary("activity_kind_unsupported", "Native activity catalog kind is unsupported.", identityContext);
     if (!pair?.public || !pair?.teacher) { quarantine(entry, "pair_missing", "pair-load"); continue; }
     if (pair.index?.activityId !== entry.activityId || pair.index?.kind !== entry.kind || pair.index?.placement?.pageId !== entry.placement.pageId) {
       quarantine(entry, "pair_topology_invalid", "pair-index"); continue;
@@ -667,7 +712,7 @@ async function nativeCatalog(dependencies, sql, parsedRoute) {
       dependencies.resolveResource(parsedRoute.bookSlug, parsedRoute.componentSlug, "native-activity-public", entry.activityId),
       dependencies.resolveResource(parsedRoute.bookSlug, parsedRoute.componentSlug, "native-activity-teacher", entry.activityId),
     ]);
-    if (!publicResource || !teacherResource) throw nativeCatalogBoundary("Native activity catalog resources are unavailable.");
+    if (!publicResource || !teacherResource) throw nativeCatalogBoundary("activity_resources_unavailable", "Native activity catalog resources are unavailable.", identityContext);
     let publicSource;
     try { publicSource = normalizeCatalogSource(pair.public, publicResource); }
     catch (error) { quarantine(entry, catalogDocumentCode(error, "public"), "public-document"); continue; }
@@ -701,11 +746,11 @@ async function nativeCatalog(dependencies, sql, parsedRoute) {
       const asset = assetRows.get(reference.assetId);
       if (!asset) { issues.push("A required managed asset is missing."); continue; }
       if ((asset.book_slug && asset.book_slug !== parsedRoute.bookSlug) || (asset.component_slug && asset.component_slug !== parsedRoute.componentSlug)) {
-        throw nativeCatalogBoundary("Managed artwork is outside its component.");
+        throw nativeCatalogBoundary("asset_component_mismatch", "Managed artwork is outside its component.", { activityId: entry.activityId });
       }
       const canonicalFontSlot = `font-${String(reference.assetId || "").replaceAll("-", "").toLowerCase()}`;
       if (reference.role !== "activity_font" && asset.source_metadata?.native_activity_id && asset.source_metadata.native_activity_id !== entry.activityId) {
-        throw nativeCatalogBoundary("Managed artwork is owned by another activity.");
+        throw nativeCatalogBoundary("asset_activity_mismatch", "Managed artwork is owned by another activity.", { activityId: entry.activityId });
       }
       const owned = reference.role === "activity_font"
         ? asset.mime_type === MANAGED_TTF_MEDIA_TYPE && asset.source_metadata?.font_library_scope === "component" && reference.slot === canonicalFontSlot
@@ -821,7 +866,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
       if (parsedRoute.action === "asset-finalize") return finalizeAsset(dependencies, sql, auth, parsedRoute, event);
       return json(404, { error: "native_activity_route_not_found" });
     } catch (error) {
-      dependencies.logger.error("Builder native activity request failed", { code: /^[A-Za-z0-9_.-]+$/.test(String(error?.code || "")) ? error.code : "unknown" });
+      dependencies.logger.error("Builder native activity request failed", nativeActivityFailureLogFields(error));
       return json(500, { error: "native_activity_request_failed" });
     }
   };

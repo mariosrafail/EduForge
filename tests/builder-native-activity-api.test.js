@@ -7,6 +7,7 @@ import { createBuilderContentHandler } from "../netlify-sites/ultimate-b2-builde
 import { builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { resolveBuilderContentResource } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-registry.js";
 import { createBuilderNativeActivitiesHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
+import { resolveNativeActivityAdapter } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-adapters.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { addNativeCompleteSentencesItem } from "../src/data/native-activities/nativeCompleteSentencesAuthoring.js";
 import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
@@ -378,6 +379,118 @@ test("catalog fails closed when a referenced managed asset belongs to another co
   }
 });
 
+test("catalog boundary failures retain one generic response and emit only their exact safe diagnostic stage", async () => {
+  const studentPath = "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/catalog";
+  const workbookPath = "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-workbook/catalog";
+  const baseAdapter = resolveNativeActivityAdapter("ultimate-b2", "ultimate-b2-students-book");
+  const cases = [
+    {
+      name: "scope unavailable",
+      expected: { code: "native_catalog_boundary_invalid", boundaryStage: "catalog_scope_unavailable", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" },
+      sources: { native: null },
+    },
+    {
+      name: "foreign component identity",
+      path: workbookPath,
+      expected: {
+        code: "native_catalog_boundary_invalid", boundaryStage: "activity_identity_outside_component",
+        bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", activityId: publicationV2Fixture.openResponseId,
+        kind: "open-response", pageId: publicationV2Fixture.pageId,
+      },
+    },
+    {
+      name: "known placement-domain rejection",
+      mutate(sources) { sources.native.index.payload.activities[0].placement.pageId = "unknown-students-page"; },
+      expected: {
+        code: "native_catalog_boundary_invalid", boundaryStage: "placement_resolution_failed",
+        bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: publicationV2Fixture.openResponseId,
+        kind: "open-response", pageId: "unknown-students-page",
+      },
+    },
+    {
+      name: "resolved placement mismatch",
+      resolveAdapter: () => ({ ...baseAdapter, resolveExistingPlacement: async () => ({ pageId: "different-students-page" }) }),
+      expected: {
+        code: "native_catalog_boundary_invalid", boundaryStage: "placement_mismatch",
+        bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: publicationV2Fixture.openResponseId,
+        kind: "open-response", pageId: publicationV2Fixture.pageId,
+      },
+    },
+    {
+      name: "unsupported activity kind",
+      mutate(sources) { sources.native.index.payload.activities[0].kind = "unsupported-kind"; },
+      expected: {
+        code: "native_catalog_boundary_invalid", boundaryStage: "activity_kind_unsupported",
+        bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: publicationV2Fixture.openResponseId,
+        kind: "unsupported-kind", pageId: publicationV2Fixture.pageId,
+      },
+    },
+    {
+      name: "activity resources unavailable",
+      resolveResource: async () => null,
+      expected: {
+        code: "native_catalog_boundary_invalid", boundaryStage: "activity_resources_unavailable",
+        bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: publicationV2Fixture.openResponseId,
+        kind: "open-response", pageId: publicationV2Fixture.pageId,
+      },
+    },
+    {
+      name: "asset component mismatch",
+      mutate(sources) { sources.native.assetRows[0].component_slug = "ultimate-b2-workbook"; },
+      expected: { code: "native_catalog_boundary_invalid", boundaryStage: "asset_component_mismatch", activityId: publicationV2Fixture.imageId },
+    },
+    {
+      name: "asset activity mismatch",
+      mutate(sources) { sources.native.assetRows[0].source_metadata.native_activity_id = publicationV2Fixture.openResponseId; },
+      expected: { code: "native_catalog_boundary_invalid", boundaryStage: "asset_activity_mismatch", activityId: publicationV2Fixture.imageId },
+    },
+  ];
+
+  for (const scenario of cases) {
+    const sources = scenario.sources || createPublicationV2FixtureSources();
+    scenario.mutate?.(sources);
+    const errors = [];
+    const handler = createBuilderNativeActivitiesHandler({
+      getDatabase: () => ({}),
+      authorize: async () => ({ builderUser: { id: actor } }),
+      collectCatalog: async () => sources,
+      ...(scenario.resolveAdapter ? { resolveAdapter: scenario.resolveAdapter } : {}),
+      ...(scenario.resolveResource ? { resolveResource: scenario.resolveResource } : {}),
+      logger: { error(message, fields) { errors.push({ message, fields }); } },
+    });
+    const response = await handler(request({ method: "GET", path: scenario.path || studentPath }));
+    assert.equal(response.statusCode, 500, scenario.name);
+    assert.deepEqual(JSON.parse(response.body), { error: "native_activity_request_failed" }, scenario.name);
+    assert.deepEqual(errors, [{ message: "Builder native activity request failed", fields: scenario.expected }], scenario.name);
+    const serializedDiagnostics = JSON.stringify({ response: response.body, errors });
+    assert.doesNotMatch(serializedDiagnostics, new RegExp(publicationV2Fixture.teacherSentinel), scenario.name);
+    assert.doesNotMatch(serializedDiagnostics, /"(?:modelAnswers|solution|checksum|object_key)"\s*:/i, scenario.name);
+  }
+});
+
+test("unexpected placement SQL failures preserve their safe infrastructure code without boundary or message leakage", async () => {
+  const activityId = "ultimate-b2-wb-sql-failure-o1";
+  const pageId = "workbook-sql-failure-page";
+  const sources = createWorkbookCatalogSources([{ activityId, pageId, sortOrder: 1 }]);
+  const databaseFailure = Object.assign(new Error("SELECT private_teacher_payload FROM hidden_table"), {
+    code: "57P01",
+    boundaryStage: "placement_resolution_failed",
+    safeContext: { activityId, teacherDocument: { solution: "PRIVATE ANSWER" } },
+  });
+  const errors = [];
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => async () => { throw databaseFailure; },
+    authorize: async () => ({ builderUser: { id: actor } }),
+    collectCatalog: async () => sources,
+    logger: { error(message, fields) { errors.push({ message, fields }); } },
+  });
+  const response = await handler(request({ method: "GET", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-workbook/catalog" }));
+  assert.equal(response.statusCode, 500);
+  assert.deepEqual(JSON.parse(response.body), { error: "native_activity_request_failed" });
+  assert.deepEqual(errors, [{ message: "Builder native activity request failed", fields: { code: "57P01" } }]);
+  assert.doesNotMatch(JSON.stringify({ response: response.body, errors }), /private_teacher_payload|hidden_table|PRIVATE ANSWER|placement_resolution_failed/i);
+});
+
 test("catalog normalizes supported pre-rich Teacher answer shapes instead of quarantining them", async () => {
   const sources = createPublicationV2FixtureSources();
   const activityId = "ultimate-b2-sb-u1-p1-o95";
@@ -502,6 +615,21 @@ test("a component with no stored native index returns an exact empty catalog wit
   const response = await handler(request({ method: "GET", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-workbook/catalog" }));
   assert.equal(response.statusCode, 200);
   assert.deepEqual(JSON.parse(response.body), { schemaVersion: "1.0", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", activities: [] });
+});
+
+test("B1 and B1+ managed components retain exact empty native catalogs", async () => {
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => async () => [], authorize: async () => ({ builderUser: { id: actor } }),
+    collectCatalog: async () => ({ native: { index: null, activities: {}, assetRows: [] } }), logger: { error() {} },
+  });
+  for (const [bookSlug, componentSlug] of [
+    ["ultimate-b1", "ultimate-b1-workbook"],
+    ["ultimate-b1-plus", "ultimate-b1-plus-workbook"],
+  ]) {
+    const response = await handler(request({ method: "GET", path: `/builder/api/native-activities/books/${bookSlug}/components/${componentSlug}/catalog` }));
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(JSON.parse(response.body), { schemaVersion: "1.0", bookSlug, componentSlug, activities: [] });
+  }
 });
 
 test("Workbook lifecycle never treats a Students Book canonical ID as component-local", async () => {
