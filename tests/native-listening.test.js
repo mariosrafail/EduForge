@@ -165,7 +165,7 @@ test("Listening transcript scrolling preserves a comfort zone and clamps bounds"
 });
 
 test("Listening renders imported markup in one stable full stage without an HTML execution sink", async () => {
-  const [source, css, player, editor, questionAuthoring, transcriptAuthoring, responseControls] = await Promise.all([
+  const [source, css, player, editor, questionAuthoring, transcriptAuthoring, responseControls, responseFonts] = await Promise.all([
     readFile(new URL("../src/components/native-listening/NativeListeningSurface.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-listening/nativeListening.css", import.meta.url), "utf8"),
     readFile(new URL("../src/components/listening-player/LegacyListeningPlayer.jsx", import.meta.url), "utf8"),
@@ -173,6 +173,7 @@ test("Listening renders imported markup in one stable full stage without an HTML
     readFile(new URL("../src/apps/book-builder/hosted/NativeListeningQuestionAuthoring.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/apps/book-builder/hosted/NativeListeningTranscriptAuthoring.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/apps/book-builder/hosted/NativeOpenResponseResponseControls.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/book-builder/hosted/useNativeListeningResponseFonts.js", import.meta.url), "utf8"),
   ]);
   assert.match(source, /\{cue\.text\}/);
   assert.doesNotMatch(source, /dangerouslySetInnerHTML|innerHTML|insertAdjacentHTML/);
@@ -203,7 +204,8 @@ test("Listening renders imported markup in one stable full stage without an HTML
   for (const label of ["Accessibility label", "Padding X", "Padding Y", "Line count", "Line width", "Line spacing", "Auto-fit minimum", "Requested answer size", "Answer text color", "Answer align"]) assert.match(responseControls, new RegExp(label));
   assert.match(responseControls, /NativeActivityFontControls/);
   assert.match(responseControls, /fitNativeOpenResponseRuntimeAnswer/);
-  assert.match(editor, /getBuilderFontLibrary/);
+  assert.match(responseFonts, /getBuilderFontLibrary/);
+  assert.match(responseFonts, /mergeNativeManagedAssetReference/);
   assert.match(editor, /nativeFontPreviewUrl/);
   for (const type of ["prompt", "response", "artwork", "snippet"]) assert.match(questionAuthoring, new RegExp(type));
   assert.doesNotMatch(css, /720px/);

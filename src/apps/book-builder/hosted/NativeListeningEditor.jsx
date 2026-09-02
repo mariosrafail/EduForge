@@ -11,7 +11,7 @@ import { assessNativeOldschoolListeningReadiness, initialNativeOldschoolListenin
 import { clearNativeOldschoolListeningMappings } from "../../../data/native-activities/nativeOldschoolListeningAuthoring.js";
 import { createNativeOpenResponseQuestion, removeNativeOpenResponseArtwork, resizeNativeOpenResponseRegion } from "../../../data/native-activities/nativeOpenResponse.js";
 import { getBuilderContent } from "./builderContentApi.js";
-import { getBuilderFontLibrary, nativeFontPreviewUrl, saveNativeActivityPair, uploadNativeActivityArtwork, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
+import { nativeFontPreviewUrl, saveNativeActivityPair, uploadNativeActivityArtwork, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
 import { NativeListeningQuestionAuthoring } from "./NativeListeningQuestionAuthoring.jsx";
@@ -43,7 +43,6 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
   const [uploading, setUploading] = useState("");
   const [readableTextIncomplete, setReadableTextIncomplete] = useState(false);
   const [videoIncomplete, setVideoIncomplete] = useState(false);
-  const [fonts, setFonts] = useState([]);
   useEffect(() => {
     const controller = new AbortController();
     setState({
@@ -77,13 +76,11 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
         },
         { signal: controller.signal },
       ),
-      getBuilderFontLibrary({ bookSlug, componentSlug }, { signal: controller.signal }),
     ])
-      .then(([publicValue, teacherValue, fontLibrary]) => {
+      .then(([publicValue, teacherValue]) => {
         if (controller.signal.aborted) return;
         setPublicDraft(projectNativeActivityPublicForAuthoring(publicValue.document));
         setTeacherDraft(teacherValue.document);
-        setFonts(fontLibrary);
         setState({
           kind: "ready",
           publicRevision: publicValue.revision,
@@ -142,19 +139,6 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
   const backgroundReference = publicDraft?.assets.find((asset) => asset.slot === interaction?.panels[1].backgroundAssetSlot);
   const pageReference = publicDraft?.assets.find((asset) => asset.slot === interaction?.panels[1].pageAssetSlot);
   const selectedSnippetAudioReference = publicDraft?.assets.find((asset) => asset.slot === selectedSnippet?.audioAssetSlot) || null;
-  const recordUploadedFont = (font) => setFonts((current) => current.some((entry) => entry.assetId === font.assetId) ? current : [...current, font]);
-  const setAnswerFont = (font) => mutatePublic((next) => {
-    const target = next.parts[0].interaction.questions.find((question) => question.id === selectedQuestionId);
-    if (!target) return;
-    const presentation = target.responseRegion.presentation;
-    const previousSlot = presentation.answerFontAssetSlot;
-    if (font) {
-      next.assets = mergeNativeManagedAssetReference(next.assets, { assetId: font.assetId, checksumSha256: font.checksumSha256, role: font.role, slot: font.slot });
-      presentation.answerFontAssetSlot = font.slot;
-    } else delete presentation.answerFontAssetSlot;
-    if (previousSlot && previousSlot !== font?.slot) removeNativeManagedAssetReferenceIfUnused(next, previousSlot);
-  });
-
   const addQuestion = () => {
     const id = createNativeChildId("q");
     mutatePair((nextPublic, nextTeacher) => {
@@ -187,7 +171,6 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
       [publicItems[index], publicItems[target]] = [publicItems[target], publicItems[index]];
       nextTeacher.parts[0].solution.modelAnswers = publicItems.map((question) => teacherItems.find((answer) => answer.questionId === question.id));
     });
-
   const addCue = () => {
     const id = createNativeChildId("cue");
     const startMs = cues.at(-1)?.endMs || 0;
@@ -239,7 +222,6 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
       setState((current) => ({ ...current, message: error.message }));
     }
   };
-
   const importSrt = async (file) => {
     if (!file) return;
     if (oldschool && cues.some((cue) => cue.highlightRegions.length) && !globalThis.confirm("Importing this SRT replaces every cue and clears all existing page mappings. Continue?")) return;
@@ -263,7 +245,6 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
       setState((current) => ({ ...current, message: error.message }));
     }
   };
-
   const uploadAudio = async (file) => {
     if (!file) return;
     setUploading("audio");
@@ -398,7 +379,6 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
       removeNativeManagedAssetReferenceIfUnused(next, previousSlot);
     });
   };
-
   const uploadArtwork = async (file) => {
     if (!file) return;
     setUploading("artwork");
@@ -451,7 +431,6 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
     mutatePublic((next) => removeNativeOpenResponseArtwork(next, selectedArtwork.id));
     setQuestionSelection(null);
   };
-
   const questionSurface = {
     width: interaction?.panels[0].sourceWidth || 1024,
     height: interaction?.panels[0].sourceHeight || 582,
@@ -507,9 +486,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
     setSelectedSnippetId(null);
     setQuestionSelection(null);
   };
-
   const { addRegion: addPageRegion, updateRegion: updatePageRegion, removeRegion: removePageRegion, clearMappings: clearPageMappings, clearCueMappings: clearSelectedCueMappings } = createOldschoolMappingActions({ selectedCue, selectedRegionId, mutatePublic, setSelectedRegionId });
-
   const save = async () => {
     setState((current) => ({ ...current, saving: true, message: "Saving…" }));
     try {
@@ -631,9 +608,6 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
               commitArea: commitQuestionArea,
               bookSlug,
               componentSlug,
-              fonts,
-              setAnswerFont,
-              recordUploadedFont,
               onMessage: (message) => setState((current) => ({ ...current, message })),
             }}
           />

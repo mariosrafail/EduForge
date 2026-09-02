@@ -6,8 +6,10 @@ import { StudioButton, StudioField } from "../../../components/builder-studio/St
 import { NativeOpenResponseFontSurface } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
 import { resizeNativeOpenResponseRegion } from "../../../data/native-activities/nativeOpenResponse.js";
 import { NativeOpenResponseResponseControls } from "./NativeOpenResponseResponseControls.jsx";
+import { useNativeListeningResponseFonts } from "./useNativeListeningResponseFonts.js";
 
-export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDraft, interaction, questions, cues, snippets, selectedQuestion, selectedArtwork, selectedSnippet, selectedSnippetAudioReference, selection, selectedArea, surface, assetUrl, uploading, setSelectedQuestionId, setSelectedSnippetId, setSelection, mutatePublic, mutateTeacher, addQuestion, removeQuestion, moveQuestion, uploadArtwork, uploadSnippetAudio, removeSnippetAudio, addSnippet, removeSnippet, removeArtwork, commitArea, bookSlug, componentSlug, fonts, setAnswerFont, recordUploadedFont, onMessage }) {
+export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDraft, interaction, questions, cues, snippets, selectedQuestion, selectedArtwork, selectedSnippet, selectedSnippetAudioReference, selection, selectedArea, surface, assetUrl, uploading, setSelectedQuestionId, setSelectedSnippetId, setSelection, mutatePublic, mutateTeacher, addQuestion, removeQuestion, moveQuestion, uploadArtwork, uploadSnippetAudio, removeSnippetAudio, addSnippet, removeSnippet, removeArtwork, commitArea, bookSlug, componentSlug, onMessage }) {
+  const { fonts, recordUploadedFont, setAnswerFont } = useNativeListeningResponseFonts({ bookSlug, componentSlug, mutatePublic, selectedQuestionId: selectedQuestion?.id, onMessage });
   const surfaceDocument = {
     ...publicDraft,
     parts: [

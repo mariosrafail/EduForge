@@ -13,7 +13,6 @@ import { buildCoursePageHash, getComponentRouteSlug, getPackageRouteSlug } from 
 import { requestBookAssetAccess } from "virtual:book-assets-service";
 import { BookUnitExtraVideos } from "./BookUnitExtraVideos.jsx";
 import { BookUnitExtraAudios } from "./BookUnitExtraAudios.jsx";
-
 const enableBookHotspotEditor = FEATURE_FLAGS.ENABLE_BOOK_HOTSPOT_EDITOR;
 const enableBookActivityBuilder = FEATURE_FLAGS.ENABLE_BOOK_ACTIVITY_BUILDER;
 const SCROLLABLE_OVERFLOW_VALUES = new Set(["auto", "scroll", "overlay"]);
