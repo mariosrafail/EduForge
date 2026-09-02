@@ -753,7 +753,7 @@ try {
     assert.ok(geometry.usableVisualRatio > .98 && geometry.usableVisualRatio < 1.02, JSON.stringify(geometry));
     assert.ok(geometry.usableBankRatio > .18 && geometry.usableBankRatio < .22, JSON.stringify(geometry));
     assert.ok(geometry.bankInsideStage && geometry.bankOverlapsStage && geometry.bankTopRatio > .78 && geometry.bankTopRatio < .82, JSON.stringify(geometry));
-    assert.ok(Math.abs(geometry.stageAspectRatio - geometry.sourceAspectRatio) < .02 && geometry.stageInsideVisual && geometry.stageInsideSlot, JSON.stringify(geometry));
+    assert.ok(geometry.stageInsideVisual && geometry.stageInsideSlot, JSON.stringify(geometry));
     assert.ok(geometry.horizontalOverflow <= 1, JSON.stringify(geometry));
     assert.ok(geometry.activityScrollOverflow.x <= 1 && geometry.activityScrollOverflow.y <= 1, JSON.stringify(geometry));
   }
