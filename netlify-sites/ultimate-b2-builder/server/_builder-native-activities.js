@@ -47,6 +47,13 @@ import {
   prepareBuilderFontUpload,
 } from "./_builder-native-activity-store.js";
 import { resolveNativeActivityAdapter } from "./_native-activity-adapters.js";
+import {
+  nativeActivityFailureLogFields,
+  nativeCatalogBoundary,
+  nativeCatalogIdentityContext,
+  nativeCatalogSafeIdPattern,
+  withNativeCatalogProcessing,
+} from "./_native-catalog-failure.js";
 import { resolveNativeActivityKind, validateNativeActivityPair } from "./_native-activity-registry.js";
 import { collectBuilderNativeActivityCatalogSources, loadBuilderNativeActivityCatalogAssets, normalizeStoredBuilderDocument } from "./_builder-publication-store.js";
 import { serveBuilderPrivateFont } from "./_builder-private-font-response.js";
@@ -54,7 +61,7 @@ import { serveBuilderPrivateFont } from "./_builder-private-font-response.js";
 const exact = (value, keys) => value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join("\0") === [...keys].sort().join("\0");
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
 const uuidV4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const safeId = /^[a-z0-9][a-z0-9-]{0,127}$/;
+const safeId = nativeCatalogSafeIdPattern;
 const uploadTtlSeconds = 15 * 60;
 const previewTtlSeconds = 5 * 60;
 const declaredRasterTypes = new Set(Object.values(MANAGED_RASTER_TYPES));
@@ -601,51 +608,6 @@ async function finalizeAsset(dependencies, sql, auth, parsedRoute, event) {
   }
 }
 
-const nativeCatalogBoundaryStages = new Set([
-  "catalog_scope_unavailable",
-  "activity_identity_outside_component",
-  "placement_resolution_failed",
-  "placement_mismatch",
-  "activity_kind_unsupported",
-  "activity_resources_unavailable",
-  "asset_component_mismatch",
-  "asset_activity_mismatch",
-]);
-const nativeCatalogSafeContextFields = new Set(["bookSlug", "componentSlug", "activityId", "kind", "pageId"]);
-
-function safeNativeCatalogContext(context) {
-  if (!context || typeof context !== "object" || Array.isArray(context)) return {};
-  return Object.fromEntries(Object.entries(context).filter(([key, value]) => nativeCatalogSafeContextFields.has(key) && typeof value === "string" && safeId.test(value)));
-}
-
-function nativeCatalogBoundary(stage, message, context = {}) {
-  if (!nativeCatalogBoundaryStages.has(stage)) throw new Error("Native catalog boundary stage is invalid.");
-  return Object.assign(new Error(message), {
-    code: "native_catalog_boundary_invalid",
-    boundaryStage: stage,
-    safeContext: safeNativeCatalogContext(context),
-  });
-}
-
-function nativeCatalogIdentityContext(parsedRoute, entry) {
-  return {
-    bookSlug: parsedRoute.bookSlug,
-    componentSlug: parsedRoute.componentSlug,
-    activityId: entry?.activityId,
-    kind: entry?.kind,
-    pageId: entry?.placement?.pageId,
-  };
-}
-
-function nativeActivityFailureLogFields(error) {
-  const candidateCode = String(error?.code || "");
-  const code = /^[A-Za-z0-9_.-]{1,80}$/.test(candidateCode) ? candidateCode : "unknown";
-  const fields = { code };
-  if (code !== "native_catalog_boundary_invalid" || !nativeCatalogBoundaryStages.has(error?.boundaryStage)) return fields;
-  fields.boundaryStage = error.boundaryStage;
-  return Object.assign(fields, safeNativeCatalogContext(error.safeContext));
-}
-
 function normalizeCatalogSource(candidate, resource) {
   if (!candidate) return null;
   if (Object.hasOwn(candidate, "payload_sha256")) return normalizeStoredBuilderDocument(candidate, resource);
@@ -677,7 +639,9 @@ function nativeAssetRequirements(publicDocument) {
 }
 
 async function nativeCatalog(dependencies, sql, parsedRoute) {
-  const sources = await dependencies.collectCatalog(sql, { bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug });
+  const sources = await withNativeCatalogProcessing("source_collection", parsedRoute, () => dependencies.collectCatalog(sql, {
+    bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug,
+  }));
   const adapter = dependencies.resolveAdapter(parsedRoute.bookSlug, parsedRoute.componentSlug);
   if (!adapter || !sources?.native || !sources.native.activities) throw nativeCatalogBoundary("catalog_scope_unavailable", "Native activity catalog scope is unavailable.", parsedRoute);
   const invalidActivities = [];
@@ -702,7 +666,7 @@ async function nativeCatalog(dependencies, sql, parsedRoute) {
     }
     if (placement.pageId !== entry.placement.pageId) throw nativeCatalogBoundary("placement_mismatch", "Native activity catalog placement does not match its stored source.", identityContext);
     const pair = sources.native.activities[entry.activityId];
-    const kind = resolveNativeActivityKind(entry.kind);
+    const kind = dependencies.resolveKind(entry.kind);
     if (!kind) throw nativeCatalogBoundary("activity_kind_unsupported", "Native activity catalog kind is unsupported.", identityContext);
     if (!pair?.public || !pair?.teacher) { quarantine(entry, "pair_missing", "pair-load"); continue; }
     if (pair.index?.activityId !== entry.activityId || pair.index?.kind !== entry.kind || pair.index?.placement?.pageId !== entry.placement.pageId) {
@@ -732,62 +696,72 @@ async function nativeCatalog(dependencies, sql, parsedRoute) {
     candidates.push({ entry, placement, kind, publicDocument, teacherDocument });
   }
 
-  const references = candidates.flatMap((candidate) => candidate.publicDocument.assets);
-  const loadedAssets = Array.isArray(sources.native.assetRows)
-    ? sources.native.assetRows
-    : await dependencies.loadCatalogAssets(sql, { bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, references });
-  const assetRows = new Map(loadedAssets.map((row) => [String(row.id), row]));
-  const activities = [];
-  for (const candidate of candidates) {
-    const { entry, placement, kind, publicDocument, teacherDocument } = candidate;
-    let invalidAsset = false;
-    const issues = [...kind.assessReadiness(publicDocument, teacherDocument).issues];
-    for (const reference of publicDocument.assets) {
-      const asset = assetRows.get(reference.assetId);
-      if (!asset) { issues.push("A required managed asset is missing."); continue; }
-      if ((asset.book_slug && asset.book_slug !== parsedRoute.bookSlug) || (asset.component_slug && asset.component_slug !== parsedRoute.componentSlug)) {
-        throw nativeCatalogBoundary("asset_component_mismatch", "Managed artwork is outside its component.", { activityId: entry.activityId });
+  return withNativeCatalogProcessing("catalog_projection", parsedRoute, async () => {
+    const references = candidates.flatMap((candidate) => candidate.publicDocument.assets);
+    const loadedAssets = Array.isArray(sources.native.assetRows)
+      ? sources.native.assetRows
+      : await withNativeCatalogProcessing("catalog_asset_load", parsedRoute, () => dependencies.loadCatalogAssets(sql, {
+        bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, references,
+      }));
+    const assetRows = new Map(loadedAssets.map((row) => [String(row.id), row]));
+    const activities = [];
+    for (const candidate of candidates) {
+      const { entry, placement, kind, publicDocument, teacherDocument } = candidate;
+      const identityContext = nativeCatalogIdentityContext(parsedRoute, entry);
+      let invalidAsset = false;
+      const issues = await withNativeCatalogProcessing("readiness_assessment", identityContext, async () => [
+        ...kind.assessReadiness(publicDocument, teacherDocument).issues,
+      ]);
+      for (const reference of publicDocument.assets) {
+        const asset = assetRows.get(reference.assetId);
+        if (!asset) { issues.push("A required managed asset is missing."); continue; }
+        if ((asset.book_slug && asset.book_slug !== parsedRoute.bookSlug) || (asset.component_slug && asset.component_slug !== parsedRoute.componentSlug)) {
+          throw nativeCatalogBoundary("asset_component_mismatch", "Managed artwork is outside its component.", { activityId: entry.activityId });
+        }
+        const canonicalFontSlot = `font-${String(reference.assetId || "").replaceAll("-", "").toLowerCase()}`;
+        if (reference.role !== "activity_font" && asset.source_metadata?.native_activity_id && asset.source_metadata.native_activity_id !== entry.activityId) {
+          throw nativeCatalogBoundary("asset_activity_mismatch", "Managed artwork is owned by another activity.", { activityId: entry.activityId });
+        }
+        const owned = reference.role === "activity_font"
+          ? asset.mime_type === MANAGED_TTF_MEDIA_TYPE && asset.source_metadata?.font_library_scope === "component" && reference.slot === canonicalFontSlot
+          : asset.source_metadata?.native_activity_id === entry.activityId && asset.source_metadata?.asset_slot === reference.slot;
+        if (asset.checksum_sha256 !== reference.checksumSha256 || asset.asset_role !== reference.role
+          || asset.publication_status !== "draft" || asset.access_level !== "internal" || asset.storage_profile !== "private" || !owned) {
+          invalidAsset = true; break;
+        }
       }
-      const canonicalFontSlot = `font-${String(reference.assetId || "").replaceAll("-", "").toLowerCase()}`;
-      if (reference.role !== "activity_font" && asset.source_metadata?.native_activity_id && asset.source_metadata.native_activity_id !== entry.activityId) {
-        throw nativeCatalogBoundary("asset_activity_mismatch", "Managed artwork is owned by another activity.", { activityId: entry.activityId });
+      if (invalidAsset) { quarantine(entry, "required_asset_missing", "managed-asset-validation"); continue; }
+      const requirements = await withNativeCatalogProcessing("asset_requirement_derivation", identityContext, async () => (
+        dependencies.deriveAssetRequirements(publicDocument)
+      ));
+      for (const requirement of requirements) {
+        const reference = publicDocument.assets.find((asset) => asset.slot === requirement.slot);
+        const asset = reference ? assetRows.get(reference.assetId) : null;
+        if (!asset || (requirement.mediaType && asset.mime_type !== requirement.mediaType)) {
+          issues.push(`${requirement.label || "Native managed asset"} media type does not match the managed asset.`);
+        } else if (requirement.width !== undefined
+          && (Number(asset.width) !== requirement.width || Number(asset.height) !== requirement.height)) {
+          issues.push(`${requirement.label || "Managed image"} dimensions do not match the managed asset.`);
+        }
       }
-      const owned = reference.role === "activity_font"
-        ? asset.mime_type === MANAGED_TTF_MEDIA_TYPE && asset.source_metadata?.font_library_scope === "component" && reference.slot === canonicalFontSlot
-        : asset.source_metadata?.native_activity_id === entry.activityId && asset.source_metadata?.asset_slot === reference.slot;
-      if (asset.checksum_sha256 !== reference.checksumSha256 || asset.asset_role !== reference.role
-        || asset.publication_status !== "draft" || asset.access_level !== "internal" || asset.storage_profile !== "private" || !owned) {
-        invalidAsset = true; break;
-      }
+      activities.push({
+        activityId: entry.activityId,
+        kind: entry.kind,
+        title: publicDocument.metadata.title,
+        placement: entry.placement,
+        sourcePageId: placement.sourcePageId || entry.placement.pageId,
+        assignment: {
+          state: placement.assignmentState || "assigned",
+          ...(placement.unassignedReason ? { reason: placement.unassignedReason } : {}),
+        },
+        ready: issues.length === 0,
+        issues: [...new Set(issues)],
+      });
     }
-    if (invalidAsset) { quarantine(entry, "required_asset_missing", "managed-asset-validation"); continue; }
-    for (const requirement of nativeAssetRequirements(publicDocument)) {
-      const reference = publicDocument.assets.find((asset) => asset.slot === requirement.slot);
-      const asset = reference ? assetRows.get(reference.assetId) : null;
-      if (!asset || (requirement.mediaType && asset.mime_type !== requirement.mediaType)) {
-        issues.push(`${requirement.label || "Native managed asset"} media type does not match the managed asset.`);
-      } else if (requirement.width !== undefined
-        && (Number(asset.width) !== requirement.width || Number(asset.height) !== requirement.height)) {
-        issues.push(`${requirement.label || "Managed image"} dimensions do not match the managed asset.`);
-      }
-    }
-    activities.push({
-      activityId: entry.activityId,
-      kind: entry.kind,
-      title: publicDocument.metadata.title,
-      placement: entry.placement,
-      sourcePageId: placement.sourcePageId || entry.placement.pageId,
-      assignment: {
-        state: placement.assignmentState || "assigned",
-        ...(placement.unassignedReason ? { reason: placement.unassignedReason } : {}),
-      },
-      ready: issues.length === 0,
-      issues: [...new Set(issues)],
+    return json(200, {
+      schemaVersion: "1.0", bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, activities,
+      ...(invalidActivities.length ? { invalidActivities } : {}),
     });
-  }
-  return json(200, {
-    schemaVersion: "1.0", bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, activities,
-    ...(invalidActivities.length ? { invalidActivities } : {}),
   });
 }
 
@@ -796,6 +770,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
     getDatabase: overrides.getDatabase || getBuilderSql,
     authorize: overrides.authorize || requireBuilderUser,
     resolveAdapter: overrides.resolveAdapter || resolveNativeActivityAdapter,
+    resolveKind: overrides.resolveKind || resolveNativeActivityKind,
     resolveResource: overrides.resolveResource || resolveBuilderContentResource,
     loadDocument: overrides.loadDocument || loadBuilderComponentDocument,
     create: overrides.create || createBuilderNativeActivity,
@@ -819,6 +794,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
     loadFont: overrides.loadFont || loadBuilderFontAsset,
     collectCatalog: overrides.collectCatalog || collectBuilderNativeActivityCatalogSources,
     loadCatalogAssets: overrides.loadCatalogAssets || loadBuilderNativeActivityCatalogAssets,
+    deriveAssetRequirements: overrides.deriveAssetRequirements || nativeAssetRequirements,
     storage: overrides.storage || (() => createBookAssetStorage()),
     inspectRaster: overrides.inspectRaster || inspectManagedRaster,
     inspectAudio: overrides.inspectAudio || inspectManagedMp3,

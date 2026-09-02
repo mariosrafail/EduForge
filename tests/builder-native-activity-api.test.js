@@ -468,6 +468,86 @@ test("catalog boundary failures retain one generic response and emit only their 
   }
 });
 
+test("catalog processing failures retain safe phase and code diagnostics without leaking documents or internals", async () => {
+  const catalogPath = "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/catalog";
+  const activityContext = {
+    bookSlug: "ultimate-b2",
+    componentSlug: "ultimate-b2-students-book",
+    activityId: publicationV2Fixture.openResponseId,
+    kind: "open-response",
+    pageId: publicationV2Fixture.pageId,
+  };
+  const uncodedFailure = () => Object.assign(new Error("SELECT solution, modelAnswers, correctAnswers, mappings, checksum, object_key FROM PRIVATE_SECRET_MARKER"), {
+    processingStage: "forged_stage",
+    safeContext: { activityId: "forged-activity", solution: "PRIVATE_SECRET_MARKER" },
+  });
+  const codedFailure = () => Object.assign(uncodedFailure(), { code: "42P01" });
+  const cases = [
+    {
+      name: "uncoded source collection",
+      collectCatalog: async () => { throw uncodedFailure(); },
+      expected: { code: "native_catalog_processing_failed", processingStage: "source_collection", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" },
+    },
+    {
+      name: "database-coded source collection",
+      collectCatalog: async () => { throw codedFailure(); },
+      expected: { code: "42P01", processingStage: "source_collection", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" },
+    },
+    {
+      name: "uncoded catalog asset load",
+      prepare(sources) { delete sources.native.assetRows; },
+      loadCatalogAssets: async () => { throw uncodedFailure(); },
+      expected: { code: "native_catalog_processing_failed", processingStage: "catalog_asset_load", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" },
+    },
+    {
+      name: "database-coded catalog asset load",
+      prepare(sources) { delete sources.native.assetRows; },
+      loadCatalogAssets: async () => { throw codedFailure(); },
+      expected: { code: "42P01", processingStage: "catalog_asset_load", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" },
+    },
+    {
+      name: "readiness assessment",
+      resolveKind(kindName) {
+        const kind = resolveNativeActivityKind(kindName);
+        return kindName === "open-response" ? { ...kind, assessReadiness() { throw uncodedFailure(); } } : kind;
+      },
+      expected: { code: "native_catalog_processing_failed", processingStage: "readiness_assessment", ...activityContext },
+    },
+    {
+      name: "asset requirement derivation",
+      deriveAssetRequirements() { throw uncodedFailure(); },
+      expected: { code: "native_catalog_processing_failed", processingStage: "asset_requirement_derivation", ...activityContext },
+    },
+    {
+      name: "residual catalog projection",
+      prepare(sources) { delete sources.native.assetRows; },
+      loadCatalogAssets: async () => null,
+      expected: { code: "native_catalog_processing_failed", processingStage: "catalog_projection", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" },
+    },
+  ];
+
+  for (const scenario of cases) {
+    const sources = createPublicationV2FixtureSources();
+    scenario.prepare?.(sources);
+    const errors = [];
+    const handler = createBuilderNativeActivitiesHandler({
+      getDatabase: () => ({}),
+      authorize: async () => ({ builderUser: { id: actor } }),
+      collectCatalog: scenario.collectCatalog || (async () => sources),
+      ...(scenario.loadCatalogAssets ? { loadCatalogAssets: scenario.loadCatalogAssets } : {}),
+      ...(scenario.resolveKind ? { resolveKind: scenario.resolveKind } : {}),
+      ...(scenario.deriveAssetRequirements ? { deriveAssetRequirements: scenario.deriveAssetRequirements } : {}),
+      logger: { error(message, fields) { errors.push({ message, fields }); } },
+    });
+    const response = await handler(request({ method: "GET", path: catalogPath }));
+    assert.equal(response.statusCode, 500, scenario.name);
+    assert.deepEqual(JSON.parse(response.body), { error: "native_activity_request_failed" }, scenario.name);
+    assert.deepEqual(errors, [{ message: "Builder native activity request failed", fields: scenario.expected }], scenario.name);
+    const serializedDiagnostics = JSON.stringify({ response: response.body, errors });
+    assert.doesNotMatch(serializedDiagnostics, /PRIVATE_SECRET_MARKER|SELECT|solution|modelAnswers|correctAnswers|mappings|checksum|object_key/i, scenario.name);
+  }
+});
+
 test("unexpected placement SQL failures preserve their safe infrastructure code without boundary or message leakage", async () => {
   const activityId = "ultimate-b2-wb-sql-failure-o1";
   const pageId = "workbook-sql-failure-page";
@@ -604,7 +684,9 @@ test("an untrusted native index produces only a generic response and a stable sa
   assert.equal(response.statusCode, 500);
   assert.deepEqual(JSON.parse(response.body), { error: "native_activity_request_failed" });
   assert.doesNotMatch(response.body, /PRIVATE INDEX PAYLOAD/);
-  assert.deepEqual(errors, [{ message: "Builder native activity request failed", fields: { code: "native_catalog_index_invalid" } }]);
+  assert.deepEqual(errors, [{ message: "Builder native activity request failed", fields: {
+    code: "native_catalog_index_invalid", processingStage: "source_collection", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book",
+  } }]);
 });
 
 test("a component with no stored native index returns an exact empty catalog without falling back", async () => {
