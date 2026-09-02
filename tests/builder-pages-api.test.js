@@ -34,7 +34,7 @@ function request(path, body, overrides = {}) {
 }
 
 function harness(options = {}) {
-  let prepared; let completed; let failed; let mutation; let canonicalMutation; let lifecycleMutation;
+  let prepared; let completed; let failed; let mutation; let canonicalMutation; let lifecycleMutation; let claimCount = 0;
   const storage = {
     signedPutUrl: async () => ({ url: "https://storage.example/upload", headers: { "Content-Type": first.image.mimeType } }),
     signedGetUrl: async () => "https://storage.example/private-preview",
@@ -57,12 +57,19 @@ function harness(options = {}) {
       prepared = input;
       return { outcome: "prepared", upload_id: uploadId, current_revision: input.expectedRevision, session_state: "prepared", staging_object_key: input.stagingObjectKey };
     },
-    claim: async () => ({
+    loadUploadScope: options.loadUploadScope || (async () => options.uploadScope || ({
+      bookSlug: prepared?.bookSlug || "ultimate-b2",
+      componentSlug: prepared?.componentSlug || "ultimate-b2-students-book",
+    })),
+    claim: async () => {
+      claimCount += 1;
+      return ({
       outcome: "claimed", book_slug: "ultimate-b2", component_slug: "ultimate-b2-students-book",
       page_key: `${first.componentSlug}/pages/${first.id}`, upload_mode: "replace", current_revision: 0,
       page_metadata: prepared.pageMetadata, file_descriptor: prepared.fileDescriptor, staging_object_key: prepared.stagingObjectKey,
       ...options.claim,
-    }),
+      });
+    },
     complete: async (_sql, input) => { completed = input; return { outcome: "saved", page_id: actor, asset_id: assetId, revision: 1 }; },
     fail: async (_sql, input) => { failed = input; return true; },
     mutate: async (_sql, input) => { mutation = input; return { outcome: "saved", current_revision: input.expectedRevision + 1 }; },
@@ -74,7 +81,7 @@ function harness(options = {}) {
     inspectRaster: options.inspectRaster,
     logger: { error() {} },
   });
-  return { handler, getPrepared: () => prepared, getCompleted: () => completed, getFailed: () => failed, getMutation: () => mutation, getCanonicalMutation: () => canonicalMutation, getLifecycleMutation: () => lifecycleMutation };
+  return { handler, getPrepared: () => prepared, getCompleted: () => completed, getFailed: () => failed, getMutation: () => mutation, getCanonicalMutation: () => canonicalMutation, getLifecycleMutation: () => lifecycleMutation, getClaimCount: () => claimCount };
 }
 
 test("Students Book Pages derives the complete canonical catalog and exposes no repository paths", async () => {
@@ -183,6 +190,24 @@ test("finalize verifies actual raster bytes and preserves component/page identit
   assert.equal(current.getCompleted().width, first.image.width);
   assert.equal(current.getCompleted().height, first.image.height);
   assert.doesNotMatch(response.body, /objectKey|storageBucket|private-assets/);
+});
+
+test("finalize rejects cross-component and cross-package upload scopes before claim", async () => {
+  const body = { uploadId, expectedRevision: 0, clientMutationId: randomUUID() };
+  const uploadScope = { bookSlug: "ultimate-b1", componentSlug: "ultimate-b1-workbook" };
+  for (const path of [
+    "/builder/api/pages/books/ultimate-b1/components/ultimate-b1-grammar-book/assets/finalize",
+    "/builder/api/pages/books/ultimate-b1-plus/components/ultimate-b1-plus-workbook/assets/finalize",
+  ]) {
+    const current = harness({ uploadScope });
+    const response = await current.handler(request(path, body));
+    assert.equal(response.statusCode, 409);
+    assert.equal(JSON.parse(response.body).error, "upload_scope_conflict");
+    assert.equal(current.getClaimCount(), 0);
+  }
+  const missing = harness({ loadUploadScope: async () => null });
+  assert.equal((await missing.handler(request("/builder/api/pages/books/ultimate-b1/components/ultimate-b1-workbook/assets/finalize", body))).statusCode, 404);
+  assert.equal(missing.getClaimCount(), 0);
 });
 
 test("replacement rejects dimension drift and preview lookup remains component-scoped", async () => {

@@ -4,7 +4,7 @@ import test from "node:test";
 
 test("Activity Builder navigation releases desktop width without losing touch, focus, or reduced-motion access", async () => {
   const [app, css] = await Promise.all([
-    readFile(new URL("../src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/book-builder/hosted/HostedActivityWorkspace.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/apps/ultimate-b2-builder/hostedUltimateB2BuilderModern.css", import.meta.url), "utf8"),
   ]);
 

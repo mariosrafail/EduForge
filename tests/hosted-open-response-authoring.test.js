@@ -102,7 +102,7 @@ test("authenticated keyed API seeds revision zero and public preview exposes sav
 test("hosted editor stays slim and Viewer integration is no-store, fail-safe, and teacher-answer separate", async () => {
   const [editor, workspace, provider, embedded, normalized, localEditor] = await Promise.all([
     readFile("src/apps/ultimate-b2-builder/HostedOpenResponseEditor.jsx", "utf8"),
-    readFile("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx", "utf8"),
+    readFile("src/apps/book-builder/hosted/HostedActivityWorkspace.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/hostedOpenResponseDraftProvider.js", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineEmbeddedActivity.jsx", "utf8"),
     readFile("src/components/lms/activities/ultimate-b2/NormalizedStudentsBookActivity.jsx", "utf8"),

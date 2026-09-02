@@ -76,7 +76,7 @@ function PackageToolWorkspace({ book, tool }) {
   const resolved = resolveHostedBuilderPackageTool(book, tool);
   if (!resolved) return <NotFound />;
   const Tool = resolved.adapter.Tool;
-  return <main className="hosted-builder-workspace" id="main-content"><div className="hosted-builder-workspace-chrome"><Breadcrumbs book={book} packageTool={tool} /></div><Suspense fallback={<p className="hosted-builder-loading" role="status">Loading package tool…</p>}><HostedBuilderRouteTransition routeKey={`${book.slug}/package/${tool}`}><Tool /></HostedBuilderRouteTransition></Suspense></main>;
+  return <main className="hosted-builder-workspace" id="main-content"><div className="hosted-builder-workspace-chrome"><Breadcrumbs book={book} packageTool={tool} /></div><Suspense fallback={<p className="hosted-builder-loading" role="status">Loading package tool…</p>}><HostedBuilderRouteTransition routeKey={`${book.slug}/package/${tool}`}><Tool bookSlug={resolved.adapter.bookSlug} componentSlug={resolved.adapter.componentSlug} bookTitle={book.title} /></HostedBuilderRouteTransition></Suspense></main>;
 }
 
 function UnavailableComponent({ book, component }) {
@@ -106,7 +106,7 @@ function Workspace({ book, component, tool }) {
       </nav>
     </div>
     <Suspense fallback={<p className="hosted-builder-loading" role="status">Loading component workspace…</p>}>
-      <HostedBuilderRouteTransition routeKey={`${book.slug}/${component.slug}/${tool}`}><WorkspaceComponent tool={tool} capabilities={adapter.capabilities} nativeActivities={adapter.nativeActivities || null} bookSlug={book.slug} componentSlug={component.slug} /></HostedBuilderRouteTransition>
+      <HostedBuilderRouteTransition routeKey={`${book.slug}/${component.slug}/${tool}`}><WorkspaceComponent tool={tool} capabilities={adapter.capabilities} nativeActivities={adapter.nativeActivities || null} bookSlug={book.slug} componentSlug={component.slug} bookTitle={book.title} componentTitle={component.title} /></HostedBuilderRouteTransition>
     </Suspense>
   </main>;
 }
@@ -118,35 +118,42 @@ function NotFound() {
 function PackageExperience({ book, route }) {
   const defaultComponentSlug = book.review?.defaultComponentSlug || book.components.find((component) => resolveHostedBuilderAdapter(book, component))?.slug;
   const routedComponent = route.componentSlug ? findHostedBuilderComponent(book, route.componentSlug) : null;
-  const reviewComponent = routedComponent && resolveHostedBuilderAdapter(book, routedComponent) ? routedComponent : findHostedBuilderComponent(book, defaultComponentSlug);
-  const [reviewPages, setReviewPages] = useState([]);
+  const componentScopedRoute = ["workspace", "review", "legacy-package-tool"].includes(route.kind);
+  const reviewComponent = componentScopedRoute
+    ? routedComponent && resolveHostedBuilderAdapter(book, routedComponent) ? routedComponent : null
+    : findHostedBuilderComponent(book, defaultComponentSlug);
+  const reviewScope = reviewComponent ? `${book.slug}/${reviewComponent.slug}` : "";
+  const [reviewPageState, setReviewPageState] = useState({ scope: "", pages: [] });
+  const reviewPages = reviewPageState.scope === reviewScope ? reviewPageState.pages : [];
   const tool = route.kind === "package-tool" || route.kind === "legacy-package-tool" ? route.tool : route.kind === "workspace" ? route.tool : "pages";
   useEffect(() => {
-    if (route.kind !== "legacy-package-tool") return;
+    if (route.kind !== "legacy-package-tool" || !reviewComponent) return;
     window.history.replaceState(null, "", hostedBuilderHash({ bookSlug: book.slug, packageTool: route.tool }));
     window.dispatchEvent(new HashChangeEvent("hashchange"));
-  }, [book.slug, route.kind, route.tool]);
+  }, [book.slug, reviewComponent, route.kind, route.tool]);
   useEffect(() => {
     if (!reviewComponent) return undefined;
     const controller = new AbortController();
     const load = () => getBuilderPages({ bookSlug: book.slug, componentSlug: reviewComponent.slug }, { signal: controller.signal })
-      .then((library) => setReviewPages(pageLibraryReviewNavigation(library, { bookSlug: book.slug, componentSlug: reviewComponent.slug }).placements))
-      .catch((error) => { if (error.name !== "AbortError") setReviewPages([]); });
+      .then((library) => setReviewPageState({ scope: reviewScope, pages: pageLibraryReviewNavigation(library, { bookSlug: book.slug, componentSlug: reviewComponent.slug }).placements }))
+      .catch((error) => { if (error.name !== "AbortError") setReviewPageState({ scope: reviewScope, pages: [] }); });
     load();
     const changed = (event) => { if (event.detail?.bookSlug === book.slug && event.detail?.componentSlug === reviewComponent.slug) load(); };
     window.addEventListener("builder:pages-changed", changed);
     return () => { controller.abort(); window.removeEventListener("builder:pages-changed", changed); };
-  }, [book.slug, reviewComponent]);
+  }, [book.slug, reviewComponent, reviewScope]);
   const content = useMemo(() => {
     if (route.kind === "book") return <HostedBuilderRouteTransition routeKey={`book/${book.slug}`}><ComponentSelection book={book} /></HostedBuilderRouteTransition>;
-    if (["package-tool", "legacy-package-tool"].includes(route.kind)) return <PackageToolWorkspace book={book} tool={route.tool} />;
+    if (route.kind === "package-tool") return <PackageToolWorkspace book={book} tool={route.tool} />;
+    if (route.kind === "legacy-package-tool") return reviewComponent ? <PackageToolWorkspace book={book} tool={route.tool} /> : <NotFound />;
     const component = findHostedBuilderComponent(book, route.componentSlug);
     if (!component) return <NotFound />;
     if (route.kind === "review") return resolveHostedBuilderAdapter(book, component) ? <HostedBuilderReviewPage book={book} component={component} intent={route.intent} /> : <UnavailableComponent book={book} component={component} />;
     return <Workspace book={book} component={component} tool={route.tool} />;
   }, [book, route]);
   if (route.kind === "review") return content;
-  return <HostedPackageReview tool={tool} pages={reviewPages} bookSlug={book.slug} componentSlug={reviewComponent?.slug || defaultComponentSlug}>{content}</HostedPackageReview>;
+  if (componentScopedRoute && !reviewComponent) return content;
+  return <HostedPackageReview key={reviewScope} tool={tool} pages={reviewPages} bookSlug={book.slug} componentSlug={reviewComponent?.slug || defaultComponentSlug}>{content}</HostedPackageReview>;
 }
 
 export function HostedBookBuilderApp() {

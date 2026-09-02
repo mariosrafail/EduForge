@@ -17,6 +17,7 @@ import {
   completeBuilderUnitExtraAssetUpload,
   failBuilderUnitExtraAssetUpload,
   loadBuilderUnitExtraAsset,
+  loadBuilderUnitExtraAssetUploadScope,
   prepareBuilderUnitExtraAssetUpload,
   validateBuilderUnitExtraAssetReferences,
 } from "./_builder-unit-extra-assets-store.js";
@@ -102,6 +103,7 @@ export function createBuilderUnitExtraAssetsHandler(overrides = {}) {
     complete: overrides.complete || completeBuilderUnitExtraAssetUpload,
     fail: overrides.fail || failBuilderUnitExtraAssetUpload,
     loadAsset: overrides.loadAsset || loadBuilderUnitExtraAsset,
+    loadUploadScope: overrides.loadUploadScope || loadBuilderUnitExtraAssetUploadScope,
     validateAssets: overrides.validateAssets || validateBuilderUnitExtraAssetReferences,
     archiveUnreferenced: overrides.archiveUnreferenced || archiveUnreferencedBuilderUnitExtraAssets,
     storage: overrides.storage || (() => createBookAssetStorage()),
@@ -154,6 +156,12 @@ export function createBuilderUnitExtraAssetsHandler(overrides = {}) {
       if (parsed.action === "finalize") {
         const body = parseJson(event, ["uploadId", "expectedRevision", "clientMutationId"]); if (body.error) return body.error;
         if (!UUID_V4.test(String(body.value.uploadId || "")) || !Number.isSafeInteger(body.value.expectedRevision) || body.value.expectedRevision < 1 || !builderClientMutationIdPattern.test(String(body.value.clientMutationId || ""))) return json(400, { error: "invalid_finalize_identity" });
+        const uploadScope = await dependencies.loadUploadScope(sql, { uploadId: body.value.uploadId, builderUserId: auth.builderUser.id });
+        if (!uploadScope) return json(404, { error: "session_not_found" });
+        if (uploadScope.bookSlug !== parsed.bookSlug || uploadScope.componentSlug !== parsed.componentSlug
+          || uploadScope.unitSlug !== parsed.unitSlug || uploadScope.itemId !== parsed.itemId || uploadScope.assetSlot !== parsed.itemId) {
+          return json(409, { error: "upload_scope_conflict" });
+        }
         const claimed = await dependencies.claim(sql, { uploadId: body.value.uploadId, expectedRevision: body.value.expectedRevision, clientMutationId: body.value.clientMutationId, builderUserId: auth.builderUser.id });
         if (claimed.outcome === "idempotent") {
           if (claimed.unitSlug !== parsed.unitSlug || claimed.itemId !== parsed.itemId) return json(409, { error: "session_identity_conflict" });

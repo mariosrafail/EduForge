@@ -36,7 +36,28 @@ function semanticSha256(value) {
 
 test("shared product catalog separates registration, install, authoring, LMS visibility, and Teacher mapping", () => {
   assert.deepEqual(bookProductCatalog.map(({ slug }) => slug), ["ultimate-b1", "ultimate-b1-plus", "ultimate-b2"]);
-  assert.equal(new Set(bookProductCatalog.flatMap((book) => book.components.map(({ slug }) => slug))).size, 8);
+  assert.equal(new Set(bookProductCatalog.flatMap((book) => book.components.map(({ slug }) => slug))).size, 12);
+  for (const bookSlug of ["ultimate-b1", "ultimate-b1-plus"]) {
+    const book = findProductBook(bookSlug);
+    assert.deepEqual(book.components.map(({ slug, type }) => ({ slug, type })), [
+      { slug: `${bookSlug}-students-book`, type: "students_book" },
+      { slug: `${bookSlug}-workbook`, type: "workbook" },
+      { slug: `${bookSlug}-grammar-book`, type: "grammar_book" },
+      { slug: `${bookSlug}-test-book`, type: "test_book" },
+    ]);
+    for (const component of book.components.slice(0, 3)) {
+      assert.deepEqual({ review: component.reviewState, authoring: component.authoringState, adapter: component.authoringAdapterId, publication: component.publication }, {
+        review: "pending",
+        authoring: "active",
+        adapter: component.slug,
+        publication: { readable: false, writable: false, compilerId: null },
+      });
+    }
+    assert.deepEqual({ review: book.components[3].reviewState, authoring: book.components[3].authoringState, adapter: book.components[3].authoringAdapterId, edition: book.components[3].teacherEditionId }, {
+      review: "pending", authoring: "pending", adapter: null, edition: null,
+    });
+    assert.deepEqual(book.components.filter(({ lmsVisible }) => lmsVisible).map(({ slug }) => slug), [`${bookSlug}-students-book`, `${bookSlug}-workbook`]);
+  }
   const students = findProductComponent("ultimate-b2", "ultimate-b2-students-book");
   assert.deepEqual({ review: students.reviewState, authoring: students.authoringState, adapter: students.authoringAdapterId, visible: students.lmsVisible, edition: students.teacherEditionId }, {
     review: "installed", authoring: "active", adapter: "ultimate-b2-students-book", visible: true, edition: "students-book",

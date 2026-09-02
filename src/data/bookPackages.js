@@ -39,8 +39,8 @@ function emptyUltimatePackage(slug) {
   };
 }
 
-export const ultimateB1Package = emptyUltimatePackage("ultimate-b1");
-export const ultimateB1PlusPackage = emptyUltimatePackage("ultimate-b1-plus");
+export const ultimateB1Package = filterPhaseOneComponents(emptyUltimatePackage("ultimate-b1"));
+export const ultimateB1PlusPackage = filterPhaseOneComponents(emptyUltimatePackage("ultimate-b1-plus"));
 export const demoBookPackages = sortPhaseOnePackages([
   ultimateB1Package,
   ultimateB1PlusPackage,

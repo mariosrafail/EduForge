@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
 import { currentBuilderUserFromEvent } from "./_builder-auth.js";
+import { resolveBuilderServerComponent } from "./_builder-component-registry.js";
 
 export const builderPreviewAuthorizationTtlSeconds = 5 * 60;
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
@@ -44,15 +45,19 @@ function normalizeIntent(input) {
 }
 
 function actionsFor(intent) {
+  const registration = resolveBuilderServerComponent(intent.bookSlug, intent.componentSlug);
+  if (!registration) throw new Error("Unsupported Builder preview component.");
+  if ((intent.releaseId || intent.productReleaseId) && !registration.publication.enabled) throw new Error("Builder publication preview is unavailable for this component.");
   const actions = intent.releaseId
     ? ["release-public", "release-asset", "release-teacher-ui", "release-teacher-solution", "release-native-teacher"]
-    : ["teacher-ui-draft"];
+    : [];
+  if (!intent.releaseId && registration.packageUi.owner) actions.push("teacher-ui-draft");
   if (!intent.releaseId) actions.push("native-draft-public", "native-draft-teacher", "native-draft-asset");
-  if (!intent.releaseId && intent.bookSlug === "ultimate-b2" && intent.componentSlug === "ultimate-b2-students-book") actions.push("unit-extras-draft", "unit-extra-draft-asset");
-  if (!intent.releaseId && intent.view === "activity") actions.push("open-response-teacher");
-  if (!intent.releaseId && intent.bookSlug === "ultimate-b2" && ["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"].includes(intent.componentSlug)) actions.push("managed-page-catalog", "managed-page-asset");
-  if (!intent.releaseId && intent.componentSlug !== "ultimate-b2-students-book") actions.push("managed-hotspots");
-  if (!intent.releaseId && intent.bookSlug === "ultimate-b2" && ["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"].includes(intent.componentSlug)) actions.push("component-switch");
+  if (!intent.releaseId && registration.content.unitExtras) actions.push("unit-extras-draft", "unit-extra-draft-asset");
+  if (!intent.releaseId && intent.view === "activity" && registration.content.legacyOpenResponseImport) actions.push("open-response-teacher");
+  if (!intent.releaseId && registration.pageCatalog) actions.push("managed-page-catalog", "managed-page-asset");
+  if (!intent.releaseId && registration.content.hotspots === "managed") actions.push("managed-hotspots");
+  if (!intent.releaseId) actions.push("component-switch");
   return actions;
 }
 
@@ -71,7 +76,8 @@ export function issueBuilderReleaseMemberAuthorization(input, { environment = pr
   const productReleaseId = String(input.productReleaseId || "").toLowerCase();
   const componentReleaseId = String(input.componentReleaseId || "").toLowerCase();
   const memberSha256 = String(input.memberSha256 || "");
-  if (intent.releaseId || intent.productReleaseId !== productReleaseId || !UUID.test(productReleaseId) || !UUID.test(componentReleaseId) || !/^[a-f0-9]{64}$/.test(memberSha256)) throw new Error("Invalid verified release member authorization.");
+  const registration = resolveBuilderServerComponent(intent.bookSlug, intent.componentSlug);
+  if (!registration?.publication.enabled || intent.releaseId || intent.productReleaseId !== productReleaseId || !UUID.test(productReleaseId) || !UUID.test(componentReleaseId) || !/^[a-f0-9]{64}$/.test(memberSha256)) throw new Error("Invalid verified release member authorization.");
   const expiresAt = Math.floor(now / 1000) + builderPreviewAuthorizationTtlSeconds;
   const actions = ["release-public", "release-asset", "release-teacher-ui", "release-teacher-solution", "release-native-teacher", "release-family", "release-member-switch"];
   const payload = Buffer.from(JSON.stringify({ version: 3, expiresAt, nonce, actions, bookSlug: intent.bookSlug, productReleaseId, componentSlug: intent.componentSlug, componentReleaseId, memberSha256, view: intent.view, pageId: intent.pageId, activityId: intent.activityId }), "utf8").toString("base64url");

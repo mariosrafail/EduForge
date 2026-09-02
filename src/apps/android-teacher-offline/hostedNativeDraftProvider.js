@@ -3,7 +3,17 @@ import { useEffect, useState } from "react";
 import { normalizeNativeRuntimePublicDocument, normalizeNativeRuntimeTeacherDocument } from "../../data/native-activities/nativeActivityRuntimeValidation.js";
 import { HOSTED_VIEWER_RUNTIME_MODES, authorizedHostedPreviewPath, resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
 
-const COMPONENTS = new Set(["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"]);
+const COMPONENTS = new Set([
+  "ultimate-b1/ultimate-b1-students-book",
+  "ultimate-b1/ultimate-b1-workbook",
+  "ultimate-b1/ultimate-b1-grammar-book",
+  "ultimate-b1-plus/ultimate-b1-plus-students-book",
+  "ultimate-b1-plus/ultimate-b1-plus-workbook",
+  "ultimate-b1-plus/ultimate-b1-plus-grammar-book",
+  "ultimate-b2/ultimate-b2-students-book",
+  "ultimate-b2/ultimate-b2-workbook",
+  "ultimate-b2/ultimate-b2-grammar-book",
+]);
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -18,12 +28,18 @@ function currentIdentity(search = globalThis.location?.search || "") {
   const parameters = new URLSearchParams(search);
   const bookSlug = parameters.get("bookSlug") || "ultimate-b2";
   const componentSlug = parameters.get("componentSlug") || "ultimate-b2-students-book";
-  if (bookSlug !== "ultimate-b2" || !COMPONENTS.has(componentSlug)) throw new Error("Invalid native draft component identity.");
+  if (!COMPONENTS.has(`${bookSlug}/${componentSlug}`)) throw new Error("Invalid native draft component identity.");
   return { bookSlug, componentSlug };
+}
+
+function assertNativeDraftIdentity(identity) {
+  if (!COMPONENTS.has(`${identity?.bookSlug}/${identity?.componentSlug}`)) throw new Error("Invalid native draft component identity.");
+  return identity;
 }
 
 function nativeDraftPath(activityId, suffix, authorization, identity = currentIdentity()) {
   if (!SAFE_ID.test(String(activityId || "")) || !/^(?:public|teacher|assets\/[0-9a-f-]{36})$/i.test(suffix)) throw new Error("Invalid native draft preview path.");
+  assertNativeDraftIdentity(identity);
   return authorizedHostedPreviewPath(`/preview/native-activities/books/${identity.bookSlug}/components/${identity.componentSlug}/activities/${activityId}/${suffix}`, authorization);
 }
 

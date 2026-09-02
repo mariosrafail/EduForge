@@ -102,16 +102,31 @@ export function pruneUltimateB2ActivityHotspots(input, activityId) {
   return { manifest: { ...manifest, pages }, removedCount };
 }
 
-const managedComponents = new Set(["ultimate-b2-workbook", "ultimate-b2-grammar-book"]);
+const legacyManagedComponents = new Set(["ultimate-b2-workbook", "ultimate-b2-grammar-book"]);
+const managedSlugPattern = /^[a-z0-9][a-z0-9-]{0,127}$/;
 
-export function createEmptyManagedComponentHotspotManifest(componentSlug) {
-  if (!managedComponents.has(componentSlug)) throw new Error("Managed hotspot component is unsupported.");
-  return { schemaVersion: ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION, packageSlug: ULTIMATE_B2_HOTSPOT_PACKAGE, componentSlug, pages: {} };
+function managedIdentity(value) {
+  if (typeof value === "string") {
+    if (!legacyManagedComponents.has(value)) throw new Error("Managed hotspot component is unsupported.");
+    return { bookSlug: ULTIMATE_B2_HOTSPOT_PACKAGE, componentSlug: value };
+  }
+  const bookSlug = String(value?.bookSlug || "");
+  const componentSlug = String(value?.componentSlug || "");
+  if (!managedSlugPattern.test(bookSlug) || !managedSlugPattern.test(componentSlug) || !componentSlug.startsWith(`${bookSlug}-`)) {
+    throw new Error("Managed hotspot component is unsupported.");
+  }
+  return { bookSlug, componentSlug };
 }
 
-export function validateAndNormalizeManagedComponentHotspotManifest(input, { componentSlug, pages = null, activities = null } = {}) {
-  if (!managedComponents.has(componentSlug) || !input || typeof input !== "object" || Array.isArray(input)) throw new Error("Managed hotspot manifest is invalid.");
-  if (input.schemaVersion !== ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION || input.packageSlug !== ULTIMATE_B2_HOTSPOT_PACKAGE || input.componentSlug !== componentSlug
+export function createEmptyManagedComponentHotspotManifest(identity) {
+  const { bookSlug, componentSlug } = managedIdentity(identity);
+  return { schemaVersion: ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION, packageSlug: bookSlug, componentSlug, pages: {} };
+}
+
+export function validateAndNormalizeManagedComponentHotspotManifest(input, { bookSlug = ULTIMATE_B2_HOTSPOT_PACKAGE, componentSlug, pages = null, activities = null } = {}) {
+  const identity = managedIdentity({ bookSlug, componentSlug });
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Managed hotspot manifest is invalid.");
+  if (input.schemaVersion !== ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION || input.packageSlug !== identity.bookSlug || input.componentSlug !== identity.componentSlug
     || !input.pages || typeof input.pages !== "object" || Array.isArray(input.pages)) throw new Error("Managed hotspot manifest identity is invalid.");
   const pageById = pages === null ? null : new Map(pages.map((page) => [page.id, page]));
   const activityById = activities === null ? null : new Map(activities.map((activity) => [activity.activityId || activity.activityKey, activity]));
@@ -138,16 +153,17 @@ export function validateAndNormalizeManagedComponentHotspotManifest(input, { com
     });
     if (normalized.length) normalizedPages[pageId] = normalized;
   }
-  return { schemaVersion: ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION, packageSlug: ULTIMATE_B2_HOTSPOT_PACKAGE, componentSlug, pages: normalizedPages };
+  return { schemaVersion: ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION, packageSlug: identity.bookSlug, componentSlug: identity.componentSlug, pages: normalizedPages };
 }
 
-export function validateManagedComponentHotspotManifestStructure(input, componentSlug) {
-  return validateAndNormalizeManagedComponentHotspotManifest(input, { componentSlug });
+export function validateManagedComponentHotspotManifestStructure(input, identity) {
+  const normalizedIdentity = managedIdentity(identity);
+  return validateAndNormalizeManagedComponentHotspotManifest(input, normalizedIdentity);
 }
 
 export function pruneComponentActivityHotspots(input, activityId) {
   if (input?.componentSlug === ULTIMATE_B2_HOTSPOT_COMPONENT) return pruneUltimateB2ActivityHotspots(input, activityId);
-  const manifest = validateManagedComponentHotspotManifestStructure(input, input?.componentSlug);
+  const manifest = validateManagedComponentHotspotManifestStructure(input, { bookSlug: input?.packageSlug, componentSlug: input?.componentSlug });
   let removedCount = 0;
   const pages = {};
   for (const [pageId, hotspots] of Object.entries(manifest.pages)) {

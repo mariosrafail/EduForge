@@ -5,12 +5,12 @@ const phaseLabels = Object.freeze({
   "using-cache": "Using cached content…",
 });
 
-export default function TeacherViewerStartupStatus({ state, onRetry, hosted = false }) {
+export default function TeacherViewerStartupStatus({ state, onRetry, hosted = false, bookTitle = "Ultimate B2" }) {
   if (state.status === "error") {
     return (
       <main className="teacher-viewer-startup teacher-viewer-startup-error" role="alert">
         <section className="teacher-viewer-startup-card">
-          <p className="teacher-viewer-startup-eyebrow">Ultimate B2 Interactive</p>
+          <p className="teacher-viewer-startup-eyebrow">{bookTitle} Interactive</p>
           <h1>{hosted ? "Viewer could not start" : "Content pack unavailable or damaged"}</h1>
           <p>{state.message}</p>
           <button type="button" className="teacher-viewer-retry" onClick={onRetry}>Retry</button>
@@ -28,7 +28,7 @@ export default function TeacherViewerStartupStatus({ state, onRetry, hosted = fa
     <main className="teacher-viewer-startup" aria-labelledby="teacher-viewer-startup-title">
       <section className="teacher-viewer-startup-card">
         <p className="teacher-viewer-startup-eyebrow">Hamilton House</p>
-        <h1 id="teacher-viewer-startup-title">{hosted ? "Preparing Ultimate B2 Interactive" : "Preparing classroom content"}</h1>
+        <h1 id="teacher-viewer-startup-title">{hosted ? `Preparing ${bookTitle} Interactive` : "Preparing classroom content"}</h1>
         <p className="teacher-viewer-startup-phase" role="status" aria-live="polite" aria-atomic="true">
           {phaseLabel}
         </p>

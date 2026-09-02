@@ -2,6 +2,7 @@ import { builderDocumentSha256 } from "./_builder-content-security.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
 import { ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS } from "../../../src/data/ultimate-b2/openResponseActivityRegistry.js";
 import { loadBuilderPages } from "./_builder-pages-store.js";
+import { resolveBuilderServerComponent } from "./_builder-component-registry.js";
 
 export function normalizeStoredBuilderDocument(row, resource) {
   if (!row) return null;
@@ -108,7 +109,8 @@ export async function collectUltimateB2ManagedPublicationSources(sql, componentS
 }
 
 export async function collectBuilderNativeActivityCatalogSources(sql, { bookSlug, componentSlug }) {
-  if (bookSlug !== "ultimate-b2" || !["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"].includes(componentSlug)) throw new Error("Publication component is unavailable");
+  const registration = resolveBuilderServerComponent(bookSlug, componentSlug);
+  if (!registration?.content.nativeActivities) throw new Error("Publication component is unavailable");
   const rows = await sql`
     select package.slug book_slug,component.slug component_slug,
       document.document_type,document.document_key,document.schema_version,document.revision,document.payload,document.payload_sha256

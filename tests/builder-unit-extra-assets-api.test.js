@@ -5,6 +5,7 @@ import test from "node:test";
 
 import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.js";
 import { createBuilderUnitExtraAssetsHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-unit-extra-assets.js";
+import { loadBuilderUnitExtraAssetUploadScope } from "../netlify-sites/ultimate-b2-builder/server/_builder-unit-extra-assets-store.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
 import { createEmptyUltimateB2UnitExtras } from "../src/data/ultimate-b2/unitExtras.js";
 
@@ -19,8 +20,8 @@ const base = `/builder/api/unit-extras/books/ultimate-b2/components/ultimate-b2-
 const audioBase = `/builder/api/unit-extras/books/ultimate-b2/components/ultimate-b2-students-book/units/unit-1/audios/${audioItemId}/assets`;
 const request = (path, body, overrides = {}) => ({ httpMethod: overrides.method || "POST", path, headers: { host: "builder.example", origin: "https://builder.example", cookie: "live", "content-type": "application/json", ...overrides.headers }, body: JSON.stringify(body || {}) });
 
-function harness({ claimOverrides = {}, storedActivityId = null, storedPageId = null, mediaKind = "videos", activeItemId = itemId, mediaBytes = mp4, mimeType = "video/mp4", completeFailure = false } = {}) {
-  let prepared; let completed; let failed; let validated; let archived = false; const deleted = [];
+function harness({ claimOverrides = {}, uploadScopeOverrides = {}, storedActivityId = null, storedPageId = null, mediaKind = "videos", activeItemId = itemId, mediaBytes = mp4, mimeType = "video/mp4", completeFailure = false } = {}) {
+  let prepared; let completed; let failed; let validated; let claimCount = 0; let archived = false; const deleted = [];
   const storage = {
     signedPutUrl: async () => ({ url: "https://storage.example/upload", headers: { "Content-Type": mimeType } }),
     signedGetUrl: async () => "https://storage.example/preview",
@@ -54,7 +55,8 @@ function harness({ claimOverrides = {}, storedActivityId = null, storedPageId = 
     randomUuid: () => uploadId,
     storage: () => storage,
     prepare: async (_sql, input) => { prepared = input; return { outcome: "prepared", uploadId, state: "prepared", fileDescriptor: input.fileDescriptor, stagingObjectKey: input.stagingObjectKey }; },
-    claim: async () => ({ outcome: "claimed", unitSlug: "unit-1", itemId: activeItemId, assetSlot: activeItemId, fileDescriptor: prepared.fileDescriptor, stagingObjectKey: prepared.stagingObjectKey, ...claimOverrides }),
+    loadUploadScope: async () => ({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", unitSlug: "unit-1", itemId: activeItemId, assetSlot: activeItemId, ...uploadScopeOverrides }),
+    claim: async () => { claimCount += 1; return { outcome: "claimed", unitSlug: "unit-1", itemId: activeItemId, assetSlot: activeItemId, fileDescriptor: prepared.fileDescriptor, stagingObjectKey: prepared.stagingObjectKey, ...claimOverrides }; },
     complete: async (_sql, input) => { completed = input; if (completeFailure) throw new Error("database_finalize_failed"); return assetId; },
     fail: async (_sql, input) => { failed = input; return true; },
     loadAsset,
@@ -63,8 +65,26 @@ function harness({ claimOverrides = {}, storedActivityId = null, storedPageId = 
     archiveUnreferenced: async () => { archived = true; return []; },
     logger: { error() {} },
   });
-  return { handler, getPrepared: () => prepared, getCompleted: () => completed, getFailed: () => failed, getValidated: () => validated, getArchived: () => archived, getDeleted: () => deleted };
+  return { handler, getPrepared: () => prepared, getCompleted: () => completed, getFailed: () => failed, getValidated: () => validated, getArchived: () => archived, getDeleted: () => deleted, getClaimCount: () => claimCount };
 }
+
+test("Unit Extra store resolves the immutable actor-owned upload scope", async () => {
+  const sql = async () => [{
+    book_slug: "ultimate-b2",
+    component_slug: "ultimate-b2-students-book",
+    unit_slug: "unit-1",
+    unit_extra_item_id: itemId,
+    asset_slot: itemId,
+  }];
+  assert.deepEqual(await loadBuilderUnitExtraAssetUploadScope(sql, { uploadId, builderUserId: actor }), {
+    bookSlug: "ultimate-b2",
+    componentSlug: "ultimate-b2-students-book",
+    unitSlug: "unit-1",
+    itemId,
+    assetSlot: itemId,
+  });
+  assert.equal(await loadBuilderUnitExtraAssetUploadScope(async () => [], { uploadId, builderUserId: actor }), null);
+});
 
 test("Unit Extra prepare is authenticated, same-origin, revision-bound, and MP4-only", async () => {
   const mutation = randomUUID();
@@ -134,11 +154,14 @@ test("Saved Draft Unit Extra media uses a separate scoped no-cookie preview rout
   assert.equal(response.headers["Cache-Control"], "private, no-store");
 });
 
-test("Unit Extra finalize rejects cross-Unit sessions and activity/page-owned assets", async () => {
+test("Unit Extra finalize rejects cross-Unit sessions before claiming and rejects activity/page-owned assets", async () => {
   const clientMutationId = randomUUID();
-  const wrongUnit = harness({ claimOverrides: { unitSlug: "unit-2" } });
+  const wrongUnit = harness({ uploadScopeOverrides: { unitSlug: "unit-2" } });
   await wrongUnit.handler(request(`${base}/prepare`, { expectedRevision: 1, clientMutationId, file: { name: "extra.mp4", size: mp4.length, type: "video/mp4", assetSlot: itemId } }));
-  assert.equal((await wrongUnit.handler(request(`${base}/finalize`, { uploadId, expectedRevision: 1, clientMutationId }))).statusCode, 409);
+  const wrongUnitResponse = await wrongUnit.handler(request(`${base}/finalize`, { uploadId, expectedRevision: 1, clientMutationId }));
+  assert.equal(wrongUnitResponse.statusCode, 409);
+  assert.deepEqual(JSON.parse(wrongUnitResponse.body), { error: "upload_scope_conflict" });
+  assert.equal(wrongUnit.getClaimCount(), 0);
 
   for (const ownership of [{ storedActivityId: actor }, { storedPageId: actor }]) {
     const current = harness(ownership); const mutation = randomUUID();

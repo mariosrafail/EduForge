@@ -17,7 +17,7 @@ import { PHASE_ONE_VISIBLE_COMPONENTS } from "../src/config/bookCatalogVisibilit
 
 const read = (file) => readFile(file, "utf8");
 
-test("hosted authoring catalog registers all known titles and Ultimate B2 exact established components", () => {
+test("hosted authoring catalog registers all known titles with explicit isolated B1/B1+ shells and unchanged B2 components", () => {
   assert.deepEqual(hostedBuilderCatalog.map(({ slug }) => slug), ["ultimate-b1", "ultimate-b1-plus", "ultimate-b2"]);
   const book = findHostedBuilderBook("ultimate-b2");
   assert.deepEqual({ slug: book.slug, title: book.title, level: book.level, status: book.status }, {
@@ -42,6 +42,29 @@ test("hosted authoring catalog registers all known titles and Ultimate B2 exact 
     { id: "ui", title: "Page UI Controller", status: "Editable" },
     { id: "sounds", title: "Sound Controller", status: "Read-only" },
   ]);
+  for (const expected of [
+    { slug: "ultimate-b1", title: "Ultimate English B1", level: "B1" },
+    { slug: "ultimate-b1-plus", title: "Ultimate English B1+", level: "B1+" },
+  ]) {
+    const managedBook = findHostedBuilderBook(expected.slug);
+    assert.deepEqual({ slug: managedBook.slug, title: managedBook.title, level: managedBook.level, status: managedBook.status }, { ...expected, status: "In authoring" });
+    assert.deepEqual(managedBook.components.map(({ slug, type }) => ({ slug, type })), [
+      { slug: `${expected.slug}-students-book`, type: "students_book" },
+      { slug: `${expected.slug}-workbook`, type: "workbook" },
+      { slug: `${expected.slug}-grammar-book`, type: "grammar_book" },
+      { slug: `${expected.slug}-test-book`, type: "test_book" },
+    ]);
+    for (const component of managedBook.components.slice(0, 3)) {
+      assert.equal(component.adapterId, component.slug);
+      assert.equal(component.status, "In authoring");
+    }
+    assert.equal(managedBook.components[3].adapterId, null);
+    assert.equal(managedBook.components[3].status, "Authoring adapter pending");
+    assert.deepEqual(managedBook.packageTools.map(({ id, status }) => ({ id, status })), [
+      { id: "ui", status: "Editable" },
+      { id: "sounds", status: "Read-only" },
+    ]);
+  }
 });
 
 test("hosted authoring catalog is independent from LMS Phase One component hiding", () => {
@@ -78,6 +101,15 @@ test("generic hosted routing is deterministic and fails closed", () => {
   assert.deepEqual(parseHostedBuilderHash("#/books/ultimate-b2/components/unknown/delete"), { kind: "not-found" });
   assert.equal(hostedBuilderHash({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", tool: "ui" }), "#/books/ultimate-b2/components/ultimate-b2-students-book/ui");
   assert.equal(hostedBuilderHash({ bookSlug: "ultimate-b2", packageTool: "ui" }), "#/books/ultimate-b2/ui");
+  for (const bookSlug of ["ultimate-b1", "ultimate-b1-plus"]) {
+    for (const suffix of ["students-book", "workbook", "grammar-book"]) {
+      const componentSlug = `${bookSlug}-${suffix}`;
+      const hash = hostedBuilderHash({ bookSlug, componentSlug, tool: "activities" });
+      assert.equal(hash, `#/books/${bookSlug}/components/${componentSlug}/activities`);
+      assert.deepEqual(parseHostedBuilderHash(hash), { kind: "workspace", bookSlug, componentSlug, tool: "activities" });
+    }
+    assert.deepEqual(parseHostedBuilderHash(hostedBuilderHash({ bookSlug, packageTool: "ui" })), { kind: "package-tool", bookSlug, tool: "ui" });
+  }
 });
 
 test("managed component adapters expose Pages, Hotspots, Activities, and atomic product publication without Teacher UI", async () => {
@@ -94,6 +126,45 @@ test("managed component adapters expose Pages, Hotspots, Activities, and atomic 
     assert.match(block, /publication: Object\.freeze\(\{ readable: true, writable: true \}\)/);
     assert.doesNotMatch(block, /uiController:/);
   }
+});
+
+test("B1/B1+ adapters are exact managed tuples with no publication and package tools retain scoped owner identities", async () => {
+  const [adapters, shell] = await Promise.all([
+    read("src/apps/book-builder/hosted/hostedBuilderAdapters.jsx"),
+    read("src/apps/book-builder/hosted/HostedBookBuilderApp.jsx"),
+  ]);
+  for (const bookSlug of ["ultimate-b1", "ultimate-b1-plus"]) {
+    for (const suffix of ["students-book", "workbook", "grammar-book"]) {
+      const slug = `${bookSlug}-${suffix}`;
+      assert.match(adapters, new RegExp(`"${slug}": managedAdapter\\(\\{ id: "${slug}", bookSlug: "${bookSlug}"`));
+    }
+    assert.match(adapters, new RegExp(`"${bookSlug}-page-ui": Object\\.freeze\\(\\{ bookSlug: "${bookSlug}", componentSlug: "${bookSlug}-students-book", Tool: HostedTeacherUiController`));
+    assert.match(adapters, new RegExp(`"${bookSlug}-sounds": Object\\.freeze\\(\\{ bookSlug: "${bookSlug}", componentSlug: "${bookSlug}-students-book", Tool: HostedSoundController`));
+  }
+  const managedCapabilities = adapters.slice(adapters.indexOf("const managedCapabilities"), adapters.indexOf("function managedAdapter"));
+  assert.match(managedCapabilities, /pages:[\s\S]*hotspots:[\s\S]*activities:/);
+  assert.doesNotMatch(managedCapabilities, /publication|uiController/);
+  assert.match(adapters, /adapter\?\.bookSlug === book\?\.slug/);
+  assert.match(shell, /<Tool bookSlug=\{resolved\.adapter\.bookSlug\} componentSlug=\{resolved\.adapter\.componentSlug\} bookTitle=\{book\.title\}/);
+  assert.match(shell, /route\.kind !== "legacy-package-tool" \|\| !reviewComponent/);
+  assert.match(shell, /route\.kind === "legacy-package-tool"[\s\S]*reviewComponent \? <PackageToolWorkspace[\s\S]*<NotFound/);
+  assert.match(shell, /reviewPageState\.scope === reviewScope \? reviewPageState\.pages : \[\]/);
+  assert.match(shell, /<HostedPackageReview key=\{reviewScope\}/);
+});
+
+test("neutral managed workspaces import no B2 catalog, activity dataset, or publication UI", async () => {
+  const sources = await Promise.all([
+    "src/apps/book-builder/hosted/HostedManagedComponentWorkspace.jsx",
+    "src/apps/book-builder/hosted/HostedActivityWorkspace.jsx",
+    "src/apps/book-builder/hosted/HostedHotspotBuilder.jsx",
+    "src/apps/book-builder/hosted/activityBuilderNavigation.js",
+  ].map(read));
+  const source = sources.join("\n");
+  assert.doesNotMatch(source, /android-content-packs\/ultimate-b2|data\/ultimate-b2|HostedOpenResponseEditor|HostedPublicationWorkspace|UnitExtrasEditor/);
+  assert.match(source, /No activities yet/);
+  assert.match(source, /empty document remains valid/);
+  assert.match(sources[0], /tool === "pages"[\s\S]*tool === "hotspots"[\s\S]*tool === "activities"/);
+  assert.doesNotMatch(sources[0], /tool === "publication"/);
 });
 
 test("generic hosted Review routing round-trips strict token-free Viewer intents", () => {

@@ -1,16 +1,15 @@
 import { hostedTeacherUiAssetPath, normalizeHostedTeacherUiPreview } from "../../data/ultimate-b2/hostedTeacherUiDocument.js";
-import { HOSTED_VIEWER_RUNTIME_MODES, authorizedHostedPreviewPath, resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
+import { HOSTED_VIEWER_RUNTIME_MODES, hostedReleasePath, resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
 
-export function createTeacherRuntimeUiAssetModel({ authoring, resolveCanonicalAssetUrl, hostedPreview = null, runtimeContext = resolveHostedViewerRuntimeContext() }) {
+export function createTeacherRuntimeUiAssetModel({ authoring, resolveCanonicalAssetUrl, hostedPreview = null, runtimeContext = resolveHostedViewerRuntimeContext(), identity = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" } }) {
   if (!authoring || typeof resolveCanonicalAssetUrl !== "function") throw new TypeError("Teacher runtime UI asset factory requires canonical authoring and a URL resolver.");
-  const overrides = hostedPreview ? normalizeHostedTeacherUiPreview(hostedPreview).assets : {};
+  const overrides = hostedPreview ? normalizeHostedTeacherUiPreview(hostedPreview, { packageId: identity.componentSlug }).assets : {};
   const context = runtimeContext;
   const url = (binding) => {
     if (!overrides[binding.id]) return resolveCanonicalAssetUrl(binding);
-    const assetPath = hostedTeacherUiAssetPath(overrides[binding.id]);
     return context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW
-      ? authorizedHostedPreviewPath(assetPath, context.authorization)
-      : assetPath;
+      ? hostedReleasePath(context, identity, `assets/${overrides[binding.id].sha256}.${overrides[binding.id].extension}`)
+      : hostedTeacherUiAssetPath(overrides[binding.id], identity);
   };
   const artwork = (item) => Object.freeze({ id: item.id, label: item.label, controlId: item.controlId, destination: item.destination || null, normal: url(item.normal), hoverPressed: url(item.active) });
   const toolbarItems = Object.freeze(authoring.shell.toolbar.map((item) => Object.freeze({

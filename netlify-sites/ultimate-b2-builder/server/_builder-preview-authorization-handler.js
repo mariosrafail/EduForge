@@ -5,6 +5,7 @@ import { loadProductRelease } from "./_builder-product-publication-store.js";
 import { loadComponentRelease } from "./_builder-publication-store.js";
 import { verifyImmutableComponentRelease } from "./_builder-publication-compilers.js";
 import { inspectBuilderPreviewAuthorizationScope, issueBuilderPreviewAuthorization, issueBuilderReleaseMemberAuthorization, normalizeBuilderPreviewAuthorizationIntent } from "./_builder-preview-authorization.js";
+import { resolveBuilderServerComponent } from "./_builder-component-registry.js";
 
 const exact = (value, keys) => value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join("\0") === [...keys].sort().join("\0");
 
@@ -19,6 +20,7 @@ export function createBuilderPreviewAuthorizationHandler(overrides = {}) {
     loadProductRelease: overrides.loadProductRelease || loadProductRelease,
     loadComponentRelease: overrides.loadComponentRelease || loadComponentRelease,
     verifyComponentRelease: overrides.verifyComponentRelease || verifyImmutableComponentRelease,
+    resolveComponent: overrides.resolveComponent || resolveBuilderServerComponent,
     logger: overrides.logger || console,
   };
 
@@ -106,8 +108,10 @@ export function createBuilderPreviewAuthorizationHandler(overrides = {}) {
         let body; try { body = JSON.parse(event.body || "{}"); } catch { return json(400, { error: "invalid_json" }); }
         if (!exact(body, ["source", "intent"]) || !exact(body.source, ["bookSlug", "componentSlug"])) return json(400, { error: "invalid_request" });
         let intent; try { intent = dependencies.normalizeIntent(body.intent); } catch { return json(400, { error: "invalid_preview_intent" }); }
-        const components = new Set(["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"]);
-        if (body.source.bookSlug !== "ultimate-b2" || intent.bookSlug !== "ultimate-b2" || !components.has(body.source.componentSlug) || !components.has(intent.componentSlug) || intent.releaseId !== null) return json(401, { error: "preview_authorization_denied" });
+        const sourceRegistration = dependencies.resolveComponent(body.source.bookSlug, body.source.componentSlug);
+        const targetRegistration = dependencies.resolveComponent(intent.bookSlug, intent.componentSlug);
+        if (!sourceRegistration || !targetRegistration || sourceRegistration.bookSlug !== targetRegistration.bookSlug
+          || intent.releaseId !== null || intent.productReleaseId !== null) return json(401, { error: "preview_authorization_denied" });
         const decision = dependencies.inspect(event, { action: "component-switch", bookSlug: body.source.bookSlug, componentSlug: body.source.componentSlug });
         if (!decision.authorized) return json(401, { error: "preview_authorization_denied", code: decision.code });
         return json(200, dependencies.issue(intent), { "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store" });
@@ -120,6 +124,8 @@ export function createBuilderPreviewAuthorizationHandler(overrides = {}) {
       let body; try { body = JSON.parse(event.body || "{}"); } catch { return json(400, { error: "invalid_json" }); }
       if (!exact(body, ["intent"])) return json(400, { error: "invalid_request" });
       let intent; try { intent = dependencies.normalizeIntent(body.intent); } catch { return json(400, { error: "invalid_preview_intent" }); }
+      const registration = dependencies.resolveComponent(intent.bookSlug, intent.componentSlug);
+      if (!registration || ((intent.releaseId || intent.productReleaseId) && !registration.publication.enabled)) return json(404, { error: "builder_component_not_found" });
       let issued;
       if (intent.productReleaseId) {
         const resolved = await verifiedMember(sql, intent);

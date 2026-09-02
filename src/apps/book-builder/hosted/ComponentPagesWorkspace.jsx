@@ -10,10 +10,6 @@ import "./componentPagesWorkspace.css";
 
 const mutationId = () => globalThis.crypto.randomUUID();
 const fileType = (file) => file.type || (/\.png$/i.test(file.name) ? "image/png" : /\.webp$/i.test(file.name) ? "image/webp" : "image/jpeg");
-const policies = Object.freeze({
-  "ultimate-b2-workbook": Object.freeze({ title: "Workbook" }),
-  "ultimate-b2-grammar-book": Object.freeze({ title: "Grammar Book" }),
-});
 const metadataFor = (page, managed) => ({ label: page.label, printedLabel: page.printedLabel || "", sortOrder: page.sortOrder, ...(managed ? { unitId: page.unitId || "" } : {}) });
 
 function PageCard({ page, selected, managed, busy, onSelect, onReplace, onEdit, onMove, onDelete, onRestoreImage }) {
@@ -49,13 +45,10 @@ function UnitPageRows(props) {
   </div>;
 }
 
-export function ComponentPagesWorkspace({ bookSlug, componentSlug, onPageLibraryChange = () => {}, onSelectedPageChange = () => {} }) {
+export function ComponentPagesWorkspace({ bookSlug, componentSlug, managed = false, title = "Students Book", onPageLibraryChange = () => {}, onSelectedPageChange = () => {} }) {
   const { registerToolContext } = useBuilderReview();
   const identity = useMemo(() => ({ bookSlug, componentSlug }), [bookSlug, componentSlug]);
-  const policy = policies[componentSlug] || null;
   const layout = componentPageLayoutPolicy(componentSlug);
-  const managed = Boolean(policy);
-  const title = policy?.title || "Students Book";
   const [state, setState] = useState({ loading: true, revision: 0, hotspotRevision: 0, component: null, units: [], pages: [], deletedPages: [], error: "", conflict: false });
   const [selectedId, setSelectedId] = useState("");
   const [busy, setBusy] = useState(false);

@@ -41,7 +41,7 @@ export function renderApp(root) {
   installTeacherOfflineNetworkGuard();
   installTeacherOfflineDiagnostics();
   document.title = activeBuildProfile.id === BUILD_PROFILE_IDS.INTERACTIVE_HOSTED_REVIEW
-    ? "Ultimate B2 Viewer"
+    ? "Hamilton House Viewer"
     : "Hamilton House LMS";
 
   document.addEventListener("visibilitychange", () => {

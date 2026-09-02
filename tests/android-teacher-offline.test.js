@@ -9,7 +9,10 @@ import catalog from "../android-content-packs/ultimate-b2-students-book/catalog.
 import activities from "../android-content-packs/ultimate-b2-students-book/activities.json" with { type: "json" };
 import assetsManifest from "../android-content-packs/ultimate-b2-students-book/assets-manifest.json" with { type: "json" };
 import studentsBookRuntime from "../src/data/ultimate-b2/generated/students-book.runtime.json" with { type: "json" };
-import { teacherAvailableStudentsBookUnits } from "../src/apps/android-teacher-offline/teacherOfflineUnitMetadata.js";
+import {
+  teacherAvailableStudentsBookUnits,
+  teacherLibraryUnitMetadata,
+} from "../src/apps/android-teacher-offline/teacherOfflineUnitMetadata.js";
 import {
   ACTIVITY_MODES,
   canOpenActivityInMode,
@@ -233,11 +236,13 @@ test("teacher settings v1 migration preserves existing values and adds modern mo
 });
 
 test("generic Teacher shell identity is not B2-only while menu identity remains specific", async () => {
-  const [settingsDialog, entry, library, menuSkins] = await Promise.all([
+  const [settingsDialog, entry, library, menuSkins, app, startupStatus] = await Promise.all([
     readFile("src/apps/android-teacher-offline/TeacherOfflineSettingsDialog.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/teacherOfflineEntry.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/TeacherOfflineLibrary.jsx", "utf8"),
     readFile("src/apps/android-teacher-offline/teacherBookMenuSkins.js", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherOfflineApp.jsx", "utf8"),
+    readFile("src/apps/android-teacher-offline/TeacherViewerStartupStatus.jsx", "utf8"),
   ]);
   assert.match(settingsDialog, /Hamilton House LMS/);
   assert.match(settingsDialog, /Interactive Classroom/);
@@ -245,6 +250,28 @@ test("generic Teacher shell identity is not B2-only while menu identity remains 
   assert.match(entry, /Hamilton House LMS/);
   assert.match(library, /menuSkin\.title\.accessibleLabel/);
   assert.match(menuSkins, /Ultimate English B2/);
+  assert.match(app, /TeacherViewerStartupStatus[\s\S]*bookTitle=\{initialRuntime\.book\.title\}/);
+  assert.match(app, /initialRuntime\?\.book\.title \|\| componentRequest\.bookTitle \|\| "Hamilton House"/);
+  assert.match(startupStatus, /Preparing \$\{bookTitle\} Interactive/);
+  assert.doesNotMatch(startupStatus, />Ultimate B2 Interactive</);
+});
+
+test("Teacher launcher preserves B2 unit titles while B1 package shells stay neutral", () => {
+  const contaminatedUnits = teacherAvailableStudentsBookUnits.map((unit) => ({
+    number: unit.number,
+    title: unit.title,
+  }));
+  const b2Units = teacherLibraryUnitMetadata("ultimate-b2", contaminatedUnits.map((unit) => ({
+    ...unit,
+    title: `Unit ${unit.number}`,
+  })));
+  assert.deepEqual(b2Units.map((unit) => unit.title), teacherAvailableStudentsBookUnits.map((unit) => unit.title));
+
+  for (const bookSlug of ["ultimate-b1", "ultimate-b1-plus"]) {
+    const shellUnits = teacherLibraryUnitMetadata(bookSlug, contaminatedUnits);
+    assert.deepEqual(shellUnits.map((unit) => unit.title), Array.from({ length: 10 }, (_, index) => `Unit ${index + 1}`));
+    assert.ok(shellUnits.every((unit) => !teacherAvailableStudentsBookUnits.some((b2Unit) => b2Unit.title === unit.title)));
+  }
 });
 
 test("modern Teacher unit selectors use shared titles and touch-safe interaction CSS", async () => {
@@ -594,6 +621,9 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(library, /initialEditionId = "students-book"/);
   assert.match(library, /useState\(initialEditionId\)/);
   assert.match(library, /menuSkin\.editions\.map/);
+  assert.doesNotMatch(library, /teacherOfflineUnitMetadata|Lights, Camera, Action/);
+  assert.match(app, /units=\{packageUnitMetadata\}/);
+  assert.match(app, /teacherLibraryUnitMetadata\(packageStudentsRuntime\?\.bookSlug/);
   assert.match(library, /aria-pressed=\{selectedEdition === edition\.id\}/);
   assert.match(app, /initialEditionId=\{activeRuntime\.component\.teacherEditionId\}/);
   assert.match(library, /menuSkin\.extras/);
@@ -606,7 +636,7 @@ test("teacher app embeds book activities in the mounted page shell with one clas
   assert.match(library, /menuSkin\.publisherLogo/);
   assert.match(library, /menuSkin\.units/);
   assert.match(library, /menuSkin\.editions/);
-  assert.match(library, /LegacyMenuTitleAnimation animate=\{animationsActive\}/);
+  assert.match(library, /LegacyMenuTitleAnimation animate=\{animationsActive\} label=\{menuSkin\.title\.animationLabel\}/);
   assert.match(library, /ClassroomToolOverlay[\s\S]*ClassroomToolbar/);
   assert.doesNotMatch(library, /Students Book cover|legacy-home-identity|homeTools|legacy-home-classroom-toolbar|Minimize|MonitorPlay|Interactive Classroom[^<]*Offline/);
   assert.doesNotMatch(library, /legacy-home-settings-button|legacy-home-close-button|legacy-home-minimize-button/);

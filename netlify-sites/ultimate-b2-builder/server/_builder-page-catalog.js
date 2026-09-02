@@ -1,5 +1,6 @@
 import studentsBookRuntime from "../../../src/data/ultimate-b2/generated/students-book.runtime.json" with { type: "json" };
 import studentsBookAssets from "../../../src/data/ultimate-b2/generated/students-book-page-assets.json" with { type: "json" };
+import { resolveBuilderServerComponent } from "./_builder-component-registry.js";
 
 export const builderPageComponents = Object.freeze({
   studentsBook: "ultimate-b2-students-book",
@@ -46,9 +47,21 @@ export const canonicalStudentsBookPages = Object.freeze(studentsBookRuntime.unit
 export const canonicalStudentsBookPagesById = new Map(canonicalStudentsBookPages.map((page) => [page.id, page]));
 
 export function resolveBuilderPageComponent(bookSlug, componentSlug) {
-  if (bookSlug !== "ultimate-b2") return null;
-  if (componentSlug === builderPageComponents.studentsBook) return { kind: "students-book", componentSlug, baseline: canonicalStudentsBookPages };
-  if (componentSlug === builderPageComponents.workbook) return { kind: "managed", title: "Workbook", pagePrefix: "wb", componentSlug, baseline: Object.freeze([]) };
-  if (componentSlug === builderPageComponents.grammarBook) return { kind: "managed", title: "Grammar Book", pagePrefix: "gb", componentSlug, baseline: Object.freeze([]) };
-  return null;
+  const registration = resolveBuilderServerComponent(bookSlug, componentSlug);
+  if (!registration) return null;
+  if (registration.mode === "canonical") {
+    return bookSlug === "ultimate-b2" && componentSlug === builderPageComponents.studentsBook
+      ? { kind: "students-book", componentSlug, baseline: canonicalStudentsBookPages, registration }
+      : null;
+  }
+  return registration.mode === "managed"
+    ? {
+        kind: "managed",
+        title: registration.title,
+        pagePrefix: registration.pageCatalog.pagePrefix,
+        componentSlug,
+        baseline: Object.freeze([]),
+        registration,
+      }
+    : null;
 }

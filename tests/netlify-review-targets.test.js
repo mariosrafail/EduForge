@@ -63,11 +63,11 @@ test("dedicated Builder site package isolates build output and Netlify Functions
   assert.doesNotMatch(builderNetlify, /DATABASE_URL|BUILDER_AUTH_RATE_LIMIT_SALT|ULTIMATE_B2_CONTENT_ROOT|AUTH_RATE_LIMIT_SALT|PLATFORM_ADMIN_RATE_LIMIT_SALT|HHPLMS_STAGING_QA_PASSWORD|neon\.tech|__hhplms/i);
   assert.deepEqual(functionFiles.filter((file) => supportedSource.test(file)).sort(), ["builder-auth.js", "builder-content.js", "builder-native-activities.js", "builder-native-preview.js", "builder-open-response-import.js", "builder-pages.js", "builder-preview-authorization.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js", "builder-unit-extra-assets.js"]);
   assert.deepEqual(serverFiles.filter((file) => supportedSource.test(file)).sort(), [
-    "_builder-auth.js", "_builder-content-registry.js", "_builder-content-security.js",
+    "_builder-auth.js", "_builder-component-registry.js", "_builder-content-registry.js", "_builder-content-security.js",
     "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-managed-publication-compiler.js", "_builder-native-activities.js", "_builder-native-activity-store.js", "_builder-native-preview.js",
     "_builder-open-response-import-store.js", "_builder-open-response-import.js", "_builder-page-catalog.js", "_builder-pages-store.js", "_builder-pages.js", "_builder-preview-authorization-handler.js", "_builder-preview-authorization.js", "_builder-preview.js", "_builder-private-font-response.js",
     "_builder-product-publication-domain.js", "_builder-product-publication-store.js", "_builder-product-publication.js", "_builder-publication-assets.js", "_builder-publication-compiler-v2.js", "_builder-publication-compiler.js", "_builder-publication-compilers.js", "_builder-publication-pins.js", "_builder-publication-store.js", "_builder-publication.js",
-    "_builder-related-context.js", "_builder-release-source-delivery.js", "_builder-teacher-ui-assets-store.js", "_builder-teacher-ui-assets.js", "_builder-unit-extra-assets-store.js", "_builder-unit-extra-assets.js", "_managed-native-activity-adapter.js", "_native-activity-adapters.js", "_native-activity-registry.js",
+    "_builder-related-context.js", "_builder-release-source-delivery.js", "_builder-teacher-ui-assets-store.js", "_builder-teacher-ui-assets.js", "_builder-teacher-ui-document.js", "_builder-unit-extra-assets-store.js", "_builder-unit-extra-assets.js", "_managed-native-activity-adapter.js", "_native-activity-adapters.js", "_native-activity-registry.js",
   ]);
   assert.match(builderAuthEntry, /export const handler = createBuilderAuthHandler\(\)/);
   assert.match(builderContentEntry, /export const handler = createBuilderContentHandler\(\)/);
@@ -205,10 +205,12 @@ test("only the explicitly marked dedicated Viewer site may use production contex
 });
 
 test("hosted Builder graph is slim, canonical-Viewer backed, authenticated, and exposes only registered public document mutations", async () => {
-  const [hosted, unifiedReview, hostedHotspots, hostedOpenResponse, hostedUi, contentClient, importClient, uiAssetClient, local, entry, hostedRoot, shell, vite, html] = await Promise.all([
+  const [hosted, hostedActivity, unifiedReview, hostedHotspots, hostedHotspotCore, hostedOpenResponse, hostedUi, contentClient, importClient, uiAssetClient, local, entry, hostedRoot, shell, vite, html] = await Promise.all([
     read("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"),
+    read("src/apps/book-builder/hosted/HostedActivityWorkspace.jsx"),
     read("src/apps/book-builder/hosted/HostedPackageReview.jsx"),
     read("src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx"),
+    read("src/apps/book-builder/hosted/HostedHotspotBuilder.jsx"),
     read("src/apps/ultimate-b2-builder/HostedOpenResponseEditor.jsx"),
     read("src/apps/ultimate-b2-builder/HostedTeacherUiController.jsx"),
     read("src/apps/book-builder/hosted/builderContentApi.js"),
@@ -228,9 +230,9 @@ test("hosted Builder graph is slim, canonical-Viewer backed, authenticated, and 
   assert.match(unifiedReview, /HostedViewerPreview/);
   assert.doesNotMatch(hosted, /NormalizedStudentsBookActivity|TeacherOfflineLibrary|android-teacher-offline|ACTIVITY_MODES/);
   assert.doesNotMatch(hosted, /__hhplms|\bfetch\s*\(|FormData|method\s*:\s*["']POST|onPublisherActivityCreated/);
-  assert.match(hosted, /Add Activity/);
-  assert.match(hosted, /NativeActivityFoundationEditor/);
-  assert.match(hostedHotspots, /EditableHotspotLayer/);
+  assert.match(hostedActivity, /Add Activity/);
+  assert.match(hostedActivity, /NativeActivityFoundationEditor/);
+  assert.match(`${hostedHotspots}\n${hostedHotspotCore}`, /EditableHotspotLayer/);
   assert.match(hostedOpenResponse, /expectedRevision: revision/);
   assert.match(contentClient, /\/builder\/api\/content/);
   assert.match(contentClient, /method: "PUT"/);

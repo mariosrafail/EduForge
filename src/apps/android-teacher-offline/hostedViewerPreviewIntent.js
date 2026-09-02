@@ -20,6 +20,7 @@ function unavailable(registration) {
   return Object.freeze({
     kind: "unavailable",
     bookSlug: registration.book.slug,
+    bookTitle: registration.book.title,
     componentSlug: registration.component.slug,
     message: `${registration.component.title} is registered but its content is not installed for Teacher Review.`,
   });

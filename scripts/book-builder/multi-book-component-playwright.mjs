@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { createReadStream } from "node:fs";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import path from "node:path";
@@ -22,6 +21,16 @@ import { resolveBuilderContentResource } from "../../netlify-sites/ultimate-b2-b
 import { createBuilderWorker } from "../../cloudflare/builder/worker.js";
 import { buildBookAssetHostedTeacherUiPublicKey } from "../../lib/book-assets/object-keys.js";
 import { nativeChildIdFromUuid } from "../../src/data/native-activities/nativeChildIdentity.js";
+import {
+  browserAssetMime as mime,
+  netlifyEvent,
+  requestBody,
+  requestBytes,
+  sendJson,
+  sendNetlify,
+  staticFile,
+} from "./browser-acceptance-server.mjs";
+import { emptyShellPackages, emptyShellPageCatalogs } from "./empty-shell-package-fixtures.mjs";
 
 const builderRoot = path.resolve("dist-netlify/ultimate-b2-builder");
 const viewerRoot = path.resolve("dist-netlify/ultimate-b2-interactive");
@@ -30,7 +39,6 @@ const draftUnitExtraBytes = await readFile("src/assets/books/ultimate-b2/teacher
 const draftUnitExtraVideoId = nativeChildIdFromUuid("video", "10000000-0000-4000-8000-000000000081");
 const draftUnitExtraAssetId = "10000000-0000-4000-8000-000000000082";
 const draftUnitExtrasDocument = Object.freeze({ schemaVersion: "1.0", units: [{ unitId: "unit-1", unitNumber: 1, categories: { videos: [{ id: draftUnitExtraVideoId, title: "Saved Draft Extra", assetSlot: draftUnitExtraVideoId, asset: { assetId: draftUnitExtraAssetId, checksumSha256: "8".repeat(64), role: "unit_extra_video", slot: draftUnitExtraVideoId }, fileName: "saved-draft-extra.mp4", byteSize: draftUnitExtraBytes.length, durationMs: 5_840, cues: [] }] } }], pages: [{ pageId: "ub2-sb-unit-1-part-1", unitId: "unit-1", extrasVisibility: { videos: true } }] });
-const mime = { ".css": "text/css", ".gaf": "application/x-gaf", ".html": "text/html", ".jpg": "image/jpeg", ".js": "text/javascript", ".json": "application/json", ".mp3": "audio/mpeg", ".mp4": "video/mp4", ".png": "image/png", ".svg": "image/svg+xml", ".webp": "image/webp" };
 const components = Object.freeze({ workbook: "ultimate-b2-workbook", grammar: "ultimate-b2-grammar-book" });
 const previewEnvironment = { BUILDER_PREVIEW_AUTH_SECRET: "multi-book-browser-test-secret-with-at-least-thirty-two-bytes" };
 const previewNow = Date.now();
@@ -349,41 +357,6 @@ function managedHotspots(componentSlug) {
   };
 }
 
-function sendJson(response, value, status = 200) {
-  const body = JSON.stringify(value);
-  response.writeHead(status, { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) });
-  response.end(body);
-}
-
-async function requestBody(request) {
-  const chunks = [];
-  for await (const chunk of request) chunks.push(chunk);
-  return Buffer.concat(chunks).toString("utf8");
-}
-
-async function requestBytes(request) {
-  const chunks = [];
-  for await (const chunk of request) chunks.push(chunk);
-  return Buffer.concat(chunks);
-}
-
-function netlifyEvent(request, url, body = "") {
-  return {
-    httpMethod: request.method,
-    path: url.pathname,
-    headers: Object.fromEntries(Object.entries(request.headers).map(([key, value]) => [key, String(value || "")])),
-    queryStringParameters: Object.fromEntries(url.searchParams),
-    multiValueQueryStringParameters: Object.fromEntries([...new Set(url.searchParams.keys())].map((key) => [key, url.searchParams.getAll(key)])),
-    body,
-  };
-}
-
-function sendNetlify(response, result) {
-  const body = result.body || "";
-  response.writeHead(result.statusCode, { ...(result.headers || {}), "Content-Length": Buffer.byteLength(body) });
-  response.end(body);
-}
-
 async function fulfillWorkerResponse(route, response) {
   const location = response.headers.get("Location");
   if (response.status === 302 && location === `${managedStorageOrigin}/__draft-unit-extra.mp4`) {
@@ -398,15 +371,6 @@ async function fulfillWorkerResponse(route, response) {
   }
   const body = response.body ? Buffer.from(await response.arrayBuffer()) : undefined;
   await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), ...(body ? { body } : {}) });
-}
-
-async function staticFile(root, pathname, response) {
-  const relative = pathname === "/" ? "index.html" : decodeURIComponent(pathname).replace(/^\/+/, "");
-  let file = path.resolve(root, relative);
-  let details = file.startsWith(`${root}${path.sep}`) ? await stat(file).catch(() => null) : null;
-  if (!details?.isFile()) { file = path.join(root, "index.html"); details = await stat(file); }
-  response.writeHead(200, { "Cache-Control": pathname.startsWith("/assets/") ? "public, max-age=31536000, immutable" : "no-store", "Content-Length": details.size, "Content-Type": mime[path.extname(file).toLowerCase()] || "application/octet-stream" });
-  createReadStream(file).pipe(response);
 }
 
 const immutableRedirectTargetServer = createServer((request, response) => {
@@ -444,6 +408,13 @@ const server = createServer(async (request, response) => {
   }
   if (url.pathname === "/builder/api/preview-authorization" && request.method === "POST") {
     sendNetlify(response, await builderAuthorizationHandler(netlifyEvent(request, url, await requestBody(request)))); return;
+  }
+  const emptyShellPagesMatch = url.pathname.match(/^\/builder\/api\/pages\/books\/(ultimate-b1(?:-plus)?)\/components\/([a-z0-9-]+)$/);
+  if (emptyShellPagesMatch && request.method === "GET") {
+    const catalog = emptyShellPageCatalogs.get(`${emptyShellPagesMatch[1]}/${emptyShellPagesMatch[2]}`);
+    if (catalog) sendJson(response, catalog);
+    else sendJson(response, { error: "not_found" }, 404);
+    return;
   }
   const pagesMatch = url.pathname.match(/^\/builder\/api\/pages\/books\/ultimate-b2\/components\/(ultimate-b2-(?:students-book|workbook|grammar-book))$/);
   if (pagesMatch && request.method === "GET") {
@@ -576,6 +547,55 @@ try {
   await page.getByRole("heading", { name: "Book Builder" }).waitFor();
   for (const title of ["Ultimate English B1", "Ultimate English B1+", "Ultimate B2"]) await page.getByRole("heading", { name: title, exact: true }).waitFor();
   assert.equal(await page.locator(".hosted-builder-book-card .hosted-builder-cover-placeholder").count(), 2);
+
+  for (const shell of emptyShellPackages) {
+    await page.goto(`${origin}/#/books`, { waitUntil: "domcontentloaded" });
+    const bookCard = page.locator(".hosted-builder-book-card").filter({ has: page.getByRole("heading", { name: shell.bookTitle, exact: true }) });
+    await bookCard.getByRole("link", { name: "Open book", exact: true }).click();
+    await page.waitForFunction((expected) => window.location.hash === expected, `#/books/${shell.bookSlug}`);
+    await page.locator(".hosted-builder-book-heading").getByRole("heading", { name: shell.bookTitle, exact: true }).waitFor();
+    assert.equal(new URL(page.url()).hash, `#/books/${shell.bookSlug}`);
+    assert.doesNotMatch(await page.locator("#main-content").innerText(), /Ultimate B2/);
+    for (const title of ["Students Book", "Workbook", "Grammar Book", "Test Book"]) await page.getByRole("heading", { name: title, exact: true }).waitFor();
+    assert.equal(await page.locator(".hosted-builder-component-card[data-available]").count(), 3);
+    const testCard = page.locator(".hosted-builder-component-card").filter({ has: page.getByRole("heading", { name: "Test Book", exact: true }) });
+    await testCard.locator(".hosted-builder-unavailable").getByText("Authoring adapter pending", { exact: true }).waitFor();
+    assert.equal(await testCard.getByRole("link", { name: "Open workspace", exact: true }).count(), 0);
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.locator(".hosted-builder-book-heading").getByRole("heading", { name: shell.bookTitle, exact: true }).waitFor();
+    assert.equal(new URL(page.url()).hash, `#/books/${shell.bookSlug}`);
+
+    for (const component of shell.components) {
+      const componentCard = page.locator(".hosted-builder-component-card").filter({ has: page.getByRole("heading", { name: component.componentTitle, exact: true }) });
+      await componentCard.getByRole("link", { name: "Open workspace", exact: true }).click();
+      await page.locator(`[data-component-adapter="${component.componentSlug}"]`).waitFor();
+      await page.locator(`[data-component-pages="${component.componentSlug}"]`).waitFor();
+      assert.equal(new URL(page.url()).hash, `#/books/${shell.bookSlug}/components/${component.componentSlug}`);
+      assert.equal(await page.getByRole("link", { name: shell.bookTitle, exact: true }).count(), 1);
+      assert.deepEqual(await page.locator(".hosted-builder-tool-tabs a strong").allTextContents(), ["Pages", "Hotspot Builder", "Activity Builder"]);
+      assert.equal(await page.locator(".component-page-card").count(), 0);
+      assert.equal(await page.locator(".component-pages-groups > section[data-page-unit]").count(), 10);
+      assert.doesNotMatch(await page.locator("#main-content").innerText(), /Ultimate B2/);
+      await page.getByRole("link", { name: shell.bookTitle, exact: true }).click();
+      await page.locator(".hosted-builder-book-heading").getByRole("heading", { name: shell.bookTitle, exact: true }).waitFor();
+    }
+
+    const deepLinkComponent = shell.components[2];
+    await page.goto(`${origin}/#/books/${shell.bookSlug}/components/${deepLinkComponent.componentSlug}`, { waitUntil: "domcontentloaded" });
+    await page.locator(`[data-component-pages="${deepLinkComponent.componentSlug}"]`).waitFor();
+    assert.equal(new URL(page.url()).hash, `#/books/${shell.bookSlug}/components/${deepLinkComponent.componentSlug}`);
+    assert.doesNotMatch(await page.locator("#main-content").innerText(), /Ultimate B2/);
+
+    await page.goto(`${origin}/#/books/${shell.bookSlug}/components/${shell.testBookSlug}`, { waitUntil: "domcontentloaded" });
+    await page.getByRole("heading", { name: "Test Book", exact: true }).waitFor();
+    await page.getByText("Authoring adapter pending", { exact: false }).waitFor();
+    assert.equal(await page.locator("[data-component-adapter]").count(), 0);
+
+    await page.goto(`${origin}/#/books/${shell.bookSlug}/components/ultimate-b2-workbook`, { waitUntil: "domcontentloaded" });
+    await page.getByRole("heading", { name: "Builder location not found", exact: true }).waitFor();
+    assert.equal(await page.locator('[data-component-adapter="ultimate-b2-workbook"]').count(), 0);
+  }
 
   await page.goto(`${origin}/#/books/ultimate-b2`, { waitUntil: "domcontentloaded" });
   for (const title of ["Students Book", "Workbook", "Grammar Book", "Test Book"]) await page.getByRole("heading", { name: title, exact: true }).waitFor();

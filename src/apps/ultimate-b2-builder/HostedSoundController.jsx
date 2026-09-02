@@ -1,5 +1,5 @@
 import { Volume2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { getBuilderContent } from "../book-builder/hosted/builderContentApi.js";
 import { useBuilderReview } from "../book-builder/hosted/HostedPackageReview.jsx";
@@ -7,25 +7,25 @@ import { HOSTED_EDITABLE_UI_BINDINGS } from "../../data/ultimate-b2/hostedTeache
 import { normalizeHostedTeacherUiDocument } from "../../data/ultimate-b2/hostedTeacherUiDocument.js";
 import { ultimateB2TeacherAppAuthoring } from "../../data/ultimate-b2/teacherAppAuthoring.js";
 
-const identity = Object.freeze({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource: "ui-controller" });
 const sounds = Object.freeze(HOSTED_EDITABLE_UI_BINDINGS.filter((binding) => binding.category === "sounds" && binding.mediaFamily === "audio"));
 
 const filename = (path) => String(path || "").split("/").pop() || "Canonical interface sound";
 
-export function HostedSoundController() {
+export function HostedSoundController({ bookSlug = "ultimate-b2", componentSlug = "ultimate-b2-students-book", bookTitle = "Ultimate B2" }) {
   const { registerToolContext } = useBuilderReview();
+  const identity = useMemo(() => ({ bookSlug, componentSlug, resource: "ui-controller" }), [bookSlug, componentSlug]);
   const [state, setState] = useState({ loading: true, assets: {}, error: "" });
   useEffect(() => { registerToolContext("sounds", { view: "page", dirty: false, refreshKey: 0, release: null }); }, [registerToolContext]);
   useEffect(() => {
     const controller = new AbortController();
     getBuilderContent(identity, { signal: controller.signal }).then((payload) => {
-      const document = normalizeHostedTeacherUiDocument(payload.document);
+      const document = normalizeHostedTeacherUiDocument(payload.document, { packageId: componentSlug });
       setState({ loading: false, assets: document.assets, error: "" });
     }).catch((error) => { if (error.name !== "AbortError") setState({ loading: false, assets: {}, error: error.message }); });
     return () => controller.abort();
-  }, []);
+  }, [componentSlug, identity]);
   return <main className="b2-sound-controller">
-    <header><div><span>Ultimate B2 package tools</span><h1>Sound Controller</h1><p>Shared interface sounds currently used throughout the Ultimate B2 Teacher package.</p></div><strong>Read-only</strong></header>
+    <header><div><span>{bookTitle} package tools</span><h1>Sound Controller</h1><p>Shared interface sounds currently used throughout the {bookTitle} Teacher package.</p></div><strong>Read-only</strong></header>
     <p className="b2-sound-controller-notice">Sound authoring will be added in a later milestone.</p>
     {state.error ? <p role="alert">{state.error}</p> : null}
     {state.loading ? <p role="status">Loading sound inventory…</p> : <section aria-label="Interface sound bindings">

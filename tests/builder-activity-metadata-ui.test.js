@@ -80,7 +80,7 @@ test("all Activity Builder editors omit generic instruction controls and preserv
 
 test("Activity Builder header contains only Add Activity actions and no global status banner", async () => {
   const [workspace, reviewCss, modernCss] = await Promise.all([
-    readFile("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx", "utf8"),
+    readFile("src/apps/book-builder/hosted/HostedActivityWorkspace.jsx", "utf8"),
     readFile("src/apps/ultimate-b2-builder/hostedUltimateB2BuilderReview.css", "utf8"),
     readFile("src/apps/ultimate-b2-builder/hostedUltimateB2BuilderModern.css", "utf8"),
   ]);

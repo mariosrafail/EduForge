@@ -16,17 +16,14 @@ import {
 } from "../../../src/data/ultimate-b2/hostedOpenResponseDraft.js";
 import { isUltimateB2ConfigurableOpenResponse } from "../../../src/data/ultimate-b2/openResponseActivityRegistry.js";
 import { findStudentsBookImplementation, isStudentsBookActivityEnabled } from "../../../src/data/ultimate-b2/studentsBookCatalog.js";
-import {
-  createEmptyHostedTeacherUiDocument,
-  normalizeHostedTeacherUiDocument,
-  projectHostedTeacherUiPreview,
-} from "../../../src/data/ultimate-b2/hostedTeacherUiDocument.js";
 import { HOSTED_TEACHER_UI_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/hostedTeacherUiBindingCatalog.js";
 import { NATIVE_ACTIVITY_SCHEMA_VERSION, createEmptyNativeActivityIndex, normalizeNativeActivityIndex } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { NATIVE_ACTIVITY_KINDS, normalizeNativeActivityPublicDocument, normalizeNativeActivityTeacherDocument } from "./_native-activity-registry.js";
 import { resolveNativeActivityAdapter } from "./_native-activity-adapters.js";
 import { applyUltimateB2ActivityLifecycle, createEmptyUltimateB2ActivityLifecycle, normalizeUltimateB2ActivityLifecycle, ULTIMATE_B2_ACTIVITY_LIFECYCLE_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/activityLifecycle.js";
 import { createEmptyUltimateB2UnitExtras, normalizeUltimateB2UnitExtrasDocument, projectUltimateB2UnitExtrasForPublication, ULTIMATE_B2_UNIT_EXTRAS_SCHEMA_VERSION } from "../../../src/data/ultimate-b2/unitExtras.js";
+import { listBuilderServerComponents, resolveBuilderServerComponent } from "./_builder-component-registry.js";
+import { createEmptyBuilderTeacherUiDocument, normalizeBuilderTeacherUiDocument, projectBuilderTeacherUiPreview } from "./_builder-teacher-ui-document.js";
 
 async function loadUltimateB2HotspotActivityUniverse(loadRelated, { includeCanonical = true } = {}) {
   const lifecycle = includeCanonical
@@ -69,7 +66,8 @@ const ultimateB2HotspotResource = Object.freeze({
   },
 });
 
-const managedComponentSlugs = Object.freeze(["ultimate-b2-workbook", "ultimate-b2-grammar-book"]);
+const serverComponents = Object.freeze(listBuilderServerComponents());
+const managedComponents = Object.freeze(serverComponents.filter((component) => component.mode === "managed"));
 
 function managedPages(stored, componentSlug) {
   const prefix = `${componentSlug}/pages/`;
@@ -79,27 +77,57 @@ function managedPages(stored, componentSlug) {
   }));
 }
 
-function managedHotspotResource(componentSlug) {
+function managedHotspotResource(registration) {
+  const { bookSlug, componentSlug } = registration;
+  const identity = Object.freeze({ bookSlug, componentSlug });
   return Object.freeze({
-    bookSlug: "ultimate-b2", componentSlug, resource: "hotspots", documentType: "hotspots", documentKey: "default",
+    bookSlug, componentSlug, resource: "hotspots", documentType: "hotspots", documentKey: "default",
     schemaVersion: ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION, readable: true, writeAllowed: true, previewReadable: true, previewAudience: "managed",
-    baseline() { return createEmptyManagedComponentHotspotManifest(componentSlug); },
-    validate(document) { return validateManagedComponentHotspotManifestStructure(document, componentSlug); },
+    baseline() { return createEmptyManagedComponentHotspotManifest(identity); },
+    validate(document) { return validateManagedComponentHotspotManifestStructure(document, identity); },
     async validateMutationContext({ document, loadRelated, sql }) {
       const [storedPages, activities] = await Promise.all([
-        loadBuilderPages(sql, { bookSlug: "ultimate-b2", componentSlug }),
+        loadBuilderPages(sql, identity),
         loadUltimateB2HotspotActivityUniverse(loadRelated, { includeCanonical: false }),
       ]);
-      validateAndNormalizeManagedComponentHotspotManifest(document, { componentSlug, pages: managedPages(storedPages, componentSlug), activities });
+      validateAndNormalizeManagedComponentHotspotManifest(document, { ...identity, pages: managedPages(storedPages, componentSlug), activities });
     },
     requiredRelatedForPreview: Object.freeze(["native-activity-index", "native-activity-public"]),
     async projectPreview(document, { loadRelated, sql }) {
       const [storedPages, activities] = await Promise.all([
-        loadBuilderPages(sql, { bookSlug: "ultimate-b2", componentSlug }),
+        loadBuilderPages(sql, identity),
         loadUltimateB2HotspotActivityUniverse(loadRelated, { includeCanonical: false }),
       ]);
-      return validateAndNormalizeManagedComponentHotspotManifest(structuredClone(document), { componentSlug, pages: managedPages(storedPages, componentSlug), activities });
+      return validateAndNormalizeManagedComponentHotspotManifest(structuredClone(document), { ...identity, pages: managedPages(storedPages, componentSlug), activities });
     },
+  });
+}
+
+function managedActivityLifecycleResource({ bookSlug, componentSlug }) {
+  return Object.freeze({
+    bookSlug, componentSlug, resource: "activity-lifecycle", documentType: "activity_lifecycle", documentKey: "default",
+    schemaVersion: ULTIMATE_B2_ACTIVITY_LIFECYCLE_SCHEMA_VERSION, readable: true, writeAllowed: false, previewReadable: false,
+    baseline: createEmptyUltimateB2ActivityLifecycle, validate: normalizeUltimateB2ActivityLifecycle,
+  });
+}
+
+function packageUiResource(registration) {
+  const packageId = registration.packageUi.packageId;
+  return Object.freeze({
+    bookSlug: registration.bookSlug,
+    componentSlug: registration.componentSlug,
+    resource: "ui-controller",
+    documentType: "teacher_ui",
+    documentKey: "default",
+    schemaVersion: HOSTED_TEACHER_UI_SCHEMA_VERSION,
+    readable: true,
+    writeAllowed: false,
+    previewReadable: true,
+    previewAudience: "teacher",
+    previewRequiresStored: true,
+    baseline() { return createEmptyBuilderTeacherUiDocument(packageId); },
+    validate(document) { return normalizeBuilderTeacherUiDocument(document, packageId); },
+    projectPreview(document) { return projectBuilderTeacherUiPreview(document, packageId); },
   });
 }
 
@@ -118,22 +146,6 @@ const registry = Object.freeze({
     baseline: createEmptyUltimateB2ActivityLifecycle,
     validate: normalizeUltimateB2ActivityLifecycle,
   }),
-  "ultimate-b2/ultimate-b2-students-book/ui-controller": Object.freeze({
-    bookSlug: "ultimate-b2",
-    componentSlug: "ultimate-b2-students-book",
-    resource: "ui-controller",
-    documentType: "teacher_ui",
-    documentKey: "default",
-    schemaVersion: HOSTED_TEACHER_UI_SCHEMA_VERSION,
-    readable: true,
-    writeAllowed: false,
-    previewReadable: true,
-    previewAudience: "teacher",
-    previewRequiresStored: true,
-    baseline: createEmptyHostedTeacherUiDocument,
-    validate: normalizeHostedTeacherUiDocument,
-    projectPreview: projectHostedTeacherUiPreview,
-  }),
   "ultimate-b2/ultimate-b2-students-book/unit-extras": Object.freeze({
     bookSlug: "ultimate-b2",
     componentSlug: "ultimate-b2-students-book",
@@ -151,19 +163,19 @@ const registry = Object.freeze({
     validate: normalizeUltimateB2UnitExtrasDocument,
     projectPreview: projectUltimateB2UnitExtrasForPublication,
   }),
-  ...Object.fromEntries(managedComponentSlugs.flatMap((componentSlug) => [
-    [`ultimate-b2/${componentSlug}/hotspots`, managedHotspotResource(componentSlug)],
-    [`ultimate-b2/${componentSlug}/activity-lifecycle`, Object.freeze({
-      bookSlug: "ultimate-b2", componentSlug, resource: "activity-lifecycle", documentType: "activity_lifecycle", documentKey: "default",
-      schemaVersion: ULTIMATE_B2_ACTIVITY_LIFECYCLE_SCHEMA_VERSION, readable: true, writeAllowed: false, previewReadable: false,
-      baseline: createEmptyUltimateB2ActivityLifecycle, validate: normalizeUltimateB2ActivityLifecycle,
-    })],
+  ...Object.fromEntries(managedComponents.flatMap((registration) => [
+    [`${registration.bookSlug}/${registration.componentSlug}/hotspots`, managedHotspotResource(registration)],
+    [`${registration.bookSlug}/${registration.componentSlug}/activity-lifecycle`, managedActivityLifecycleResource(registration)],
+  ])),
+  ...Object.fromEntries(serverComponents.filter((registration) => registration.packageUi.owner).map((registration) => [
+    `${registration.bookSlug}/${registration.componentSlug}/ui-controller`, packageUiResource(registration),
   ])),
 });
 
 const nativeActivityIdPattern = /^[a-z0-9][a-z0-9-]{0,127}$/;
 function nativeComponent(bookSlug, componentSlug) {
-  return bookSlug === "ultimate-b2" && ["ultimate-b2-students-book", ...managedComponentSlugs].includes(componentSlug)
+  const registration = resolveBuilderServerComponent(bookSlug, componentSlug);
+  return registration?.content.nativeActivities === true
     ? Object.freeze({ bookSlug, componentSlug }) : null;
 }
 

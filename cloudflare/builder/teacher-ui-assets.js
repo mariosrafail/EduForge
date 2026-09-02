@@ -2,8 +2,10 @@ import {
   buildBookAssetHostedOpenResponsePublicKey,
   buildBookAssetHostedTeacherUiPublicKey,
 } from "../../lib/book-assets/object-keys.js";
+import { resolveBuilderPackageUi } from "../../netlify-sites/ultimate-b2-builder/server/_builder-component-registry.js";
 
 const TEACHER_UI_ASSET_ROUTE = /^\/preview\/ui-assets(?:-v2)?\/([a-f0-9]{64})\.(png|jpg|webp|mp3|wav|gaf)\/?$/;
+const SCOPED_TEACHER_UI_ASSET_ROUTE = /^\/preview\/ui-assets-v2\/books\/([a-z0-9][a-z0-9-]{0,127})\/components\/([a-z0-9][a-z0-9-]{0,127})\/([a-f0-9]{64})\.(png|jpg|webp|mp3|wav|gaf)\/?$/;
 const OPEN_RESPONSE_ASSET_ROUTE = /^\/preview\/open-response-assets\/([a-f0-9]{64})\.(png|jpg|webp)\/?$/;
 const CONTENT_TYPES = Object.freeze({
   png: "image/png",
@@ -43,6 +45,20 @@ export function isBuilderPublicAssetNamespace(pathname) {
 }
 
 function publicAssetRequest(pathname) {
+  const scopedTeacherUi = pathname.match(SCOPED_TEACHER_UI_ASSET_ROUTE);
+  if (scopedTeacherUi) {
+    const identity = resolveBuilderPackageUi(scopedTeacherUi[1], scopedTeacherUi[2]);
+    if (!identity) return null;
+    return {
+      extension: scopedTeacherUi[4],
+      objectKey: buildBookAssetHostedTeacherUiPublicKey({
+        bookSlug: identity.bookSlug,
+        componentSlug: identity.componentSlug,
+        checksum: scopedTeacherUi[3],
+        extension: scopedTeacherUi[4],
+      }),
+    };
+  }
   const teacherUi = pathname.match(TEACHER_UI_ASSET_ROUTE);
   if (teacherUi) return {
     extension: teacherUi[2],

@@ -247,7 +247,7 @@ test("Player preview ignores a valid Builder cookie when authorization is missin
 test("Player preview rejects malformed, expired, wrong-scope, and duplicate authorization despite a Builder cookie", async () => {
   const worker = createBuilderWorker({ handlers: { preview: securityHandler([]) } });
   const expired = issueBuilderPreviewAuthorization(intent, { environment: secretEnvironment, now: now - 600_000, nonce: "expired-token-nonce" }).token;
-  const wrongScope = issueBuilderPreviewAuthorization({ ...intent, bookSlug: "another-book" }, { environment: secretEnvironment, now, nonce: "wrong-scope-token-nonce" }).token;
+  const wrongScope = issueBuilderPreviewAuthorization({ ...intent, bookSlug: "ultimate-b1", componentSlug: "ultimate-b1-students-book" }, { environment: secretEnvironment, now, nonce: "wrong-scope-token-nonce" }).token;
   for (const [token, duplicate, code] of [
     ["malformed", false, "token_malformed"],
     [expired, false, "token_expired"],

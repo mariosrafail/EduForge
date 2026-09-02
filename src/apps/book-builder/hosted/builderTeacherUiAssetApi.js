@@ -1,6 +1,7 @@
 import { BuilderContentApiError } from "./builderContentApi.js";
 
 const root = "/builder/api/ui-assets";
+const routeIdentityPattern = /^[a-z0-9][a-z0-9-]{1,79}$/;
 const operationalMessages = Object.freeze({
   teacher_ui_schema_unavailable: "Teacher interface upload records are unavailable. Contact the hosted Builder operator.",
   teacher_ui_storage_unavailable: "Teacher interface asset storage is unavailable. Contact the hosted Builder operator.",
@@ -14,8 +15,13 @@ async function responsePayload(response) {
   return response.json().catch(() => ({}));
 }
 
-async function request(path, body) {
-  const response = await fetch(`${root}/${path}`, {
+function scopedRoot({ bookSlug, componentSlug }) {
+  if (!routeIdentityPattern.test(String(bookSlug || "")) || !routeIdentityPattern.test(String(componentSlug || ""))) throw new Error("Invalid Teacher interface authoring identity.");
+  return `${root}/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}`;
+}
+
+async function request(identity, path, body) {
+  const response = await fetch(`${scopedRoot(identity)}/${path}`, {
     method: "POST",
     credentials: "same-origin",
     cache: "no-store",
@@ -27,8 +33,8 @@ async function request(path, body) {
   return payload;
 }
 
-export function prepareTeacherUiAssets({ expectedRevision, clientMutationId, files }) {
-  return request("prepare", {
+export function prepareTeacherUiAssets({ bookSlug, componentSlug, expectedRevision, clientMutationId, files }) {
+  return request({ bookSlug, componentSlug }, "prepare", {
     expectedRevision,
     clientMutationId,
     files: files.map(({ bindingId, file }) => ({ bindingId, name: file.name, size: file.size, type: file.type || "application/octet-stream" })),
@@ -53,12 +59,12 @@ export function uploadTeacherUiAsset(file, upload, onProgress) {
   });
 }
 
-export function finalizeTeacherUiAssets({ uploadId, expectedRevision, clientMutationId }) {
-  return request("finalize", { uploadId, expectedRevision, clientMutationId });
+export function finalizeTeacherUiAssets({ bookSlug, componentSlug, uploadId, expectedRevision, clientMutationId }) {
+  return request({ bookSlug, componentSlug }, "finalize", { uploadId, expectedRevision, clientMutationId });
 }
 
-export function saveTeacherUiDocument({ expectedRevision, clientMutationId, document, candidateUploadIds }) {
-  return request("save", { expectedRevision, clientMutationId, document, candidateUploadIds });
+export function saveTeacherUiDocument({ bookSlug, componentSlug, expectedRevision, clientMutationId, document, candidateUploadIds }) {
+  return request({ bookSlug, componentSlug }, "save", { expectedRevision, clientMutationId, document, candidateUploadIds });
 }
 
-export { root as builderTeacherUiAssetApiRoot };
+export { root as builderTeacherUiAssetApiRoot, scopedRoot as builderTeacherUiAssetApiScopedRoot };

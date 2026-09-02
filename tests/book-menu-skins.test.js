@@ -14,9 +14,11 @@ import {
 } from "../src/config/bookMenuSkins.js";
 import selections from "../src/config/bookMenuSkinSelections.json" with { type: "json" };
 
-test("book menu skin catalog provides one explicit ready default for Ultimate B2", () => {
+test("book menu skin catalog reuses one explicit ready visual default across managed packages", () => {
   assert.equal(bookMenuSkinCatalog.length, 1);
   assert.equal(defaultBookMenuSkinId("ultimate-b2-students-book"), BOOK_MENU_SKIN_IDS.ULTIMATE_B2_LEGACY);
+  assert.equal(defaultBookMenuSkinId("ultimate-b1-students-book"), BOOK_MENU_SKIN_IDS.ULTIMATE_B2_LEGACY);
+  assert.equal(defaultBookMenuSkinId("ultimate-b1-plus-students-book"), BOOK_MENU_SKIN_IDS.ULTIMATE_B2_LEGACY);
   assert.equal(defaultBookMenuSkinId("unknown-package"), null);
   assert.deepEqual(listBookMenuSkinOptions("ultimate-b2-students-book").map((skin) => skin.id), [BOOK_MENU_SKIN_IDS.ULTIMATE_B2_LEGACY]);
   assert.equal(findBookMenuSkinDefinition(BOOK_MENU_SKIN_IDS.ULTIMATE_B2_LEGACY)?.status, "ready");
@@ -27,6 +29,8 @@ test("tracked book menu skin selections are compatible, normalized, and determin
   assert.deepEqual(validateAndNormalizeBookMenuSkinSelections(selections), selections);
   assert.equal(selections.schemaVersion, BOOK_MENU_SKIN_SELECTION_SCHEMA_VERSION);
   assert.equal(selectedBookMenuSkinId(selections, "ultimate-b2-students-book"), BOOK_MENU_SKIN_IDS.ULTIMATE_B2_LEGACY);
+  assert.equal(selectedBookMenuSkinId(selections, "ultimate-b1-students-book"), BOOK_MENU_SKIN_IDS.ULTIMATE_B2_LEGACY);
+  assert.equal(selectedBookMenuSkinId(selections, "ultimate-b1-plus-students-book"), BOOK_MENU_SKIN_IDS.ULTIMATE_B2_LEGACY);
   assert.equal(selectedBookMenuSkinId({ schemaVersion: "1.0", selections: {} }, "ultimate-b2-students-book"), BOOK_MENU_SKIN_IDS.ULTIMATE_B2_LEGACY);
   assert.throws(() => validateAndNormalizeBookMenuSkinSelections({ schemaVersion: "2.0", selections: {} }), /schema 1\.0/);
   assert.throws(() => validateAndNormalizeBookMenuSkinSelections({ schemaVersion: "1.0", selections: { "ultimate-b2-students-book": "missing" } }), /Unknown book menu skin/);
@@ -43,10 +47,14 @@ test("Teacher runtime resolves menu visuals by package without exposing assets t
   assert.match(runtime, /resolveTeacherBookMenuSkin/);
   assert.match(runtime, /canonicalTeacherRuntimeUiAssets/);
   assert.match(runtime, /runtimeUiAssets\.classroom/);
-  assert.match(app, /const productPackageId = "ultimate-b2-students-book"/);
+  assert.match(app, /const productPackageId = runtimeUiIdentity\.componentSlug/);
   assert.match(app, /selectedBookMenuSkinId\(bookMenuSkinSelections, productPackageId\)/);
   assert.match(app, /resolveTeacherBookMenuSkin\(productPackageId, selectedMenuSkinId, runtimeUiAssets\)/);
+  assert.match(runtime, /"ultimate-b1-students-book":[\s\S]*surfaceKey: "ultimate-b1:home"[\s\S]*accessibleLabel: "Ultimate English B1"/);
+  assert.match(runtime, /"ultimate-b1-plus-students-book":[\s\S]*surfaceKey: "ultimate-b1-plus:home"[\s\S]*accessibleLabel: "Ultimate English B1\+"/);
+  assert.match(runtime, /"ultimate-b2-students-book":[\s\S]*surfaceKey: "ultimate-b2:home"[\s\S]*accessibleLabel: "Ultimate English B2"/);
   assert.match(library, /data-book-menu-skin=\{menuSkin\.id\}/);
+  assert.match(library, /LegacyMenuTitleAnimation animate=\{animationsActive\} label=\{menuSkin\.title\.animationLabel\}/);
   assert.doesNotMatch(library, /legacyClassroomAssets/);
   assert.doesNotMatch(catalog, /legacyClassroomAssets|legacy-classroom-ui|\.png|\.gaf/);
 });

@@ -52,6 +52,16 @@ test("navigable managed draft Review separates component authorization from init
   assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "another-book", componentSlug: "ultimate-b2-workbook", intent: pageIntent }), {
     bookSlug: "another-book", componentSlug: "ultimate-b2-workbook", view: "page", pageId: pageIntent.pageId, activityId: null, releaseId: null, productReleaseId: null,
   });
+  for (const bookSlug of ["ultimate-b1", "ultimate-b1-plus"]) {
+    for (const suffix of ["students-book", "workbook", "grammar-book"]) {
+      const componentSlug = `${bookSlug}-${suffix}`;
+      assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug, componentSlug, intent: pageIntent }), {
+        bookSlug, componentSlug, view: "library", pageId: null, activityId: null, releaseId: null, productReleaseId: null,
+      });
+    }
+  }
+  assert.equal(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "ultimate-b1", componentSlug: "ultimate-b1-test-book", intent: pageIntent }).view, "page");
+  assert.equal(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "ultimate-b1", componentSlug: "ultimate-b1-plus-workbook", intent: pageIntent }).view, "page");
   assert.deepEqual(resolveBuilderPreviewAuthorizationIntent({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", intent: { ...pageIntent, productReleaseId } }), {
     bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook", view: "page", pageId: pageIntent.pageId, activityId: null, releaseId: null, productReleaseId,
   });

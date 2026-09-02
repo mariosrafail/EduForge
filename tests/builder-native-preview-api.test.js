@@ -125,7 +125,7 @@ test("page and activity scopes stay narrow while a component-scoped library toke
   assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", tokenFor({ pageId: "ub2-sb-unit-1-part-2" })))).statusCode, 401);
   assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", tokenFor({ view: "library", pageId: null })))).statusCode, 200);
   assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", tokenFor({ componentSlug: "ultimate-b2-workbook" })))).statusCode, 401);
-  assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", tokenFor({ bookSlug: "another-book" })))).statusCode, 401);
+  assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", tokenFor({ bookSlug: "ultimate-b1", componentSlug: "ultimate-b1-students-book" })))).statusCode, 401);
   assert.equal((await harness({ authorizationNow: now + 301_000 })(request(publicationV2Fixture.openResponseId, "public"))).statusCode, 401);
   assert.equal((await handler(request(publicationV2Fixture.openResponseId, "public", "malformed"))).statusCode, 401);
 });

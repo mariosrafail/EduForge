@@ -16,7 +16,7 @@ import { nativeListeningAssetRequirements } from "../../../src/data/native-activ
 import { nativeOldschoolListeningAssetRequirements } from "../../../src/data/native-activities/nativeOldschoolListening.js";
 import { nativeDragDropAssetRequirements } from "../../../src/data/native-activities/nativeDragDrop.js";
 import { nativeOpenResponseAssetRequirements } from "../../../src/data/native-activities/nativeOpenResponse.js";
-import { createEmptyUltimateB2ActivityLifecycle, currentUltimateB2ActivityLifecycleEntry, updateUltimateB2ActivityLifecycle } from "../../../src/data/ultimate-b2/activityLifecycle.js";
+import { currentUltimateB2ActivityLifecycleEntry, updateUltimateB2ActivityLifecycle } from "../../../src/data/ultimate-b2/activityLifecycle.js";
 import { ultimateB2StudentsBookAuthoringActivities } from "../../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
 import { pruneComponentActivityHotspots } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
@@ -250,7 +250,7 @@ async function requireActiveActivity(dependencies, sql, parsedRoute) {
   if (!resource) return false;
   const stored = await dependencies.loadDocument(sql, resource);
   const activities = stored?.document?.activities;
-  return Array.isArray(activities) && activities.some((entry) => entry?.activityId === parsedRoute.activityId);
+  return Array.isArray(activities) ? activities.find((entry) => entry?.activityId === parsedRoute.activityId) || null : null;
 }
 
 async function deleteActivity(dependencies, sql, auth, parsedRoute, event) {
@@ -310,7 +310,7 @@ async function activityLifecycleCatalog(dependencies, sql, parsedRoute) {
   return json(200, {
     schemaVersion: resource.schemaVersion,
     revision: stored?.revision || 0,
-    document: stored?.document || createEmptyUltimateB2ActivityLifecycle(),
+    document: stored?.document || resource.baseline(),
   });
 }
 
@@ -338,7 +338,7 @@ async function mutateActivityLifecycle(dependencies, sql, auth, parsedRoute, eve
   const [storedLifecycle, storedIndex, storedHotspots] = await Promise.all([
     dependencies.loadDocument(sql, lifecycleResource), dependencies.loadDocument(sql, indexResource), dependencies.loadDocument(sql, hotspotResource),
   ]);
-  const lifecycle = storedLifecycle?.document || createEmptyUltimateB2ActivityLifecycle();
+  const lifecycle = storedLifecycle?.document || lifecycleResource.baseline();
   const index = storedIndex?.document || createEmptyNativeActivityIndex();
   const nativeEntry = index.activities.find((entry) => entry.activityId === parsedRoute.activityId) || null;
   const canonical = parsedRoute.bookSlug === "ultimate-b2" && parsedRoute.componentSlug === "ultimate-b2-students-book"
@@ -438,7 +438,8 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
   const input = parsed.value;
   if (![input.expectedPublicRevision, input.expectedTeacherRevision].every((revision) => Number.isSafeInteger(revision) && revision >= 1)
     || !builderClientMutationIdPattern.test(String(input.clientMutationId || ""))) return json(400, { error: "invalid_request" });
-  if (!await requireActiveActivity(dependencies, sql, parsedRoute)) return json(404, { error: "native_activity_not_found" });
+  const activeEntry = await requireActiveActivity(dependencies, sql, parsedRoute);
+  if (!activeEntry) return json(404, { error: "native_activity_not_found" });
   let publicDocument; let teacherDocument;
   try {
     const [publicResource, teacherResource] = await Promise.all([
@@ -450,7 +451,12 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
       dependencies.loadDocument(sql, publicResource), dependencies.loadDocument(sql, teacherResource),
     ]);
     if (!currentPublic || !currentTeacher || currentPublic.document.kind !== input.publicDocument?.kind || currentTeacher.document.kind !== input.teacherDocument?.kind
-      || currentPublic.document.activityId !== parsedRoute.activityId || currentTeacher.document.activityId !== parsedRoute.activityId) throw new Error("Native activity identity and kind are immutable.");
+      || currentPublic.document.activityId !== parsedRoute.activityId || currentTeacher.document.activityId !== parsedRoute.activityId
+      || currentPublic.document.placement?.pageId !== activeEntry.placement?.pageId
+      || input.publicDocument?.placement?.pageId !== activeEntry.placement?.pageId) throw new Error("Native activity identity, kind, and placement are immutable.");
+    const adapter = dependencies.resolveAdapter(parsedRoute.bookSlug, parsedRoute.componentSlug);
+    const placement = await (adapter?.resolveExistingPlacement || adapter?.normalizePlacement)?.(activeEntry.placement, { sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug });
+    if (!placement || placement.pageId !== activeEntry.placement.pageId) throw new Error("Native activity placement is outside its component.");
     const kind = resolveNativeActivityKind(input.publicDocument?.kind);
     if (!kind) throw new Error("Native activity kind is not registered for paired authoring save.");
     publicDocument = kind.normalizePublic(input.publicDocument, parsedRoute.activityId);

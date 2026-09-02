@@ -10,6 +10,7 @@ import {
 import { createNoopStartupAssets, runInteractiveViewerStartup } from "../src/apps/android-teacher-offline/interactiveStartupAssets.js";
 import {
   createManagedReviewContentPackProvider,
+  createManagedReviewDescriptor,
   createManagedReviewHotspotProvider,
   authorizeManagedReviewPageUnits,
   managedHostedStartupAssets,
@@ -21,6 +22,14 @@ const workbook = "ultimate-b2-workbook";
 const grammar = "ultimate-b2-grammar-book";
 const activity = "ultimate-b2-wb-managed-page-o1";
 const pages = [{ id: "wb-page-one", unitNumber: 1 }, { id: "wb-page-two", unitNumber: 2 }];
+const newManagedComponents = Object.freeze([
+  ["ultimate-b1", "ultimate-b1-students-book", "Ultimate English B1", "Students Book"],
+  ["ultimate-b1", "ultimate-b1-workbook", "Ultimate English B1", "Workbook"],
+  ["ultimate-b1", "ultimate-b1-grammar-book", "Ultimate English B1", "Grammar Book"],
+  ["ultimate-b1-plus", "ultimate-b1-plus-students-book", "Ultimate English B1+", "Students Book"],
+  ["ultimate-b1-plus", "ultimate-b1-plus-workbook", "Ultimate English B1+", "Workbook"],
+  ["ultimate-b1-plus", "ultimate-b1-plus-grammar-book", "Ultimate English B1+", "Grammar Book"],
+]);
 
 test("the shared product shell keeps empty managed Units navigable and highlights the originating edition", async () => {
   const [app, library, pagesView, overview] = await Promise.all([
@@ -124,6 +133,64 @@ test("managed hosted runtime starts and browses a ten-Unit two-page pack with ze
   }
 });
 
+test("all six new hosted Review descriptors are exact empty managed package runtimes", async () => {
+  const runtimeContext = { kind: "builder-preview", teacherPreview: true, authorization: `v2.payload.${"a".repeat(43)}` };
+  for (const [bookSlug, componentSlug, bookTitle, componentTitle] of newManagedComponents) {
+    const descriptor = createManagedReviewDescriptor({ bookSlug, componentSlug });
+    assert.deepEqual({ bookSlug: descriptor.bookSlug, componentSlug: descriptor.componentSlug }, { bookSlug, componentSlug });
+    assert.deepEqual(descriptor.uiOwnerIdentity, { bookSlug, componentSlug: `${bookSlug}-students-book` });
+    assert.equal(descriptor.installationScope, "hosted-builder-review");
+    assert.equal(descriptor.startupAssets.hosted, true);
+    assert.equal(descriptor.pageUnits.length, 10);
+    assert.ok(descriptor.pageUnits.every((unit, index) => unit.number === index + 1 && unit.title === `Unit ${index + 1}` && unit.pages.length === 0));
+
+    let pagePath = "";
+    const pack = await descriptor.contentPackProvider.load({
+      runtimeContext,
+      fetchImpl: async (url) => {
+        pagePath = String(url);
+        return { ok: true, async json() {
+          return {
+            revision: 0,
+            component: { bookSlug, componentSlug, kind: "managed", title: componentTitle },
+            units: Array.from({ length: 10 }, (_, index) => ({ id: `${componentSlug}-unit-${index + 1}`, slug: `unit-${index + 1}`, title: `Unit ${index + 1}`, unitNumber: index + 1, sortOrder: index + 1 })),
+            pages: [],
+          };
+        } };
+      },
+    });
+    assert.match(pagePath, new RegExp(`^/preview/pages/books/${bookSlug}/components/${componentSlug}\\?previewAuthorization=`));
+    assert.equal(pack.catalog.title, `${bookTitle} ${componentTitle}`);
+    assert.equal(pack.pageUnits.length, 10);
+    assert.ok(pack.pageUnits.every((unit) => unit.pages.length === 0));
+    assert.deepEqual(pack.activities.activities, []);
+    assert.deepEqual(pack.assetsManifest.assets, []);
+
+    let uiPath = "";
+    assert.equal(await descriptor.uiManifestProvider.load({
+      runtimeContext,
+      fetchImpl: async (url) => { uiPath = String(url); return { ok: false, status: 404 }; },
+    }), null);
+    assert.match(uiPath, new RegExp(`^/preview/content/books/${bookSlug}/components/${bookSlug}-students-book/ui-controller\\?previewAuthorization=`));
+  }
+  assert.throws(() => createManagedReviewDescriptor({ bookSlug: "ultimate-b1", componentSlug: "ultimate-b1-test-book" }), /unsupported/);
+  assert.throws(() => createManagedReviewDescriptor({ bookSlug: "ultimate-b1", componentSlug: "ultimate-b1-plus-workbook" }), /unsupported/);
+  const legacyB2 = createManagedReviewDescriptor("ultimate-b2-workbook");
+  assert.deepEqual(legacyB2.uiOwnerIdentity, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" });
+  let legacyUiPath = "";
+  const legacyUi = await legacyB2.uiManifestProvider.load({
+    runtimeContext,
+    fetchImpl: async (url) => {
+      legacyUiPath = String(url);
+      return { ok: true, status: 200, async json() {
+        return { document: { schemaVersion: "1.0", packageId: "ultimate-b2-students-book", assets: {} } };
+      } };
+    },
+  });
+  assert.deepEqual(legacyUi, { schemaVersion: "1.0", packageId: "ultimate-b2-students-book", assets: {} });
+  assert.match(legacyUiPath, /^\/preview\/content\/books\/ultimate-b2\/components\/ultimate-b2-students-book\/ui-controller\?previewAuthorization=/);
+});
+
 test("immutable managed releases retain intrinsic page geometry for overview weighting", () => {
   const unitId = "10000000-0000-4000-8000-000000000001";
   const projection = {
@@ -154,4 +221,16 @@ test("managed component preparation keeps heavy page images on demand and reauth
     assert.equal(new URL(second[0].pages[0].images[0], "https://viewer.example").searchParams.get("previewAuthorization"), secondAuthorization);
     assert.equal(pageUnits[0].pages[0].images[0].includes("previewAuthorization"), false);
   }
+});
+
+test("managed release UI preload uses the exchanged package UI-owner member context", () => {
+  const releaseId = "20000000-0000-4000-8000-000000000099";
+  const authorization = `v3.${Buffer.from("owner").toString("base64url")}.${"c".repeat(43)}`;
+  const runtimeContext = { kind: "release-preview", releaseId, authorization };
+  const plan = managedHostedStartupAssets.createLoadPlan(
+    { assetsManifest: { assets: [] }, pageUnits: [], activities: { activities: [] } },
+    { assets: { "background.main": { sha256: "d".repeat(64), extension: "png", mediaType: "image/png", sizeBytes: 1, width: 1, height: 1 } } },
+    runtimeContext,
+  );
+  assert.equal(plan.blocking[0].url, `/preview/releases/books/ultimate-b2/components/ultimate-b2-students-book/${releaseId}/assets/${"d".repeat(64)}.png?previewAuthorization=${encodeURIComponent(authorization)}`);
 });

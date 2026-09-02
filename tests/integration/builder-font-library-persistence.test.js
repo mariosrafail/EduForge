@@ -28,7 +28,7 @@ test("isolated PostgreSQL scopes, deduplicates, and validates reusable component
   const pool = new Pool({ connectionString: scoped(databaseUrl, schema), max: 5 });
   t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
   const migrations = await applyCanonicalProductionMigrations(pool);
-  assert.equal(migrations.at(-1).filename, "055_builder_unit_extra_audio.sql");
+  assert.equal(migrations.at(-1).filename, "056_ultimate_b1_managed_package_shells.sql");
   await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Font Actor','font-actor@example.test','hash')", [actor]);
   const sql = tag(pool);
 

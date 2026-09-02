@@ -98,7 +98,7 @@ test("migration 042 makes retirement atomic, auditable, idempotent, and race-saf
 
 test("Builder exposes logical retirement for native and canonical activities and confirms retention and unsaved-work consequences", async () => {
   const [app, api] = await Promise.all([
-    readFile(new URL("../src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/book-builder/hosted/HostedActivityWorkspace.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/apps/book-builder/hosted/builderNativeActivityApi.js", import.meta.url), "utf8"),
   ]);
   assert.match(app, /selection\?\.item\?\.retirable/);

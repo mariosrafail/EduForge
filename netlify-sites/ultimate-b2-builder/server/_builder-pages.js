@@ -18,6 +18,7 @@ import {
   failBuilderPageUpload,
   loadBuilderPageAsset,
   loadBuilderPageHotspots,
+  loadBuilderPageUploadScope,
   loadBuilderPageActivityReferences,
   loadBuilderPages,
   mutateCanonicalBuilderPage,
@@ -194,12 +195,13 @@ async function listResponse(dependencies, sql, parsed, policy, previewAuthorizat
   };
 }
 
-function prunedPageHotspots(policy, componentSlug, stored, pageId) {
-  const baseline = policy.kind === "students-book" ? structuredClone(repositoryHotspots) : createEmptyManagedComponentHotspotManifest(componentSlug);
+function prunedPageHotspots(policy, { bookSlug, componentSlug }, stored, pageId) {
+  const identity = { bookSlug, componentSlug };
+  const baseline = policy.kind === "students-book" ? structuredClone(repositoryHotspots) : createEmptyManagedComponentHotspotManifest(identity);
   const document = stored?.payload || baseline;
   const normalized = policy.kind === "students-book"
     ? validateUltimateB2HotspotManifestStructure(document)
-    : validateManagedComponentHotspotManifestStructure(document, componentSlug);
+    : validateManagedComponentHotspotManifestStructure(document, identity);
   const removed = normalized.pages[pageId] || [];
   const pages = { ...normalized.pages };
   delete pages[pageId];
@@ -228,6 +230,7 @@ export function createBuilderPagesHandler(overrides = {}) {
     loadPages: overrides.loadPages || loadBuilderPages,
     prepare: overrides.prepare || prepareBuilderPageUpload,
     claim: overrides.claim || claimBuilderPageUpload,
+    loadUploadScope: overrides.loadUploadScope || loadBuilderPageUploadScope,
     complete: overrides.complete || completeBuilderPageUpload,
     fail: overrides.fail || failBuilderPageUpload,
     mutate: overrides.mutate || mutateBuilderPage,
@@ -310,6 +313,9 @@ export function createBuilderPagesHandler(overrides = {}) {
       if (parsed.action === "finalize") {
         const body = parseJson(event, ["uploadId", "expectedRevision", "clientMutationId"]); if (body.error) return body.error;
         if (!UUID_V4.test(String(body.value.uploadId || "")) || !Number.isSafeInteger(body.value.expectedRevision) || body.value.expectedRevision < 0 || !builderClientMutationIdPattern.test(String(body.value.clientMutationId || ""))) return json(400, { error: "invalid_finalize_identity" });
+        const uploadScope = await dependencies.loadUploadScope(sql, { uploadId: body.value.uploadId, builderUserId: auth.builderUser.id });
+        if (!uploadScope) return json(404, { error: "session_not_found" });
+        if (uploadScope.bookSlug !== parsed.bookSlug || uploadScope.componentSlug !== parsed.componentSlug) return json(409, { error: "upload_scope_conflict" });
         const claimed = await dependencies.claim(sql, { uploadId: body.value.uploadId, expectedRevision: body.value.expectedRevision, clientMutationId: body.value.clientMutationId, builderUserId: auth.builderUser.id });
         if (!claimed) return json(409, { error: "upload_claim_failed" });
         if (claimed.outcome === "idempotent") {
@@ -355,7 +361,7 @@ export function createBuilderPagesHandler(overrides = {}) {
           const baseline = policy.kind === "students-book" ? canonicalStudentsBookPagesById.get(parsed.pageId) : null;
           if (policy.kind === "students-book" && !baseline) return json(404, { error: "page_not_found" });
           const storedHotspots = await dependencies.loadHotspots(sql, parsed);
-          const pruned = prunedPageHotspots(policy, parsed.componentSlug, storedHotspots, parsed.pageId);
+          const pruned = prunedPageHotspots(policy, parsed, storedHotspots, parsed.pageId);
           pruned.preservedActivityCount = await preservedPageActivityCount(dependencies, sql, parsed, parsed.pageId);
           if (safeInteger(storedHotspots?.revision || 0, "builder_hotspot_revision") !== body.value.expectedHotspotRevision) return json(409, { error: "hotspot_revision_conflict", currentHotspotRevision: safeInteger(storedHotspots?.revision || 0, "builder_hotspot_revision") });
           const pageMetadata = baseline ? { label: baseline.label, printedLabel: baseline.printedLabel, sortOrder: baseline.sortOrder, unitNumber: baseline.unitNumber } : {};

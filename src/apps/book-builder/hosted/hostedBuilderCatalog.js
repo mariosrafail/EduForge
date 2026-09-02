@@ -1,3 +1,5 @@
+import { ultimateB1HostedBook } from "./catalog/ultimateB1HostedBook.js";
+import { ultimateB1PlusHostedBook } from "./catalog/ultimateB1PlusHostedBook.js";
 import { ultimateB2HostedBook } from "./catalog/ultimateB2HostedBook.js";
 import { bookProductCatalog } from "../../../data/bookProductCatalog.js";
 
@@ -23,7 +25,11 @@ export function createHostedBuilderCatalog(books) {
   return Object.freeze(books.map((book) => Object.freeze(book)));
 }
 
-const hostedBooksBySlug = new Map([[ultimateB2HostedBook.slug, ultimateB2HostedBook]]);
+const hostedBooksBySlug = new Map([
+  [ultimateB1HostedBook.slug, ultimateB1HostedBook],
+  [ultimateB1PlusHostedBook.slug, ultimateB1PlusHostedBook],
+  [ultimateB2HostedBook.slug, ultimateB2HostedBook],
+]);
 
 export const hostedBuilderCatalog = createHostedBuilderCatalog(bookProductCatalog.map((book) => (
   hostedBooksBySlug.get(book.slug) || {

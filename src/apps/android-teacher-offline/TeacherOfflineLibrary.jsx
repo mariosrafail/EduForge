@@ -4,7 +4,6 @@ import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./UltimateB2ClassroomToolbar.jsx";
 import LegacyMenuTitleAnimation from "./LegacyMenuTitleAnimation.jsx";
-import { teacherStudentsBookUnits as units } from "./teacherOfflineUnitMetadata.js";
 
 function LegacyMenuArtwork({ artwork }) {
   return (
@@ -54,7 +53,7 @@ function ExtrasColumn({ label, items, position }) {
   );
 }
 
-export default function TeacherOfflineLibrary({ menuSkin, onOpenUnit, animationsActive, unitAvailabilityByEdition = {}, initialEditionId = "students-book", onSelectEdition, unavailableEditionIds = new Set(), unavailableEditionMessages = new Map() }) {
+export default function TeacherOfflineLibrary({ menuSkin, units = [], onOpenUnit, animationsActive, unitAvailabilityByEdition = {}, initialEditionId = "students-book", onSelectEdition, unavailableEditionIds = new Set(), unavailableEditionMessages = new Map() }) {
   const [selectedEdition, setSelectedEdition] = useState(initialEditionId);
   if (!menuSkin) return <main className="teacher-offline-status damaged" role="alert"><h1>Book menu unavailable</h1><p>Reinstall the verified classroom application.</p></main>;
   const surfaceKey = menuSkin.surfaceKey;
@@ -73,7 +72,7 @@ export default function TeacherOfflineLibrary({ menuSkin, onOpenUnit, animations
           <div className="legacy-home-launcher">
             {!extrasSelected ? <UnitColumn label="Units 1 to 5" position="left" items={units.slice(0, 5)} artwork={menuSkin.units} editionId={selectedEdition} onOpenUnit={onOpenUnit} availableUnits={unitAvailabilityByEdition[selectedEdition]} />
               : <ExtrasColumn label="Extras left column" position="left" items={extrasLeft} />}
-            {menuSkin.title.kind === "legacy-gaf" && <LegacyMenuTitleAnimation animate={animationsActive} />}
+            {menuSkin.title.kind === "legacy-gaf" && <LegacyMenuTitleAnimation animate={animationsActive} label={menuSkin.title.animationLabel} />}
             {!extrasSelected ? <UnitColumn label="Units 6 to 10" position="right" items={units.slice(5)} artwork={menuSkin.units} editionId={selectedEdition} onOpenUnit={onOpenUnit} availableUnits={unitAvailabilityByEdition[selectedEdition]} />
               : <ExtrasColumn label="Extras right column" position="right" items={extrasRight} />}
 

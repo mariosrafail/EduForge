@@ -483,9 +483,9 @@ export function createHostedStartupAssets(inventory, {
 } = {}) {
   return Object.freeze({
     hosted: true,
-    createLoadPlan(pack, uiManifest = null) {
+    createLoadPlan(pack, uiManifest = null, runtimeContext = null) {
       const uiAssetUrls = typeof inventory.uiAssetUrls === "function"
-        ? inventory.uiAssetUrls(uiManifest, pack)
+        ? inventory.uiAssetUrls(uiManifest, pack, runtimeContext)
         : inventory.uiAssetUrls || [];
       const runtimeAssets = typeof inventory.runtimeAssets === "function"
         ? inventory.runtimeAssets(pack, uiManifest)
@@ -541,6 +541,7 @@ export async function runInteractiveViewerStartup({
   loadUiManifest = async () => null,
   prepareHotspots,
   startupAssets,
+  assetRuntimeContext = null,
   signal,
   onState = () => {},
 } = {}) {
@@ -549,7 +550,7 @@ export async function runInteractiveViewerStartup({
     const [pack, , uiManifest] = await Promise.all([loadContentPack(), prepareHotspots(), loadUiManifest({ signal })]);
     throwIfAborted(signal);
     onState({ status: "loading", phase: "planning", progress: null, pack, uiManifest, error: null });
-    const plan = startupAssets.createLoadPlan(pack, uiManifest);
+    const plan = startupAssets.createLoadPlan(pack, uiManifest, assetRuntimeContext);
     if (startupAssets.hosted) {
       onState({ status: "loading", phase: "checking-cache", progress: null, pack, uiManifest, error: null });
     }

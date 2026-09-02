@@ -13,7 +13,7 @@ function loadImage(source) {
   });
 }
 
-export default function LegacyMenuTitleAnimation({ animate = true }) {
+export default function LegacyMenuTitleAnimation({ animate = true, label = "Ultimate B2 English" }) {
   const runtimeUiAssets = useTeacherRuntimeUiAssets();
   const canvasRef = useRef(null);
   const [error, setError] = useState("");
@@ -54,7 +54,7 @@ export default function LegacyMenuTitleAnimation({ animate = true }) {
       };
       animationFrame = requestAnimationFrame(draw);
     }).catch((reason) => {
-      if (!disposed && reason?.name !== "AbortError") setError("Ultimate B2 English");
+      if (!disposed && reason?.name !== "AbortError") setError(label);
     });
 
     return () => {
@@ -62,10 +62,10 @@ export default function LegacyMenuTitleAnimation({ animate = true }) {
       controller.abort();
       cancelAnimationFrame(animationFrame);
     };
-  }, [animate, runtimeUiAssets]);
+  }, [animate, label, runtimeUiAssets]);
 
   return (
-    <div className="legacy-menu-title-animation" role="img" aria-label="Ultimate B2 English">
+    <div className="legacy-menu-title-animation" role="img" aria-label={label}>
       <canvas ref={canvasRef} aria-hidden="true" />
       {error && <span className="legacy-menu-title-fallback">{error}</span>}
     </div>

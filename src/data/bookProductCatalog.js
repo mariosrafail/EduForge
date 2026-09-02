@@ -41,8 +41,19 @@ const catalogInput = [
     level: "B1",
     publisher: "Hamilton House",
     components: [
-      component("ultimate-b1", "students-book", "Students Book", "students_book", "students-book"),
-      component("ultimate-b1", "workbook", "Workbook", "workbook", "workbook"),
+      component("ultimate-b1", "students-book", "Students Book", "students_book", "students-book", {
+        authoringState: "active",
+        authoringAdapterId: "ultimate-b1-students-book",
+      }),
+      component("ultimate-b1", "workbook", "Workbook", "workbook", "workbook", {
+        authoringState: "active",
+        authoringAdapterId: "ultimate-b1-workbook",
+      }),
+      component("ultimate-b1", "grammar-book", "Grammar Book", "grammar_book", "grammar-book", {
+        authoringState: "active",
+        authoringAdapterId: "ultimate-b1-grammar-book",
+      }),
+      component("ultimate-b1", "test-book", "Test Book", "test_book", null),
     ],
   },
   {
@@ -52,8 +63,19 @@ const catalogInput = [
     level: "B1+",
     publisher: "Hamilton House",
     components: [
-      component("ultimate-b1-plus", "students-book", "Students Book", "students_book", "students-book"),
-      component("ultimate-b1-plus", "workbook", "Workbook", "workbook", "workbook"),
+      component("ultimate-b1-plus", "students-book", "Students Book", "students_book", "students-book", {
+        authoringState: "active",
+        authoringAdapterId: "ultimate-b1-plus-students-book",
+      }),
+      component("ultimate-b1-plus", "workbook", "Workbook", "workbook", "workbook", {
+        authoringState: "active",
+        authoringAdapterId: "ultimate-b1-plus-workbook",
+      }),
+      component("ultimate-b1-plus", "grammar-book", "Grammar Book", "grammar_book", "grammar-book", {
+        authoringState: "active",
+        authoringAdapterId: "ultimate-b1-plus-grammar-book",
+      }),
+      component("ultimate-b1-plus", "test-book", "Test Book", "test_book", null),
     ],
   },
   {

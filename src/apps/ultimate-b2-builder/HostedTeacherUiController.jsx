@@ -18,7 +18,6 @@ import { resolveUltimateB2BuilderVisualAssetUrl } from "../../data/ultimate-b2/u
 import { ultimateB2TeacherAppAuthoring } from "../../data/ultimate-b2/teacherAppAuthoring.js";
 import { useBuilderReview } from "../book-builder/hosted/HostedPackageReview.jsx";
 
-const identity = Object.freeze({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource: "ui-controller" });
 const titleIds = new Set(HOSTED_TEACHER_UI_TITLE_BINDING_IDS);
 
 function accept(binding) {
@@ -50,16 +49,16 @@ function metadataLabel(asset) {
   return `${name}${asset.mediaType ? ` · ${asset.mediaType}` : ""}${size}${dimensions}`;
 }
 
-function effectiveAsset(binding, savedAssets, changes, previewUrls) {
+function effectiveAsset(binding, savedAssets, changes, previewUrls, identity) {
   if (previewUrls[binding.id]) return { url: previewUrls[binding.id], metadata: changes[binding.id] };
   if (changes[binding.id] === null) return { url: resolveUltimateB2BuilderVisualAssetUrl(binding.id), metadata: ultimateB2TeacherAppAuthoring.assets[binding.id] };
   const saved = changes[binding.id] || savedAssets[binding.id];
-  if (saved) return { url: hostedTeacherUiAssetPath(saved), metadata: saved };
+  if (saved) return { url: hostedTeacherUiAssetPath(saved, identity), metadata: saved };
   return { url: resolveUltimateB2BuilderVisualAssetUrl(binding.id), metadata: ultimateB2TeacherAppAuthoring.assets[binding.id] };
 }
 
-function AssetSlot({ binding, savedAssets, changes, previewUrls, activity, onReplace, onRevert }) {
-  const current = effectiveAsset(binding, savedAssets, changes, previewUrls);
+function AssetSlot({ binding, savedAssets, changes, previewUrls, identity, activity, onReplace, onRevert }) {
+  const current = effectiveAsset(binding, savedAssets, changes, previewUrls, identity);
   const state = stateLabel(binding.id, savedAssets, changes);
   return <article className="b2-hosted-ui-slot" data-binding-id={binding.id} data-binding-state={state.toLowerCase().replaceAll(" ", "-")}>
     <div className="b2-hosted-ui-slot-preview">{current.url && binding.mediaFamily !== "gaf" ? <img src={current.url} alt={`${binding.label} effective asset`} /> : <Upload aria-hidden="true" />}</div>
@@ -71,19 +70,21 @@ function AssetSlot({ binding, savedAssets, changes, previewUrls, activity, onRep
   </article>;
 }
 
-function TitleGroup({ bindings, savedAssets, changes, previewUrls, activity, onValidate, onRevert }) {
+function TitleGroup({ bindings, savedAssets, changes, previewUrls, identity, activity, onValidate, onRevert }) {
   const [files, setFiles] = useState({});
   const complete = bindings.every(({ id }) => files[id]);
   return <section className="b2-hosted-ui-title-group" data-atomic-group="title-animation">
     <header><div><h3>Atomic title animation package</h3><p>The GAF and all current SD/HD atlas slots validate and save as one package. Partial replacement is never accepted.</p></div>{bindings.some(({ id }) => savedAssets[id] || changes[id]) ? <button type="button" onClick={onRevert}><RotateCcw size={15} /> Revert complete title package</button> : null}</header>
-    {bindings.map((binding) => { const effective = effectiveAsset(binding, savedAssets, changes, previewUrls); return <article className="b2-hosted-ui-title-file" key={binding.id}><div><strong>{binding.label}</strong><code>{binding.id}</code><small>{files[binding.id]?.name || `${stateLabel(binding.id, savedAssets, changes)} · ${metadataLabel(effective.metadata)}`}</small>{binding.mediaFamily === "gaf" ? <span>Binary GAF · member of atomic title animation package</span> : null}</div><label><input type="file" accept={accept(binding)} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) setFiles((current) => ({ ...current, [binding.id]: file })); }} />Choose file</label>{effective.url && binding.mediaFamily !== "gaf" ? <img src={effective.url} alt={`${binding.label} effective atlas`} /> : null}</article>; })}
+    {bindings.map((binding) => { const effective = effectiveAsset(binding, savedAssets, changes, previewUrls, identity); return <article className="b2-hosted-ui-title-file" key={binding.id}><div><strong>{binding.label}</strong><code>{binding.id}</code><small>{files[binding.id]?.name || `${stateLabel(binding.id, savedAssets, changes)} · ${metadataLabel(effective.metadata)}`}</small>{binding.mediaFamily === "gaf" ? <span>Binary GAF · member of atomic title animation package</span> : null}</div><label><input type="file" accept={accept(binding)} onChange={(event) => { const file = event.target.files?.[0]; event.target.value = ""; if (file) setFiles((current) => ({ ...current, [binding.id]: file })); }} />Choose file</label>{effective.url && binding.mediaFamily !== "gaf" ? <img src={effective.url} alt={`${binding.label} effective atlas`} /> : null}</article>; })}
     {activity?.error ? <p className="b2-hosted-ui-error"><AlertTriangle /> {activity.error}</p> : null}
     <button type="button" className="b2-hosted-ui-validate-title" disabled={!complete || activity?.busy} onClick={async () => { const succeeded = await onValidate(bindings.map(({ id }) => ({ bindingId: id, file: files[id] }))); if (succeeded) setFiles({}); }}><Upload size={16} /> {activity?.busy ? activity.label : "Validate complete title package"}</button>
   </section>;
 }
 
-export function HostedTeacherUiController() {
+export function HostedTeacherUiController({ bookSlug = "ultimate-b2", componentSlug = "ultimate-b2-students-book", bookTitle = "Ultimate B2" }) {
   const { registerToolContext } = useBuilderReview();
+  const identity = useMemo(() => ({ bookSlug, componentSlug, resource: "ui-controller" }), [bookSlug, componentSlug]);
+  const documentIdentity = useMemo(() => ({ packageId: componentSlug }), [componentSlug]);
   const [loaded, setLoaded] = useState(null);
   const [changes, setChanges] = useState({});
   const [candidateUploads, setCandidateUploads] = useState({});
@@ -110,13 +111,13 @@ export function HostedTeacherUiController() {
     setStatus("Loading"); setError("");
     try {
       const payload = await getBuilderContent(identity);
-      setLoaded({ revision: payload.revision, document: normalizeHostedTeacherUiDocument(payload.document) });
+      setLoaded({ revision: payload.revision, document: normalizeHostedTeacherUiDocument(payload.document, documentIdentity) });
       if (!preserveChanges) { setChanges({}); setCandidateUploads({}); }
       setConflict(false); setStatus(preserveChanges && dirty ? "Unsaved changes" : "Ready");
     } catch (reason) { setError(reason.message); setStatus("Load failed"); }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); }, [identity]);
   useEffect(() => {
     const warn = (event) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } };
     globalThis.addEventListener("beforeunload", warn);
@@ -136,13 +137,13 @@ export function HostedTeacherUiController() {
     const clientMutationId = newBuilderClientMutationId();
     setActivity((current) => ({ ...current, [activityKey]: { busy: true, label: "Preparing...", error: "" } }));
     try {
-      const prepared = await prepareTeacherUiAssets({ expectedRevision: loaded.revision, clientMutationId, files });
+      const prepared = await prepareTeacherUiAssets({ bookSlug, componentSlug, expectedRevision: loaded.revision, clientMutationId, files });
       for (const upload of prepared.uploads) {
         const selected = files.find(({ bindingId }) => bindingId === upload.bindingId);
         await uploadTeacherUiAsset(selected.file, upload, (progress) => setActivity((current) => ({ ...current, [activityKey]: { busy: true, label: `Uploading ${progress}%`, error: "" } })));
       }
       setActivity((current) => ({ ...current, [activityKey]: { busy: true, label: "Validating...", error: "" } }));
-      const finalized = await finalizeTeacherUiAssets({ uploadId: prepared.uploadId, expectedRevision: loaded.revision, clientMutationId });
+      const finalized = await finalizeTeacherUiAssets({ bookSlug, componentSlug, uploadId: prepared.uploadId, expectedRevision: loaded.revision, clientMutationId });
       setChanges((current) => ({ ...current, ...finalized.candidates }));
       setCandidateUploads((current) => ({ ...current, ...Object.fromEntries(Object.keys(finalized.candidates).map((id) => [id, prepared.uploadId])) }));
       setPreviewUrls((current) => {
@@ -187,12 +188,12 @@ export function HostedTeacherUiController() {
     if (!dirty || !loaded) return;
     setStatus("Saving"); setError("");
     try {
-      const document = normalizeHostedTeacherUiDocument({ ...loaded.document, assets: draftAssets });
+      const document = normalizeHostedTeacherUiDocument({ ...loaded.document, assets: draftAssets }, documentIdentity);
       const candidateUploadIds = [...new Set(Object.keys(changes).filter((id) => changes[id]).map((id) => candidateUploads[id]).filter(Boolean))];
-      const payload = await saveTeacherUiDocument({ expectedRevision: loaded.revision, clientMutationId: newBuilderClientMutationId(), document, candidateUploadIds });
+      const payload = await saveTeacherUiDocument({ bookSlug, componentSlug, expectedRevision: loaded.revision, clientMutationId: newBuilderClientMutationId(), document, candidateUploadIds });
       Object.values(previewUrls).forEach((url) => URL.revokeObjectURL(url));
       setPreviewUrls({}); setCandidateUploads({}); setChanges({}); setConflict(false);
-      setLoaded({ revision: payload.revision, document: normalizeHostedTeacherUiDocument(payload.document) });
+      setLoaded({ revision: payload.revision, document: normalizeHostedTeacherUiDocument(payload.document, documentIdentity) });
       setStatus("Saved"); setViewerRefresh((value) => value + 1);
     } catch (reason) {
       setError(reason.message);
@@ -206,13 +207,13 @@ export function HostedTeacherUiController() {
   const visibleBindings = visualBindings.filter(({ category, id }) => category === section && !titleIds.has(id));
 
   return <main className="b2-teacher-app-builder b2-hosted-ui-editor">
-    <header className="b2-teacher-app-header"><div><span>Ultimate B2 package tools</span><h1>Page UI Controller</h1><p>Edit approved shared graphics for stable, runtime-wired Teacher interface bindings across all package components.</p></div><div className="b2-hosted-ui-save-state" role="status"><strong>{status}</strong><span>Revision {loaded.revision}</span>{error ? <small>{error}</small> : null}<button type="button" onClick={save} disabled={!dirty || status === "Saving"}><Save size={16} /> Save UI draft</button>{conflict ? <button type="button" onClick={() => load({ preserveChanges: true })}>Reload latest and keep local choices</button> : null}</div></header>
+    <header className="b2-teacher-app-header"><div><span>{bookTitle} package tools</span><h1>Page UI Controller</h1><p>Edit approved shared graphics for stable, runtime-wired Teacher interface bindings across all package components.</p></div><div className="b2-hosted-ui-save-state" role="status"><strong>{status}</strong><span>Revision {loaded.revision}</span>{error ? <small>{error}</small> : null}<button type="button" onClick={save} disabled={!dirty || status === "Saving"}><Save size={16} /> Save UI draft</button>{conflict ? <button type="button" onClick={() => load({ preserveChanges: true })}>Reload latest and keep local choices</button> : null}</div></header>
     <div className="b2-hosted-ui-workspace">
       <nav aria-label="UI Controller sections"><button type="button" aria-current={section === "overview" ? "page" : undefined} onClick={() => setSection("overview")}>Overview</button>{categories.map((id) => <button key={id} type="button" aria-current={section === id ? "page" : undefined} onClick={() => setSection(id)}>{HOSTED_TEACHER_UI_CATEGORY_LABELS[id]}</button>)}</nav>
       <section className="b2-hosted-ui-editor-panel">
         {section === "overview" ? <div className="b2-hosted-ui-overview"><h2>Bound Teacher interface graphics</h2><dl><div><dt>Editable visual bindings</dt><dd>{visualBindings.length}</dd></div><div><dt>Saved overrides</dt><dd>{Object.keys(savedAssets).filter((id) => !id.startsWith("sound.")).length}</dd></div><div><dt>Unsaved changes</dt><dd>{Object.keys(changes).length}</dd></div></dl><p>Stable control IDs, actions, labels, routing, layout, accessibility semantics, and existing sound overrides remain canonical.</p></div> : null}
-        {section === "branding-title" ? <TitleGroup bindings={titleBindings} savedAssets={savedAssets} changes={changes} previewUrls={previewUrls} activity={activity["title-animation"]} onValidate={validateFiles} onRevert={() => revert(HOSTED_TEACHER_UI_TITLE_BINDING_IDS)} /> : null}
-        {section !== "overview" ? <div className="b2-hosted-ui-slots">{visibleBindings.map((binding) => <AssetSlot key={binding.id} binding={binding} savedAssets={savedAssets} changes={changes} previewUrls={previewUrls} activity={activity[binding.id]} onReplace={(selected, file) => validateFiles([{ bindingId: selected.id, file }])} onRevert={revert} />)}</div> : null}
+        {section === "branding-title" ? <TitleGroup bindings={titleBindings} savedAssets={savedAssets} changes={changes} previewUrls={previewUrls} identity={identity} activity={activity["title-animation"]} onValidate={validateFiles} onRevert={() => revert(HOSTED_TEACHER_UI_TITLE_BINDING_IDS)} /> : null}
+        {section !== "overview" ? <div className="b2-hosted-ui-slots">{visibleBindings.map((binding) => <AssetSlot key={binding.id} binding={binding} savedAssets={savedAssets} changes={changes} previewUrls={previewUrls} identity={identity} activity={activity[binding.id]} onReplace={(selected, file) => validateFiles([{ bindingId: selected.id, file }])} onRevert={revert} />)}</div> : null}
       </section>
     </div>
   </main>;

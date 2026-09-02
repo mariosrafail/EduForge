@@ -21,6 +21,32 @@ export async function claimBuilderUnitExtraAssetUpload(sql, input) {
   };
 }
 
+export async function loadBuilderUnitExtraAssetUploadScope(sql, { uploadId, builderUserId }) {
+  const rows = await sql`
+    select package.slug book_slug,component.slug component_slug,unit_record.slug unit_slug,
+      upload.unit_extra_item_id,upload.asset_slot
+    from builder_unit_extra_asset_upload_sessions upload
+    join book_packages package on package.id=upload.book_package_id
+    join book_components component
+      on component.id=upload.book_component_id
+      and component.book_package_id=package.id
+    join units unit_record
+      on unit_record.id=upload.unit_id
+      and unit_record.book_component_id=component.id
+    where upload.id=${uploadId}::uuid
+      and upload.created_by_builder_user_id=${builderUserId}::uuid
+    limit 1
+  `;
+  const row = rows[0];
+  return row ? {
+    bookSlug: row.book_slug,
+    componentSlug: row.component_slug,
+    unitSlug: row.unit_slug,
+    itemId: row.unit_extra_item_id,
+    assetSlot: row.asset_slot,
+  } : null;
+}
+
 export async function completeBuilderUnitExtraAssetUpload(sql, input) {
   const rows = await sql`select complete_builder_unit_extra_asset_upload(
     ${input.uploadId}::uuid,${input.builderUserId}::uuid,${input.objectKey},${input.storageBucket},

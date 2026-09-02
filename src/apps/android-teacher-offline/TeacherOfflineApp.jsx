@@ -20,6 +20,8 @@ import TeacherViewerStartupStatus from "./TeacherViewerStartupStatus.jsx";
 import { runInteractiveViewerStartup } from "./interactiveStartupAssets.js";
 import { ACTIVE_TEACHER_THEME, useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import { resolveTeacherBookMenuSkin } from "./teacherBookMenuSkins.js";
+import { teacherLibraryUnitMetadata } from "./teacherOfflineUnitMetadata.js";
+import { usePrefersReducedMotion } from "./usePrefersReducedMotion.js";
 import {
   createUltimateB2TeacherRuntimeUiAssets,
   TeacherRuntimeUiAssetsProvider,
@@ -118,20 +120,6 @@ function emptyComponentState(status = "idle") {
   return { status, phase: status, progress: null, pack: null, error: null, message: "" };
 }
 
-function usePrefersReducedMotion() {
-  const query = "(prefers-reduced-motion: reduce)";
-  const [reduced, setReduced] = useState(() => globalThis.matchMedia?.(query).matches ?? false);
-  useEffect(() => {
-    const media = globalThis.matchMedia?.(query);
-    if (!media) return undefined;
-    const update = () => setReduced(media.matches);
-    update();
-    media.addEventListener?.("change", update);
-    return () => media.removeEventListener?.("change", update);
-  }, []);
-  return reduced;
-}
-
 export default function TeacherOfflineApp() {
   const viewport = useTeacherViewportProfile();
   const defaultRuntime = useMemo(() => getDefaultReviewComponent(), []);
@@ -146,26 +134,36 @@ export default function TeacherOfflineApp() {
       : componentRequest.kind === "none" ? defaultRuntime
         : null
   ), [componentRequest, defaultRuntime]);
+  const packageRuntimes = useMemo(() => [...reviewComponentRegistry.installed.values()]
+    .filter((runtime) => runtime.bookSlug === (initialRuntime || defaultRuntime).bookSlug), [defaultRuntime, initialRuntime]);
   const initialRuntimeContext = useMemo(() => resolveHostedViewerRuntimeContext(), []);
   const [activeRuntime, setActiveRuntime] = useState(initialRuntime);
   const [productState, setProductState] = useState(initialPackState);
   const [componentStates, setComponentStates] = useState(() => Object.fromEntries(
-    [...reviewComponentRegistry.installed.values()].map((runtime) => [runtime.key, emptyComponentState()]),
+    packageRuntimes.map((runtime) => [runtime.key, emptyComponentState()]),
   ));
   const componentStatesRef = useRef(componentStates);
   const componentPreparationRef = useRef(new Map());
   const prepareComponentRef = useRef(async () => null);
   const authorizationSessionRef = useRef(null);
   const [authorizationRevision, setAuthorizationRevision] = useState(0);
+  const runtimeUiIdentity = initialRuntime?.uiOwnerIdentity || componentIdentity(initialRuntime || defaultRuntime);
+  useEffect(() => {
+    if (hosted) document.title = `${initialRuntime?.book.title || componentRequest.bookTitle || "Hamilton House"} Viewer`;
+  }, [componentRequest.bookTitle, hosted, initialRuntime]);
   const updateComponentState = useCallback((runtime, state) => {
     const current = componentStatesRef.current[runtime.key] || emptyComponentState();
     const next = typeof state === "function" ? state(current) : state;
     componentStatesRef.current = { ...componentStatesRef.current, [runtime.key]: next };
     setComponentStates(componentStatesRef.current);
   }, []);
+  const runtimeUiContext = useMemo(() => {
+    void authorizationRevision;
+    return authorizationSessionRef.current?.contextFor(runtimeUiIdentity) || initialRuntimeContext;
+  }, [authorizationRevision, initialRuntimeContext, runtimeUiIdentity.bookSlug, runtimeUiIdentity.componentSlug]);
   const runtimeUiAssets = useMemo(
-    () => createUltimateB2TeacherRuntimeUiAssets(productState.uiManifest, initialRuntimeContext),
-    [initialRuntimeContext, productState.uiManifest],
+    () => createUltimateB2TeacherRuntimeUiAssets(productState.uiManifest, runtimeUiContext, runtimeUiIdentity),
+    [productState.uiManifest, runtimeUiContext, runtimeUiIdentity.bookSlug, runtimeUiIdentity.componentSlug],
   );
   const classroomSound = useLegacyClassroomSound(runtimeUiAssets);
   const settings = useTeacherOfflineSettings();
@@ -207,7 +205,7 @@ export default function TeacherOfflineApp() {
     initialPreviewAppliedRef.current = false;
     setActiveRuntime(initialRuntime);
     setProductState(initialPackState);
-    const resetStates = Object.fromEntries([...reviewComponentRegistry.installed.values()].map((runtime) => [runtime.key, emptyComponentState()]));
+    const resetStates = Object.fromEntries(packageRuntimes.map((runtime) => [runtime.key, emptyComponentState()]));
     componentStatesRef.current = resetStates;
     setComponentStates(resetStates);
     const authorizationSession = createHostedPreviewComponentAuthorizationSession({
@@ -237,15 +235,16 @@ export default function TeacherOfflineApp() {
         const family = await loadHostedReleaseFamily({ runtimeContext, identity: componentIdentity(initialRuntime), signal: controller.signal });
         markUnavailableReleaseMembers({ family, registry: reviewComponentRegistry, unavailableReleaseMembers, updateComponentState, emptyComponentState });
       }
-      const shellRuntime = reviewComponentRegistry.resolve("ultimate-b2", "ultimate-b2-students-book").runtime;
-      const shellContext = await authorizationSession.ensure(componentIdentity(shellRuntime));
+      const shellIdentity = initialRuntime.uiOwnerIdentity || componentIdentity(initialRuntime);
+      const shellContext = await authorizationSession.ensure(shellIdentity);
       recordPreparation(initialRuntime);
       globalThis.dispatchEvent?.(new CustomEvent("teacher:product-startup", { detail: { count: 1 } }));
       const pending = runInteractiveViewerStartup({
         loadContentPack: () => initialRuntime.contentPackProvider.load({ runtimeContext, signal: controller.signal }),
-        loadUiManifest: ({ signal }) => shellRuntime.uiManifestProvider?.load?.({ runtimeContext: shellContext, signal }) || Promise.resolve(null),
+        loadUiManifest: ({ signal }) => initialRuntime.uiManifestProvider?.load?.({ runtimeContext: shellContext, signal }) || Promise.resolve(null),
         prepareHotspots: () => initialRuntime.hotspotProvider?.prepare?.({ runtimeContext, signal: controller.signal }) || Promise.resolve(),
         startupAssets: initialRuntime.startupAssets,
+        assetRuntimeContext: shellContext,
         signal: controller.signal,
         onState: (state) => {
           const normalized = {
@@ -263,7 +262,7 @@ export default function TeacherOfflineApp() {
       updateComponentState(initialRuntime, { status: "ready", phase: "ready", progress: null, pack: result.pack, error: null, message: "" });
       setProductState((current) => ({ ...current, status: "ready", phase: "ready", pack: null, uiManifest: result.uiManifest, error: null, message: "" }));
       if (initialRuntimeContext.kind === HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW) {
-        for (const runtime of reviewComponentRegistry.installed.values()) {
+        for (const runtime of packageRuntimes) {
           if (runtime.key !== initialRuntime.key) void prepareMetadata(runtime).catch(() => {});
         }
       }
@@ -284,7 +283,7 @@ export default function TeacherOfflineApp() {
       authorizationSession.dispose();
       if (authorizationSessionRef.current === authorizationSession) authorizationSessionRef.current = null;
     };
-  }, [initialRuntime, initialRuntimeContext, startupAttempt, updateComponentState]);
+  }, [initialRuntime, initialRuntimeContext, packageRuntimes, startupAttempt, updateComponentState]);
 
   useEffect(() => {
     recordTeacherOfflineNavigation(navigation.view);
@@ -427,7 +426,7 @@ export default function TeacherOfflineApp() {
     window.history.replaceState(next, "", hash);
   }, [hostedPreviewIntent, initialComponentState.status, initialRuntime]);
 
-  const productPackageId = "ultimate-b2-students-book";
+  const productPackageId = runtimeUiIdentity.componentSlug;
   const selectedMenuSkinId = productState.status === "ready" ? selectedBookMenuSkinId(bookMenuSkinSelections, productPackageId) : "";
   const menuSkin = productState.status === "ready" ? resolveTeacherBookMenuSkin(productPackageId, selectedMenuSkinId, runtimeUiAssets) : null;
   const openBookActivity = (activityId, originLocation = null) => {
@@ -507,16 +506,18 @@ export default function TeacherOfflineApp() {
       setComponentFeedback("The selected component could not be authorized or prepared for Builder Review. Refresh the review and try again.");
     });
   };
-  const unitAvailabilityByEdition = Object.fromEntries([...reviewComponentRegistry.installed.values()].map((runtime) => [
+  const unitAvailabilityByEdition = Object.fromEntries(packageRuntimes.map((runtime) => [
     runtime.component.teacherEditionId,
     new Set(((componentStates[runtime.key]?.pack?.pageUnits) || runtime.pageUnits || []).map((unit) => Number(unit.number))),
   ]));
-  const unavailableEditionIds = new Set([...reviewComponentRegistry.installed.values()]
+  const unavailableEditionIds = new Set(packageRuntimes
     .filter((runtime) => componentStates[runtime.key]?.status === "unavailable")
     .map((runtime) => runtime.component.teacherEditionId));
-  const unavailableEditionMessages = new Map([...reviewComponentRegistry.installed.values()]
+  const unavailableEditionMessages = new Map(packageRuntimes
     .filter((runtime) => componentStates[runtime.key]?.status === "unavailable")
     .map((runtime) => [runtime.component.teacherEditionId, componentStates[runtime.key].message]));
+  const packageStudentsRuntime = packageRuntimes.find((runtime) => runtime.component.teacherEditionId === "students-book");
+  const packageUnitMetadata = teacherLibraryUnitMetadata(packageStudentsRuntime?.bookSlug, componentStates[packageStudentsRuntime?.key]?.pack?.pageUnits || packageStudentsRuntime?.pageUnits || []);
   let content;
   if (startupIntroPending) {
     content = <TeacherStartupIntro onFinish={() => setStartupIntroPending(false)} />;
@@ -524,14 +525,14 @@ export default function TeacherOfflineApp() {
     content = <main className="teacher-viewer-preview-invalid" role="alert"><h1>Preview unavailable</h1><p>{componentRequest.message}</p></main>;
   } else if (productState.status === "loading") {
     content = initialRuntime.startupAssets.hosted
-      ? <TeacherViewerStartupStatus state={productState} hosted />
+      ? <TeacherViewerStartupStatus state={productState} hosted bookTitle={initialRuntime.book.title} />
       : <div className="teacher-offline-pack-wait" aria-hidden="true" />;
   } else if (productState.status === "error") {
-    content = <TeacherViewerStartupStatus state={productState} hosted={initialRuntime.startupAssets.hosted} onRetry={() => setStartupAttempt((attempt) => attempt + 1)} />;
+    content = <TeacherViewerStartupStatus state={productState} hosted={initialRuntime.startupAssets.hosted} bookTitle={initialRuntime.book.title} onRetry={() => setStartupAttempt((attempt) => attempt + 1)} />;
   } else if (!initialPreviewAppliedRef.current && (hostedPreviewIntent.kind === "invalid" || hostedPreviewIntent.kind === "unavailable")) {
     content = <main className="teacher-viewer-preview-invalid" role="alert"><h1>Preview unavailable</h1><p>{hostedPreviewIntent.message}</p></main>;
   } else if (activeComponentState.status === "loading" || activeComponentState.status === "idle") {
-    content = <main className="teacher-offline-component-status" role="status"><h1>Preparing {activeRuntime.component.title}</h1><p>The Ultimate B2 interface remains ready while this book is prepared.</p></main>;
+    content = <main className="teacher-offline-component-status" role="status"><h1>Preparing {activeRuntime.component.title}</h1><p>The {activeRuntime.book.title} interface remains ready while this book is prepared.</p></main>;
   } else if (activeComponentState.status === "error") {
     content = <main className="teacher-offline-component-status damaged" role="alert"><h1>{activeRuntime.component.title} could not be prepared</h1><p>{activeComponentState.message}</p></main>;
   } else if (navigation.view === "media") {
@@ -567,6 +568,7 @@ export default function TeacherOfflineApp() {
     content = (
       <TeacherOfflineLibrary
         menuSkin={menuSkin}
+        units={packageUnitMetadata}
         unitAvailabilityByEdition={unitAvailabilityByEdition}
         onOpenUnit={(editionId, unitNumber) => switchTeacherEdition(editionId, unitNumber)}
         animationsActive={animationsActive}

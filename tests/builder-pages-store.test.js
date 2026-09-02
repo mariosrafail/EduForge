@@ -5,6 +5,7 @@ import {
   claimBuilderPageUpload,
   completeBuilderPageUpload,
   loadBuilderPages,
+  loadBuilderPageUploadScope,
   mutateCanonicalBuilderPage,
   mutateBuilderPage,
   prepareBuilderPageUpload,
@@ -27,6 +28,14 @@ test("Pages store preserves nullable outcome revisions", async () => {
   assert.equal((await prepareBuilderPageUpload(sqlReturning([{ current_revision: null }]), {})).current_revision, null);
   assert.equal((await claimBuilderPageUpload(sqlReturning([{ current_revision: null }]), {})).current_revision, null);
   assert.equal((await mutateBuilderPage(sqlReturning([{ current_revision: null }]), {})).current_revision, null);
+});
+
+test("Pages store resolves an upload's immutable package and component scope", async () => {
+  assert.deepEqual(await loadBuilderPageUploadScope(sqlReturning([{ book_slug: "ultimate-b1", component_slug: "ultimate-b1-workbook" }]), {}), {
+    bookSlug: "ultimate-b1",
+    componentSlug: "ultimate-b1-workbook",
+  });
+  assert.equal(await loadBuilderPageUploadScope(sqlReturning([]), {}), null);
 });
 
 test("Pages store rejects malformed, negative, fractional, and unsafe revisions", async () => {

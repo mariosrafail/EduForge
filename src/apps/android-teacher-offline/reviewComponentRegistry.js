@@ -33,10 +33,20 @@ const studentsBookRuntime = {
   uiManifestProvider: interactiveUiManifestProvider,
 };
 
-const hostedManagedRuntimes = interactiveStartupAssets.hosted ? [
-  createManagedReviewDescriptor("ultimate-b2-workbook"),
-  createManagedReviewDescriptor("ultimate-b2-grammar-book"),
-] : [];
+const HOSTED_MANAGED_IDENTITIES = Object.freeze([
+  Object.freeze({ bookSlug: "ultimate-b1", componentSlug: "ultimate-b1-students-book" }),
+  Object.freeze({ bookSlug: "ultimate-b1", componentSlug: "ultimate-b1-workbook" }),
+  Object.freeze({ bookSlug: "ultimate-b1", componentSlug: "ultimate-b1-grammar-book" }),
+  Object.freeze({ bookSlug: "ultimate-b1-plus", componentSlug: "ultimate-b1-plus-students-book" }),
+  Object.freeze({ bookSlug: "ultimate-b1-plus", componentSlug: "ultimate-b1-plus-workbook" }),
+  Object.freeze({ bookSlug: "ultimate-b1-plus", componentSlug: "ultimate-b1-plus-grammar-book" }),
+  Object.freeze({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook" }),
+  Object.freeze({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-grammar-book" }),
+]);
+
+const hostedManagedRuntimes = interactiveStartupAssets.hosted
+  ? HOSTED_MANAGED_IDENTITIES.map(createManagedReviewDescriptor)
+  : [];
 
 export const reviewComponentRegistry = createReviewComponentRegistry(bookProductCatalog, [studentsBookRuntime, ...hostedManagedRuntimes], DEFAULT_IDENTITY);
 

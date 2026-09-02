@@ -119,7 +119,7 @@ test("Workbook and Grammar create every registered native kind and reload only t
 test("client source pins catalog identity, route generations, visible errors, and scope-bearing editor keys", async () => {
   const [api, app] = await Promise.all([
     readFile(new URL("../src/apps/book-builder/hosted/builderNativeActivityApi.js", import.meta.url), "utf8"),
-    readFile(new URL("../src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/book-builder/hosted/HostedActivityWorkspace.jsx", import.meta.url), "utf8"),
   ]);
   assert.match(api, /value\.bookSlug !== bookSlug \|\| value\.componentSlug !== componentSlug/);
   assert.match(api, /getNativeActivityCatalogResult/); assert.match(api, /return \(await getNativeActivityCatalogResult\(identity, options\)\)\.activities/);

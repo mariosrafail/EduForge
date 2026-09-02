@@ -1,9 +1,9 @@
 import { normalizeHostedTeacherUiPreview } from "../../data/ultimate-b2/hostedTeacherUiDocument.js";
 import { HOSTED_VIEWER_RUNTIME_MODES, authorizedHostedPreviewPath, hostedReleasePath, resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
 
-const previewPath = "/preview/content/books/ultimate-b2/components/ultimate-b2-students-book/ui-controller";
-
-export const interactiveUiManifestProvider = Object.freeze({
+export function createHostedReviewUiManifestProvider({ bookSlug, componentSlug }) {
+  const previewPath = `/preview/content/books/${bookSlug}/components/${componentSlug}/ui-controller`;
+  return Object.freeze({
   async load({ runtimeContext = resolveHostedViewerRuntimeContext(), fetchImpl = globalThis.fetch, signal } = {}) {
     const context = runtimeContext;
     if (context.kind === HOSTED_VIEWER_RUNTIME_MODES.BARE) return null;
@@ -13,7 +13,7 @@ export const interactiveUiManifestProvider = Object.freeze({
       throw error;
     }
     const response = await fetchImpl(context.kind === HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW
-      ? hostedReleasePath(context, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" }, "teacher-ui")
+      ? hostedReleasePath(context, { bookSlug, componentSlug }, "teacher-ui")
       : authorizedHostedPreviewPath(previewPath, context.authorization), { method: "GET", cache: "no-store", credentials: "omit", signal });
     if (response.status === 404) return null;
     if (!response.ok) {
@@ -22,6 +22,12 @@ export const interactiveUiManifestProvider = Object.freeze({
       throw error;
     }
     const payload = await response.json();
-    return normalizeHostedTeacherUiPreview(payload?.document);
+    return normalizeHostedTeacherUiPreview(payload?.document, { packageId: componentSlug });
   },
+  });
+}
+
+export const interactiveUiManifestProvider = createHostedReviewUiManifestProvider({
+  bookSlug: "ultimate-b2",
+  componentSlug: "ultimate-b2-students-book",
 });

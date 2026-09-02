@@ -1,11 +1,19 @@
 const endpoint = "/builder/api/preview-authorization";
-const NAVIGABLE_MANAGED_COMPONENTS = new Set(["ultimate-b2-workbook", "ultimate-b2-grammar-book"]);
+const NAVIGABLE_MANAGED_COMPONENTS = new Set([
+  "ultimate-b1/ultimate-b1-students-book",
+  "ultimate-b1/ultimate-b1-workbook",
+  "ultimate-b1/ultimate-b1-grammar-book",
+  "ultimate-b1-plus/ultimate-b1-plus-students-book",
+  "ultimate-b1-plus/ultimate-b1-plus-workbook",
+  "ultimate-b1-plus/ultimate-b1-plus-grammar-book",
+  "ultimate-b2/ultimate-b2-workbook",
+  "ultimate-b2/ultimate-b2-grammar-book",
+]);
 
 export function resolveBuilderPreviewAuthorizationIntent({ bookSlug, componentSlug, intent }) {
   const navigableManagedDraft = !intent?.productReleaseId
-    && bookSlug === "ultimate-b2"
     && intent?.view === "page"
-    && NAVIGABLE_MANAGED_COMPONENTS.has(componentSlug);
+    && NAVIGABLE_MANAGED_COMPONENTS.has(`${bookSlug}/${componentSlug}`);
   return {
     bookSlug,
     componentSlug,

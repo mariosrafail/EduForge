@@ -51,6 +51,8 @@ test("fallback code is fail-closed and scopes the recovered catalog to B2 Studen
   assert.match(packagesSource, /\)\) \|\| null;/);
   assert.match(packagesSource, /if \(normalized\.startsWith\("ultimate-b1-plus"\)\) return "ultimate-b1-plus"/);
   assert.match(packagesSource, /return "";\s*\}/);
+  assert.match(packagesSource, /ultimateB1Package = filterPhaseOneComponents\(emptyUltimatePackage\("ultimate-b1"\)\)/);
+  assert.match(packagesSource, /ultimateB1PlusPackage = filterPhaseOneComponents\(emptyUltimatePackage\("ultimate-b1-plus"\)\)/);
   assert.match(apiSource, /packageIdentity === "ultimate-b2"[\s\S]*component\.slug === "ultimate-b2-students-book"/);
   assert.doesNotMatch(androidSource, /resolveBookPackage\(englishJourney6Package\),/);
   assert.match(androidSource, /return filterPhaseOneComponents\(\{/);

@@ -3,9 +3,13 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const read = (file) => readFile(file, "utf8");
+const hostedHotspotSource = async () => [
+  await read("src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx"),
+  await read("src/apps/book-builder/hosted/HostedHotspotBuilder.jsx"),
+].join("\n");
 
 test("hosted Hotspot Builder reuses the proven editor and exposes explicit persistence state", async () => {
-  const editor = await read("src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx");
+  const editor = await hostedHotspotSource();
   assert.match(editor, /EditableHotspotLayer/);
   assert.match(editor, /ultimateB2StudentsBookPageUnits/);
   assert.match(editor, /android-content-packs\/ultimate-b2-students-book\/catalog\.json/);
@@ -31,7 +35,7 @@ test("hosted Hotspot Builder reuses the proven editor and exposes explicit persi
 });
 
 test("hosted conflict handling retains local edits until explicit reload", async () => {
-  const editor = await read("src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx");
+  const editor = await hostedHotspotSource();
   const conflict = editor.match(/if \(requestError instanceof BuilderContentApiError[\s\S]*?\n\s*\} else/)?.[0] || "";
   assert.match(conflict, /setConflictRevision/);
   assert.match(conflict, /setStatus\("Conflict"\)/);
@@ -41,7 +45,7 @@ test("hosted conflict handling retains local edits until explicit reload", async
 });
 
 test("Viewer refresh advances only after a successful persisted hotspot save", async () => {
-  const editor = await read("src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx");
+  const editor = await hostedHotspotSource();
   const saveBody = editor.match(/async function save\(\) \{[\s\S]*?\n  \}/)?.[0] || "";
   const success = saveBody.match(/setManifest\(payload\.document\)[\s\S]*?setViewerRefreshKey\(\(value\) => value \+ 1\)/)?.[0] || "";
   assert.match(success, /setStatus\("Saved"\)/);
@@ -51,16 +55,18 @@ test("Viewer refresh advances only after a successful persisted hotspot save", a
 });
 
 test("Students adapter exposes component tools while the UI Controller is package-owned", async () => {
-  const [adapters, shell, workspace] = await Promise.all([
+  const [adapters, shell, b2Workspace, activityWorkspace] = await Promise.all([
     read("src/apps/book-builder/hosted/hostedBuilderAdapters.jsx"),
     read("src/apps/book-builder/hosted/HostedBookBuilderApp.jsx"),
     read("src/apps/ultimate-b2-builder/HostedUltimateB2BuilderApp.jsx"),
+    read("src/apps/book-builder/hosted/HostedActivityWorkspace.jsx"),
   ]);
+  const workspace = `${b2Workspace}\n${activityWorkspace}`;
   assert.match(adapters, /pages: Object\.freeze\(\{ readable: true, writable: true \}\)/);
   assert.match(adapters, /hotspots: Object\.freeze\(\{ readable: true, writable: true \}\)/);
   assert.match(adapters, /activities: Object\.freeze\(\{ readable: true, writable: true \}\)/);
   assert.doesNotMatch(adapters.match(/"ultimate-b2-students-book":[\s\S]*?Workspace: UltimateB2StudentsBookWorkspace/)?.[0] || "", /uiController/);
-  assert.match(adapters, /"ultimate-b2-page-ui": Object\.freeze\(\{ Tool: HostedTeacherUiController \}\)/);
+  assert.match(adapters, /"ultimate-b2-page-ui": Object\.freeze\(\{ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", Tool: HostedTeacherUiController \}\)/);
   assert.match(shell, /tools\.filter\(\(\{ capability \}\) => adapter\.capabilities\[capability\]\?\.readable\)/);
   assert.match(shell, /adapter\.capabilities\[capability\]\.writable \? "Editable" : "Read-only"/);
   assert.doesNotMatch(workspace, /HostedTeacherUiController/);
@@ -77,7 +83,7 @@ test("Students adapter exposes component tools while the UI Controller is packag
 test("hosted and local hotspot persistence transports stay deliberately separate", async () => {
   const [hostedClient, hostedEditor, localEditor, localPlugin] = await Promise.all([
     read("src/apps/book-builder/hosted/builderContentApi.js"),
-    read("src/apps/ultimate-b2-builder/HostedUltimateB2HotspotBuilder.jsx"),
+    read("src/apps/book-builder/hosted/HostedHotspotBuilder.jsx"),
     read("src/apps/ultimate-b2-builder/UltimateB2HotspotBuilder.jsx"),
     read("scripts/ultimate-b2/hotspot-builder-vite-plugin.mjs"),
   ]);

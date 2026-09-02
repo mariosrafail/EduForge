@@ -11,13 +11,14 @@ import {
 } from "../src/data/ultimate-b2/hostedTeacherUiBindingCatalog.js";
 import {
   createEmptyHostedTeacherUiDocument,
+  hostedTeacherUiAssetPath,
   normalizeHostedTeacherUiDocument,
   normalizeHostedTeacherUiPreview,
   projectHostedTeacherUiPreview,
 } from "../src/data/ultimate-b2/hostedTeacherUiDocument.js";
 import { ultimateB2TeacherAppAuthoring, ultimateB2TeacherAppDefaultAssets } from "../src/data/ultimate-b2/teacherAppAuthoring.js";
 import { createTeacherRuntimeUiAssetModel } from "../src/apps/android-teacher-offline/teacherRuntimeUiAssetModel.js";
-import { teacherUiAssetErrorMessage } from "../src/apps/book-builder/hosted/builderTeacherUiAssetApi.js";
+import { builderTeacherUiAssetApiScopedRoot, teacherUiAssetErrorMessage } from "../src/apps/book-builder/hosted/builderTeacherUiAssetApi.js";
 
 const actorId = "10000000-0000-4000-8000-000000000001";
 const headers = { host: "builder.example", origin: "https://builder.example", "content-type": "application/json" };
@@ -73,7 +74,7 @@ test("package controllers separate effective visual thumbnails from the read-onl
     readFile("src/apps/ultimate-b2-builder/HostedSoundController.jsx", "utf8"),
   ]);
   assert.match(visualController, /category !== "sounds" && mediaFamily !== "audio"/);
-  assert.match(visualController, /previewUrls\[binding\.id\][\s\S]*hostedTeacherUiAssetPath\(saved\)[\s\S]*resolveUltimateB2BuilderVisualAssetUrl\(binding\.id\)/);
+  assert.match(visualController, /previewUrls\[binding\.id\][\s\S]*hostedTeacherUiAssetPath\(saved, identity\)[\s\S]*resolveUltimateB2BuilderVisualAssetUrl\(binding\.id\)/);
   assert.match(visualController, /URL\.createObjectURL\(file\)/);
   assert.match(visualController, /URL\.revokeObjectURL/);
   assert.match(visualController, /effective (?:asset|atlas)/);
@@ -81,6 +82,14 @@ test("package controllers separate effective visual thumbnails from the read-onl
   assert.match(soundController, /Sound authoring will be added in a later milestone\./);
   assert.match(soundController, /saved \? "Saved override" : "Canonical"/);
   assert.doesNotMatch(soundController, /type="file"|uploadTeacherUiAsset|saveTeacherUiDocument|<audio\b|<button\b/);
+  for (const source of [visualController, soundController]) {
+    assert.match(source, /bookSlug = "ultimate-b2"/);
+    assert.match(source, /componentSlug = "ultimate-b2-students-book"/);
+    assert.match(source, /bookTitle = "Ultimate B2"/);
+    assert.match(source, /normalizeHostedTeacherUiDocument\(payload\.document, /);
+  }
+  assert.match(visualController, /prepareTeacherUiAssets\(\{ bookSlug, componentSlug,/);
+  assert.match(visualController, /saveTeacherUiDocument\(\{ bookSlug, componentSlug,/);
 });
 
 test("hosted Teacher UI operational errors have concise non-secret messages", () => {
@@ -103,6 +112,31 @@ test("hosted Teacher UI schema normalizes overrides, strips private diagnostics,
   ]) assert.throws(() => normalizeHostedTeacherUiDocument(invalid));
 });
 
+test("hosted Teacher UI documents and draft assets preserve B2 compatibility while scoping B1/B1+ identities", () => {
+  const sample = asset();
+  assert.equal(createEmptyHostedTeacherUiDocument().packageId, "ultimate-b2-students-book");
+  assert.equal(hostedTeacherUiAssetPath(sample), `/preview/ui-assets-v2/${checksum}.png`);
+  for (const bookSlug of ["ultimate-b1", "ultimate-b1-plus"]) {
+    const componentSlug = `${bookSlug}-students-book`;
+    const empty = createEmptyHostedTeacherUiDocument(componentSlug);
+    assert.deepEqual(empty, { schemaVersion: "1.0", packageId: componentSlug, assets: {} });
+    assert.equal(normalizeHostedTeacherUiDocument(empty, { packageId: componentSlug }).packageId, componentSlug);
+    assert.throws(() => normalizeHostedTeacherUiDocument(empty), /identity/);
+    assert.equal(hostedTeacherUiAssetPath(sample, { bookSlug, componentSlug }), `/preview/ui-assets-v2/books/${bookSlug}/components/${componentSlug}/${checksum}.png`);
+    assert.equal(builderTeacherUiAssetApiScopedRoot({ bookSlug, componentSlug }), `/builder/api/ui-assets/books/${bookSlug}/components/${componentSlug}`);
+  }
+  assert.throws(() => builderTeacherUiAssetApiScopedRoot({ bookSlug: "../b1", componentSlug: "ultimate-b1-students-book" }), /identity/);
+});
+
+test("B1 runtime UI uses the same immutable definitions with B1 package metadata and scoped overrides", () => {
+  const identity = { bookSlug: "ultimate-b1", componentSlug: "ultimate-b1-students-book" };
+  const document = normalizeHostedTeacherUiDocument({ ...createEmptyHostedTeacherUiDocument(identity.componentSlug), assets: { "background.main": asset() } }, { packageId: identity.componentSlug });
+  const preview = projectHostedTeacherUiPreview(document, { packageId: identity.componentSlug });
+  const resolved = createTeacherRuntimeUiAssetModel({ authoring: ultimateB2TeacherAppAuthoring, resolveCanonicalAssetUrl: ({ id }) => `canonical:${id}`, hostedPreview: preview, identity });
+  assert.equal(resolved.classroom.backgrounds.classroomGlacier, `/preview/ui-assets-v2/books/ultimate-b1/components/ultimate-b1-students-book/${checksum}.png`);
+  assert.equal(Object.keys(resolved.classroom.sounds).length, 4);
+});
+
 test("runtime factory changes only the selected binding and reaches menu, toolbar, navigation, title, sound, hotspot, and media chrome", () => {
   const canonical = createTeacherRuntimeUiAssetModel({ authoring: ultimateB2TeacherAppAuthoring, resolveCanonicalAssetUrl: ({ id }) => `canonical:${id}` });
   const preview = projectHostedTeacherUiPreview(normalizeHostedTeacherUiDocument({ ...createEmptyHostedTeacherUiDocument(), assets: { "background.main": asset() } }));
@@ -112,20 +146,15 @@ test("runtime factory changes only the selected binding and reaches menu, toolba
   for (const value of [resolved.classroom.branding.bookMenu.units, resolved.toolbarItems, resolved.classroom.bookSwitches, resolved.classroom.revealControls, resolved.classroom.branding.menuTitle, resolved.classroom.sounds, resolved.classroom.controls, resolved.classroom.mediaPlayer]) assert.ok(value);
 });
 
-test("exact release Teacher UI assets carry the preview authorization", () => {
+test("exact release Teacher UI assets use the explicit UI-owner member context", () => {
   const releaseId = "10000000-0000-4000-8000-000000000099";
   const productReleaseId = "10000000-0000-4000-8000-000000000098";
   const memberSha256 = "b".repeat(64);
   const token = `v3.${Buffer.from("scope").toString("base64url")}.${"a".repeat(43)}`;
-  const descriptor = Object.getOwnPropertyDescriptor(globalThis, "location");
-  Object.defineProperty(globalThis, "location", { configurable: true, value: new URL(`https://hhplms-viewer.netlify.app/?builderPreview=1&previewAuthorization=${token}&productReleaseId=${productReleaseId}&releaseId=${releaseId}&memberSha256=${memberSha256}`) });
-  try {
-    const preview = projectHostedTeacherUiPreview(normalizeHostedTeacherUiDocument({ ...createEmptyHostedTeacherUiDocument(), assets: { "background.main": asset() } }));
-    const resolved = createTeacherRuntimeUiAssetModel({ authoring: ultimateB2TeacherAppAuthoring, resolveCanonicalAssetUrl: ({ id }) => `canonical:${id}`, hostedPreview: preview });
-    assert.equal(resolved.classroom.backgrounds.classroomGlacier, `/preview/releases/books/ultimate-b2/components/ultimate-b2-students-book/${releaseId}/assets/${checksum}.png?previewAuthorization=${encodeURIComponent(token)}`);
-  } finally {
-    if (descriptor) Object.defineProperty(globalThis, "location", descriptor); else delete globalThis.location;
-  }
+  const preview = projectHostedTeacherUiPreview(normalizeHostedTeacherUiDocument({ ...createEmptyHostedTeacherUiDocument(), assets: { "background.main": asset() } }));
+  const runtimeContext = { kind: "release-preview", teacherPreview: true, authorization: token, productReleaseId, releaseId, memberSha256 };
+  const resolved = createTeacherRuntimeUiAssetModel({ authoring: ultimateB2TeacherAppAuthoring, resolveCanonicalAssetUrl: ({ id }) => `canonical:${id}`, hostedPreview: preview, runtimeContext });
+  assert.equal(resolved.classroom.backgrounds.classroomGlacier, `/preview/releases/books/ultimate-b2/components/ultimate-b2-students-book/${releaseId}/assets/${checksum}.png?previewAuthorization=${encodeURIComponent(token)}`);
 });
 
 test("prepare authenticates one allowlisted slot, creates opaque private staging, and rejects excluded or partial groups", async () => {
@@ -205,6 +234,7 @@ test("finalize inspects actual bytes, promotes immutable content, returns an uns
   let saved = 0;
   const handler = createBuilderTeacherUiAssetsHandler({
     getDatabase: () => ({}), authorize, storage: () => storage, inspect: fakeInspect,
+    loadUploadScope: async () => ({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" }),
     claim: async () => ({ outcome: "claimed", currentRevision: 0, state: "finalizing", fileDescriptors: [{ bindingId: "background.main", name: "replacement.png", size: png.length, type: "image/png", mediaFamily: "raster", objectKey }] }),
     complete: async (_sql, input) => { completed = input; },
     saveDocument: async () => { saved += 1; },
@@ -255,10 +285,12 @@ test("public UI asset delivery keeps v1 compatibility and adds the isolated v2 c
   storage.objects.set(storage.key("public", objectKey), { body: png, contentType: "image/png", sha256: checksum });
   const handler = createBuilderTeacherUiAssetsHandler({ storage: () => storage, logger: { error() {} } });
   for (const namespace of ["ui-assets", "ui-assets-v2"]) {
-    const response = await handler(event(`/preview/${namespace}/${checksum}.png`, undefined, "GET", {}));
-    assert.equal(response.statusCode, 302);
-    assert.equal(response.headers.Location, `https://books.invalid/${objectKey}`);
-    assert.equal(response.headers["Cache-Control"], "public, max-age=31536000, immutable");
+    for (const prefix of ["", "/builder", "/.netlify/functions/builder-teacher-ui-assets"]) {
+      const response = await handler(event(`${prefix}/preview/${namespace}/${checksum}.png`, undefined, "GET", {}));
+      assert.equal(response.statusCode, 302);
+      assert.equal(response.headers.Location, `https://books.invalid/${objectKey}`);
+      assert.equal(response.headers["Cache-Control"], "public, max-age=31536000, immutable");
+    }
   }
   assert.equal((await handler(event(`/preview/ui-assets/${checksum}.png`, undefined, "POST", {}))).statusCode, 405);
   assert.equal((await handler(event(`/preview/ui-assets/${"a".repeat(64)}.png`, undefined, "GET", {}))).statusCode, 404);

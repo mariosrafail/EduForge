@@ -41,3 +41,45 @@ test("migration 053 completes restore, permanent tombstones, and independent Stu
   assert.match(sql, /hotspots_restored',false/i);
   assert.doesNotMatch(sql, /delete\s+from\s+(?:book_pages|book_assets|builder_audit_log|builder_component_releases)/i);
 });
+
+test("migration 056 provisions only empty B1 shells and keeps page authorization tuple-scoped", async () => {
+  const sql = await readFile("database/056_ultimate_b1_managed_package_shells.sql", "utf8");
+  const activeB1Tuples = [
+    ["ultimate-b1", "ultimate-b1-students-book"],
+    ["ultimate-b1", "ultimate-b1-workbook"],
+    ["ultimate-b1", "ultimate-b1-grammar-book"],
+    ["ultimate-b1-plus", "ultimate-b1-plus-students-book"],
+    ["ultimate-b1-plus", "ultimate-b1-plus-workbook"],
+    ["ultimate-b1-plus", "ultimate-b1-plus-grammar-book"],
+  ];
+  const activeTuples = [
+    ["ultimate-b2", "ultimate-b2-students-book"],
+    ["ultimate-b2", "ultimate-b2-workbook"],
+    ["ultimate-b2", "ultimate-b2-grammar-book"],
+    ...activeB1Tuples,
+  ];
+  const resolverStart = sql.indexOf("create or replace function resolve_builder_page_component");
+  const prepareStart = sql.indexOf("create or replace function prepare_builder_component_page_upload");
+  assert.notEqual(resolverStart, -1);
+  assert.notEqual(prepareStart, -1);
+  const resolver = sql.slice(resolverStart, prepareStart);
+  const resolverTuples = [...resolver.matchAll(/\('([^']+)','([^']+)'\)/g)].map((match) => match.slice(1));
+  assert.deepEqual(resolverTuples, activeTuples);
+  assert.doesNotMatch(resolver, /test-book/i);
+
+  const unitSeedStart = sql.indexOf("with active_component_seed");
+  const unitSeedEnd = sql.indexOf("-- Page authoring");
+  const unitSeed = sql.slice(unitSeedStart, unitSeedEnd);
+  const unitSeedTuples = [...unitSeed.matchAll(/\('([^']+)','([^']+)'\)/g)].map((match) => match.slice(1));
+  assert.deepEqual(unitSeedTuples, activeB1Tuples);
+  assert.match(unitSeed, /cross join generate_series\(1,10\)/i);
+
+  assert.match(sql, /\('ultimate-b1','Ultimate English B1 Grammar Book','ultimate-b1-grammar-book','grammar_book',3\)/);
+  assert.match(sql, /\('ultimate-b1','Ultimate English B1 Test Book','ultimate-b1-test-book','test_book',4\)/);
+  assert.match(sql, /\('ultimate-b1-plus','Ultimate English B1\+ Grammar Book','ultimate-b1-plus-grammar-book','grammar_book',3\)/);
+  assert.match(sql, /\('ultimate-b1-plus','Ultimate English B1\+ Test Book','ultimate-b1-plus-test-book','test_book',4\)/);
+  assert.match(sql, /requested_book_slug='ultimate-b2' and requested_component_slug='ultimate-b2-students-book' and requested_mode<>'replace'/i);
+  assert.match(sql, /requested_mode='create'[\s\S]*page_row\.id is not null[\s\S]*requested_mode='replace'[\s\S]*page_row\.id is null/i);
+  assert.doesNotMatch(sql, /insert into\s+(?:book_pages|book_assets|book_page_hotspots|book_activities|book_media_assets|builder_component_documents|book_component_releases|book_product_releases|book_access|activation_codes)\b/i);
+  assert.doesNotMatch(sql, /prepare_builder_unit_extra_asset_upload|builder_product_|book_component_release/i);
+});

@@ -12,8 +12,8 @@ import {
   HOSTED_TEACHER_UI_MEDIA_POLICIES,
   HOSTED_TEACHER_UI_TITLE_BINDING_IDS,
 } from "../../../src/data/ultimate-b2/hostedTeacherUiBindingCatalog.js";
-import { normalizeHostedTeacherUiDocument } from "../../../src/data/ultimate-b2/hostedTeacherUiDocument.js";
 import { getBuilderSql, json, requireBuilderOrigin, requireBuilderUser } from "./_builder-auth.js";
+import { resolveBuilderPackageUi } from "./_builder-component-registry.js";
 import { builderClientMutationIdPattern, builderDocumentSha256, stableBuilderJson } from "./_builder-content-security.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
 import { loadBuilderComponentDocument, saveBuilderComponentDocument } from "./_builder-content-store.js";
@@ -21,12 +21,13 @@ import {
   claimTeacherUiAssetUploadSession,
   completeTeacherUiAssetUploadSession,
   failTeacherUiAssetUploadSession,
+  loadTeacherUiAssetUploadScope,
   loadValidatedTeacherUiAssetCandidates,
   markTeacherUiAssetCandidatesSaved,
   prepareTeacherUiAssetUploadSession,
 } from "./_builder-teacher-ui-assets-store.js";
 
-const identity = Object.freeze({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", resource: "ui-controller" });
+const legacyIdentity = resolveBuilderPackageUi("ultimate-b2", "ultimate-b2-students-book");
 const maximumRequestBytes = 512 * 1024;
 const uploadTtlSeconds = 15 * 60;
 const safeBasenamePattern = /^[A-Za-z0-9][A-Za-z0-9._() -]{0,179}$/;
@@ -36,6 +37,25 @@ const header = (event, name) => Object.entries(event?.headers || {}).find(([key]
 const exactKeys = (value, keys) => value && typeof value === "object" && !Array.isArray(value)
   && Object.keys(value).sort().join("\0") === [...keys].sort().join("\0");
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
+
+function resolveTeacherUiRoute(pathname, resolvePackageUi) {
+  const publicRoutePrefix = /^\/(?:builder\/|\.netlify\/functions\/builder-teacher-ui-assets\/)?preview\//;
+  const publicPathname = pathname.replace(publicRoutePrefix, "/preview/");
+  const scopedPublic = publicPathname.match(/^\/preview\/ui-assets-v2\/books\/([a-z0-9][a-z0-9-]{0,127})\/components\/([a-z0-9][a-z0-9-]{0,127})\/([a-f0-9]{64})\.(png|jpg|webp|mp3|wav|gaf)\/?$/);
+  if (scopedPublic) {
+    const identity = resolvePackageUi(scopedPublic[1], scopedPublic[2]);
+    return identity ? { kind: "public", identity, checksum: scopedPublic[3], extension: scopedPublic[4] } : null;
+  }
+  const legacyPublic = publicPathname.match(/^\/preview\/ui-assets(?:-v2)?\/([a-f0-9]{64})\.(png|jpg|webp|mp3|wav|gaf)\/?$/);
+  if (legacyPublic) return { kind: "public", identity: legacyIdentity, checksum: legacyPublic[1], extension: legacyPublic[2] };
+  const scopedApi = pathname.match(/^\/(?:builder\/api\/ui-assets|\.netlify\/functions\/builder-teacher-ui-assets)\/books\/([a-z0-9][a-z0-9-]{0,127})\/components\/([a-z0-9][a-z0-9-]{0,127})\/(prepare|finalize|save)\/?$/);
+  if (scopedApi) {
+    const identity = resolvePackageUi(scopedApi[1], scopedApi[2]);
+    return identity ? { kind: "api", identity, action: scopedApi[3] } : null;
+  }
+  const legacyApi = pathname.match(/^\/(?:builder\/api\/ui-assets|\.netlify\/functions\/builder-teacher-ui-assets)\/(prepare|finalize|save)\/?$/);
+  return legacyApi ? { kind: "api", identity: legacyIdentity, action: legacyApi[1] } : null;
+}
 
 function uiJson(statusCode, body) {
   return json(statusCode, body, { "X-Content-Type-Options": "nosniff" });
@@ -153,28 +173,31 @@ export function createBuilderTeacherUiAssetsHandler(overrides = {}) {
     claim: overrides.claim || claimTeacherUiAssetUploadSession,
     complete: overrides.complete || completeTeacherUiAssetUploadSession,
     fail: overrides.fail || failTeacherUiAssetUploadSession,
+    loadUploadScope: overrides.loadUploadScope || loadTeacherUiAssetUploadScope,
     loadCandidates: overrides.loadCandidates || loadValidatedTeacherUiAssetCandidates,
     markSaved: overrides.markSaved || markTeacherUiAssetCandidatesSaved,
     inspect: overrides.inspect || inspectTeacherAsset,
     randomUuid: overrides.randomUuid || randomUUID,
     now: overrides.now || (() => Date.now()),
+    resolvePackageUi: overrides.resolvePackageUi || resolveBuilderPackageUi,
     logger: overrides.logger || console,
   };
 
   return async function builderTeacherUiAssetsHandler(event) {
     const pathname = String(event?.path || "").split("?")[0];
-    const publicMatch = pathname.match(/\/preview\/ui-assets(?:-v2)?\/([a-f0-9]{64})\.(png|jpg|webp|mp3|wav|gaf)\/?$/);
+    const route = resolveTeacherUiRoute(pathname, dependencies.resolvePackageUi);
     try {
-      if (publicMatch) {
+      if (route?.kind === "public") {
         if (!["GET", "HEAD"].includes(event.httpMethod)) return uiJson(405, { error: "method_not_allowed" });
         let storage;
         try { storage = dependencies.storage(); } catch (error) { return unavailable(dependencies.logger, "storage", error); }
-        const objectKey = buildBookAssetHostedTeacherUiPublicKey({ checksum: publicMatch[1], extension: publicMatch[2] });
+        const objectKey = buildBookAssetHostedTeacherUiPublicKey({ ...route.identity, checksum: route.checksum, extension: route.extension });
         try { await storage.head({ profile: "public", objectKey }); } catch { return uiJson(404, { error: "asset_not_found" }); }
         return { statusCode: 302, headers: { Location: storage.publicUrl(objectKey), "Cache-Control": "public, max-age=31536000, immutable", "X-Content-Type-Options": "nosniff" }, body: "" };
       }
-      if (!/(?:\/builder\/api\/ui-assets|\/\.netlify\/functions\/builder-teacher-ui-assets)(?:\/|$)/.test(pathname)) return uiJson(404, { error: "teacher_ui_asset_route_not_found" });
+      if (route?.kind !== "api") return uiJson(404, { error: "teacher_ui_asset_route_not_found" });
       if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: { "Content-Type": "application/json" }, body: "" };
+      const { identity } = route;
       const sql = dependencies.getDatabase();
       const auth = await dependencies.authorize(event, sql);
       if (auth.error) return auth.error;
@@ -185,7 +208,7 @@ export function createBuilderTeacherUiAssetsHandler(overrides = {}) {
       const resource = await dependencies.resolveResource(identity.bookSlug, identity.componentSlug, identity.resource, "");
       if (!resource) return uiJson(404, { error: "builder_resource_not_found" });
 
-      if (/\/prepare\/?$/.test(pathname)) {
+      if (route.action === "prepare") {
         const parsed = parseJsonBody(event, ["expectedRevision", "clientMutationId", "files"]);
         if (parsed.error) return parsed.error;
         if (!Number.isSafeInteger(parsed.value.expectedRevision) || parsed.value.expectedRevision < 0) return uiJson(400, { error: "invalid_expected_revision" });
@@ -217,11 +240,14 @@ export function createBuilderTeacherUiAssetsHandler(overrides = {}) {
         return uiJson(200, { uploadId: prepared.uploadId, expectedRevision: parsed.value.expectedRevision, expiresIn: uploadTtlSeconds, idempotent: prepared.outcome === "idempotent", uploads });
       }
 
-      if (/\/finalize\/?$/.test(pathname)) {
+      if (route.action === "finalize") {
         const parsed = parseJsonBody(event, ["uploadId", "expectedRevision", "clientMutationId"]);
         if (parsed.error) return parsed.error;
         const { uploadId, expectedRevision, clientMutationId } = parsed.value;
         if (!uuidV4Pattern.test(String(uploadId || "")) || !builderClientMutationIdPattern.test(String(clientMutationId || "")) || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0) return uiJson(400, { error: "invalid_finalize_identity" });
+        let uploadScope;
+        try { uploadScope = await dependencies.loadUploadScope(sql, { uploadId, builderUserId: auth.builderUser.id }); } catch (error) { return unavailable(dependencies.logger, "schema", error); }
+        if (!uploadScope || uploadScope.bookSlug !== identity.bookSlug || uploadScope.componentSlug !== identity.componentSlug) return uiJson(404, { error: "session_not_found" });
         const claimed = await dependencies.claim(sql, { uploadId, expectedRevision, clientMutationId, builderUserId: auth.builderUser.id });
         if (claimed.outcome === "idempotent") return uiJson(200, { uploadId, candidates: claimed.validatedAssets, idempotent: true });
         if (claimed.outcome === "revision_conflict") return uiJson(409, { error: "revision_conflict", currentRevision: claimed.currentRevision });
@@ -242,9 +268,9 @@ export function createBuilderTeacherUiAssetsHandler(overrides = {}) {
           }
           validateGafAtlasContract(inspectedById);
           const candidates = Object.fromEntries(Object.entries(inspectedById).map(([id, inspected]) => [id, assetMetadata(inspected)]));
-          normalizeHostedTeacherUiDocument({ schemaVersion: resource.schemaVersion, packageId: "ultimate-b2-students-book", assets: candidates });
+          resource.validate({ schemaVersion: resource.schemaVersion, packageId: identity.packageId, assets: candidates });
           for (const inspected of Object.values(inspectedById)) {
-            const objectKey = buildBookAssetHostedTeacherUiPublicKey({ checksum: inspected.metadata.sha256, extension: inspected.inspection.extension });
+            const objectKey = buildBookAssetHostedTeacherUiPublicKey({ ...identity, checksum: inspected.metadata.sha256, extension: inspected.inspection.extension });
             await storage.upload({ profile: "public", objectKey, body: inspected.bytes, contentType: inspected.metadata.mediaType, checksumSha256: inspected.metadata.sha256, byteSize: inspected.metadata.sizeBytes });
           }
           await dependencies.complete(sql, { uploadId, builderUserId: auth.builderUser.id, validatedAssets: candidates });
@@ -256,7 +282,7 @@ export function createBuilderTeacherUiAssetsHandler(overrides = {}) {
         }
       }
 
-      if (/\/save\/?$/.test(pathname)) {
+      if (route.action === "save") {
         const parsed = parseJsonBody(event, ["expectedRevision", "clientMutationId", "document", "candidateUploadIds"]);
         if (parsed.error) return parsed.error;
         const { expectedRevision, clientMutationId } = parsed.value;
@@ -264,12 +290,12 @@ export function createBuilderTeacherUiAssetsHandler(overrides = {}) {
         if (!builderClientMutationIdPattern.test(String(clientMutationId || ""))) return uiJson(400, { error: "invalid_client_mutation_id" });
         if (!Array.isArray(parsed.value.candidateUploadIds) || new Set(parsed.value.candidateUploadIds).size !== parsed.value.candidateUploadIds.length || parsed.value.candidateUploadIds.some((id) => !uuidV4Pattern.test(String(id)))) return uiJson(400, { error: "invalid_candidate_upload_ids" });
         let document;
-        try { document = normalizeHostedTeacherUiDocument(parsed.value.document); } catch (error) { return uiJson(400, { error: "invalid_document", detail: String(error.message).slice(0, 240) }); }
+        try { document = resource.validate(parsed.value.document); } catch (error) { return uiJson(400, { error: "invalid_document", detail: String(error.message).slice(0, 240) }); }
         const stored = await dependencies.loadDocument(sql, resource);
         const current = stored?.document || resource.baseline();
         const changedIds = changedAssetIds(current, document);
         const newOrChanged = changedIds.filter((id) => document.assets[id]);
-        const rows = await dependencies.loadCandidates(sql, { uploadIds: parsed.value.candidateUploadIds, builderUserId: auth.builderUser.id });
+        const rows = await dependencies.loadCandidates(sql, { uploadIds: parsed.value.candidateUploadIds, builderUserId: auth.builderUser.id, bookSlug: identity.bookSlug, componentSlug: identity.componentSlug });
         const rowsById = new Map(rows.map((row) => [String(row.id), row]));
         if (rowsById.size !== parsed.value.candidateUploadIds.length) return uiJson(400, { error: "invalid_candidate_reference" });
         const used = new Set();
@@ -288,7 +314,7 @@ export function createBuilderTeacherUiAssetsHandler(overrides = {}) {
         const result = await dependencies.saveDocument(sql, { resource, expectedRevision, clientMutationId, document, payloadSha256: builderDocumentSha256(document), builderUserId: auth.builderUser.id });
         if (["revision_conflict", "mutation_id_conflict"].includes(result.outcome)) return uiJson(409, { error: result.outcome, currentRevision: result.currentRevision });
         if (!['saved', 'idempotent'].includes(result.outcome)) return uiJson(result.outcome === "resource_not_found" ? 404 : 400, { error: result.outcome });
-        await dependencies.markSaved(sql, { uploadIds: result.outcome === "idempotent" ? parsed.value.candidateUploadIds : [...used], builderUserId: auth.builderUser.id, resultingRevision: result.revision });
+        await dependencies.markSaved(sql, { uploadIds: result.outcome === "idempotent" ? parsed.value.candidateUploadIds : [...used], builderUserId: auth.builderUser.id, resultingRevision: result.revision, bookSlug: identity.bookSlug, componentSlug: identity.componentSlug });
         return uiJson(200, { bookSlug: resource.bookSlug, componentSlug: resource.componentSlug, resource: resource.resource, schemaVersion: resource.schemaVersion, revision: result.revision, source: "database", document: resource.validate(result.document), idempotent: result.outcome === "idempotent" });
       }
       return uiJson(404, { error: "teacher_ui_asset_route_not_found" });

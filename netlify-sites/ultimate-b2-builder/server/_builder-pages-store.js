@@ -67,6 +67,22 @@ export async function claimBuilderPageUpload(sql, input) {
   return normalizeRevisionField(rows[0] || null, "current_revision");
 }
 
+export async function loadBuilderPageUploadScope(sql, { uploadId, builderUserId }) {
+  const rows = await sql`
+    select package.slug book_slug,component.slug component_slug
+    from builder_component_page_upload_sessions upload
+    join book_packages package on package.id=upload.book_package_id
+    join book_components component
+      on component.id=upload.book_component_id
+      and component.book_package_id=package.id
+    where upload.id=${uploadId}::uuid
+      and upload.created_by_builder_user_id=${builderUserId}::uuid
+    limit 1
+  `;
+  const row = rows[0];
+  return row ? { bookSlug: row.book_slug, componentSlug: row.component_slug } : null;
+}
+
 export async function completeBuilderPageUpload(sql, input) {
   const rows = await sql`select * from complete_builder_component_page_upload(
     ${input.uploadId}::uuid,${input.builderUserId}::uuid,${input.objectKey},${input.storageBucket},${input.mimeType},

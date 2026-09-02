@@ -117,6 +117,20 @@ test("isolated PostgreSQL persists Students overrides and relational Workbook/Gr
   assert.equal((await prepareBuilderPageUpload(sql, { ...student, uploadId: randomUUID(), clientMutationId: randomUUID(), requestSha256: digest(), mode: "create" })).outcome, "operation_not_allowed");
   assert.equal((await prepareBuilderPageUpload(sql, { ...student, uploadId: randomUUID(), clientMutationId: randomUUID(), requestSha256: digest(), componentSlug: "ultimate-b2-test-book", pageKey: "ultimate-b2-test-book/pages/private" })).outcome, "resource_not_found");
   assert.equal((await prepareBuilderPageUpload(sql, student)).outcome, "prepared");
+  const finalizeHandler = createBuilderPagesHandler({
+    getDatabase: () => sql,
+    authorize: async () => ({ builderUser: { id: actor } }),
+    logger: { error() {} },
+  });
+  const crossScopeFinalize = await finalizeHandler({
+    httpMethod: "POST",
+    path: "/builder/api/pages/books/ultimate-b2/components/ultimate-b2-workbook/assets/finalize",
+    headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" },
+    body: JSON.stringify({ uploadId: student.uploadId, expectedRevision: 0, clientMutationId: student.clientMutationId }),
+  });
+  assert.equal(crossScopeFinalize.statusCode, 409, crossScopeFinalize.body);
+  assert.equal(JSON.parse(crossScopeFinalize.body).error, "upload_scope_conflict");
+  assert.equal((await pool.query("select state from builder_component_page_upload_sessions where id=$1", [student.uploadId])).rows[0].state, "prepared");
   assert.equal((await claimBuilderPageUpload(sql, { uploadId: student.uploadId, expectedRevision: 0, clientMutationId: student.clientMutationId, builderUserId: otherActor })).outcome, "session_not_found");
   assert.equal((await claimBuilderPageUpload(sql, { uploadId: student.uploadId, expectedRevision: 0, clientMutationId: student.clientMutationId, builderUserId: actor })).outcome, "claimed");
   const studentChecksum = digest();

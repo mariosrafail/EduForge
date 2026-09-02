@@ -16,3 +16,14 @@ export const teacherAvailableStudentsBookUnits = teacherStudentsBookUnits.filter
 export function teacherStudentsBookUnitTitle(number) {
   return teacherStudentsBookUnits.find((unit) => unit.number === Number(number))?.title || `Unit ${number}`;
 }
+
+export function teacherLibraryUnitMetadata(bookSlug, pageUnits = []) {
+  return pageUnits.map((unit) => {
+    const number = Number(unit.number);
+    return {
+      number,
+      title: bookSlug === "ultimate-b2" ? teacherStudentsBookUnitTitle(number) : `Unit ${number}`,
+      available: true,
+    };
+  });
+}
