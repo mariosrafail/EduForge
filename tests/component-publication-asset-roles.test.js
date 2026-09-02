@@ -16,8 +16,8 @@ const sha256 = "a".repeat(64);
 const identity = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", sha256 };
 
 test("publication asset roles have one explicit private-materialized versus hosted-public classification", () => {
-  assert.deepEqual(Object.keys(COMPONENT_PUBLICATION_ASSET_ROLES).sort(), ["ACTIVITY_ARTWORK", "ACTIVITY_FONT", "MANAGED_PAGE_IMAGE", "OPEN_RESPONSE_ARTWORK", "TEACHER_UI", "UNIT_EXTRA_VIDEO"]);
-  for (const role of [COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK, COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_FONT, COMPONENT_PUBLICATION_ASSET_ROLES.MANAGED_PAGE_IMAGE, COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_VIDEO]) {
+  assert.deepEqual(Object.keys(COMPONENT_PUBLICATION_ASSET_ROLES).sort(), ["ACTIVITY_ARTWORK", "ACTIVITY_FONT", "MANAGED_PAGE_IMAGE", "OPEN_RESPONSE_ARTWORK", "TEACHER_UI", "UNIT_EXTRA_AUDIO", "UNIT_EXTRA_VIDEO"]);
+  for (const role of [COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_ARTWORK, COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_FONT, COMPONENT_PUBLICATION_ASSET_ROLES.MANAGED_PAGE_IMAGE, COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_AUDIO, COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_VIDEO]) {
     assert.equal(componentPublicationAssetRolePolicy(role).storage, COMPONENT_PUBLICATION_ASSET_STORAGE.PRIVATE_IMMUTABLE_RELEASE);
     assert.equal(isPrivateMaterializedComponentReleaseAssetRole(role), true);
     assert.equal(isPrivatePinnableComponentReleaseAssetRole(role), true);
@@ -42,6 +42,11 @@ test("canonical role storage resolution keeps private release assets private and
   assert.deepEqual(componentPublicationAssetStorageTarget({ ...identity, extension: "mp4", role: COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_VIDEO }), {
     profile: "private",
     objectKey: `builder-release-assets/ultimate-b2/ultimate-b2-students-book/${sha256}.mp4`,
+    public: false,
+  });
+  assert.deepEqual(componentPublicationAssetStorageTarget({ ...identity, extension: "mp3", role: COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_AUDIO }), {
+    profile: "private",
+    objectKey: `builder-release-assets/ultimate-b2/ultimate-b2-students-book/${sha256}.mp3`,
     public: false,
   });
   assert.deepEqual(componentPublicationAssetStorageTarget({ ...identity, extension: "webp", role: COMPONENT_PUBLICATION_ASSET_ROLES.OPEN_RESPONSE_ARTWORK }), {

@@ -4,6 +4,7 @@ export const COMPONENT_PUBLICATION_ASSET_ROLES = Object.freeze({
   ACTIVITY_FONT: "activity_font",
   MANAGED_PAGE_IMAGE: "managed_page_image",
   UNIT_EXTRA_VIDEO: "unit_extra_video",
+  UNIT_EXTRA_AUDIO: "unit_extra_audio",
   TEACHER_UI: "teacher_ui",
 });
 
@@ -33,6 +34,12 @@ const rolePolicies = Object.freeze({
     publicProjection: true,
   }),
   [COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_VIDEO]: Object.freeze({
+    storage: COMPONENT_PUBLICATION_ASSET_STORAGE.PRIVATE_IMMUTABLE_RELEASE,
+    materialized: true,
+    pinnable: true,
+    publicProjection: true,
+  }),
+  [COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_AUDIO]: Object.freeze({
     storage: COMPONENT_PUBLICATION_ASSET_STORAGE.PRIVATE_IMMUTABLE_RELEASE,
     materialized: true,
     pinnable: true,

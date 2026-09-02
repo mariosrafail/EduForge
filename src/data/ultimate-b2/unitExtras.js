@@ -3,7 +3,7 @@ import { normalizeTimedTextCues } from "../timed-media/timedText.js";
 import { ultimateB2StudentsBookAuthoringPages } from "./studentsBookAuthoringCatalog.js";
 
 export const ULTIMATE_B2_UNIT_EXTRAS_SCHEMA_VERSION = "1.0";
-export const ULTIMATE_B2_UNIT_EXTRA_LIMITS = Object.freeze({ units: 10, videosPerUnit: 24, pages: 180, titleLength: 160 });
+export const ULTIMATE_B2_UNIT_EXTRA_LIMITS = Object.freeze({ units: 10, videosPerUnit: 24, audiosPerUnit: 24, pages: 180, titleLength: 160 });
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -34,10 +34,10 @@ function title(value, label) {
   return normalized;
 }
 
-function normalizeAssetReference(value, slot, label) {
+function normalizeAssetReference(value, slot, role, label) {
   if (value === null) return null;
   exact(value, ["assetId", "checksumSha256", "role", "slot"], label);
-  if (!UUID.test(String(value.assetId || "")) || !SHA256.test(String(value.checksumSha256 || "")) || value.role !== "unit_extra_video" || value.slot !== slot) throw new Error(`${label} is invalid.`);
+  if (!UUID.test(String(value.assetId || "")) || !SHA256.test(String(value.checksumSha256 || "")) || value.role !== role || value.slot !== slot) throw new Error(`${label} is invalid.`);
   return { assetId: value.assetId.toLowerCase(), checksumSha256: value.checksumSha256, role: value.role, slot: value.slot };
 }
 
@@ -65,7 +65,7 @@ function normalizeAuthoringVideo(value, label) {
     id: value.id,
     title: title(value.title, `${label} title`),
     assetSlot: value.assetSlot,
-    asset: normalizeAssetReference(value.asset, value.assetSlot, `${label} asset`),
+    asset: normalizeAssetReference(value.asset, value.assetSlot, "unit_extra_video", `${label} asset`),
     fileName,
     byteSize,
     durationMs,
@@ -73,25 +73,41 @@ function normalizeAuthoringVideo(value, label) {
   };
 }
 
+function normalizeAuthoringAudio(value, label) {
+  exact(value, ["id", "title", "assetSlot", "asset", "fileName", "byteSize"], label);
+  if (!isNativeChildId(value.id, "audio") || value.assetSlot !== value.id) throw new Error(`${label} identity is invalid.`);
+  const hasAsset = value.asset !== null;
+  const fileName = String(value.fileName || "");
+  if (hasAsset) { if (!SAFE_FILENAME.test(fileName)) throw new Error(`${label} filename is invalid.`); integer(value.byteSize, `${label} byte size`, 1); }
+  else if (fileName !== "" || value.byteSize !== null) throw new Error(`${label} draft media metadata is inconsistent.`);
+  return { id: value.id, title: title(value.title, `${label} title`), assetSlot: value.assetSlot, asset: normalizeAssetReference(value.asset, value.assetSlot, "unit_extra_audio", `${label} asset`), fileName, byteSize: value.byteSize };
+}
+
 function normalizeUnit(value, index) {
   const label = `Unit Extras units[${index}]`;
   exact(value, ["unitId", "unitNumber", "categories"], label);
   const identity = unitIdentity(value.unitId, value.unitNumber, label);
-  exact(value.categories, ["videos"], `${label} categories`);
+  const hasAudios = Object.hasOwn(value.categories, "audios");
+  exact(value.categories, ["videos", ...(hasAudios ? ["audios"] : [])], `${label} categories`);
   if (!Array.isArray(value.categories.videos) || value.categories.videos.length > ULTIMATE_B2_UNIT_EXTRA_LIMITS.videosPerUnit) throw new Error(`${label} videos are invalid.`);
   const videos = value.categories.videos.map((video, videoIndex) => normalizeAuthoringVideo(video, `${label} videos[${videoIndex}]`));
+  if (hasAudios && (!Array.isArray(value.categories.audios) || value.categories.audios.length > ULTIMATE_B2_UNIT_EXTRA_LIMITS.audiosPerUnit)) throw new Error(`${label} audios are invalid.`);
+  const audios = (value.categories.audios || []).map((audio, audioIndex) => normalizeAuthoringAudio(audio, `${label} audios[${audioIndex}]`));
   if (new Set(videos.map((video) => video.id)).size !== videos.length) throw new Error(`${label} video identities must be unique.`);
-  return { ...identity, categories: { videos } };
+  if (new Set(audios.map((audio) => audio.id)).size !== audios.length) throw new Error(`${label} audio identities must be unique.`);
+  return { ...identity, categories: { videos, audios } };
 }
 
 function normalizePage(value, index) {
   const label = `Unit Extras pages[${index}]`;
   exact(value, ["pageId", "unitId", "extrasVisibility"], label);
-  exact(value.extrasVisibility, ["videos"], `${label} visibility`);
+  const hasAudios = Object.hasOwn(value.extrasVisibility, "audios");
+  exact(value.extrasVisibility, ["videos", ...(hasAudios ? ["audios"] : [])], `${label} visibility`);
   if (typeof value.extrasVisibility.videos !== "boolean") throw new Error(`${label} video visibility is invalid.`);
   const page = ultimateB2StudentsBookAuthoringPages.find((candidate) => candidate.id === value.pageId);
   if (!page || value.unitId !== `unit-${page.unitNumber}`) throw new Error(`${label} does not belong to its Unit.`);
-  return { pageId: value.pageId, unitId: value.unitId, extrasVisibility: { videos: value.extrasVisibility.videos } };
+  if (hasAudios && typeof value.extrasVisibility.audios !== "boolean") throw new Error(`${label} audio visibility is invalid.`);
+  return { pageId: value.pageId, unitId: value.unitId, extrasVisibility: { videos: value.extrasVisibility.videos, audios: value.extrasVisibility.audios === true } };
 }
 
 export function createEmptyUltimateB2UnitExtras() {
@@ -119,6 +135,10 @@ export function projectUltimateB2UnitExtrasForPublication(value) {
         if (!video.asset || !video.durationMs) throw new Error(`Unit Extra Video ${video.id} requires a managed MP4.`);
         return { id: video.id, title: video.title, video: { assetSlot: video.assetSlot, asset: video.asset, durationMs: video.durationMs, cues: video.cues } };
       }),
+      audios: unit.categories.audios.map((audio) => {
+        if (!audio.asset) throw new Error(`Unit Extra Audio ${audio.id} requires a managed MP3.`);
+        return { id: audio.id, title: audio.title, audio: { assetSlot: audio.assetSlot, asset: audio.asset } };
+      }),
     },
   }));
   return { schemaVersion: document.schemaVersion, units, pages: document.pages };
@@ -131,7 +151,8 @@ export function normalizePublishedUltimateB2UnitExtras(value) {
     const label = `Published Unit Extras units[${unitIndex}]`;
     exact(unit, ["unitId", "unitNumber", "categories"], label);
     const identity = unitIdentity(unit.unitId, unit.unitNumber, label);
-    exact(unit.categories, ["videos"], `${label} categories`);
+    const hasAudios = Object.hasOwn(unit.categories, "audios");
+    exact(unit.categories, ["videos", ...(hasAudios ? ["audios"] : [])], `${label} categories`);
     if (!Array.isArray(unit.categories.videos) || unit.categories.videos.length > ULTIMATE_B2_UNIT_EXTRA_LIMITS.videosPerUnit) throw new Error(`${label} videos are invalid.`);
     const videos = unit.categories.videos.map((entry, videoIndex) => {
       const videoLabel = `${label} videos[${videoIndex}]`;
@@ -140,10 +161,19 @@ export function normalizePublishedUltimateB2UnitExtras(value) {
       exact(entry.video, ["assetSlot", "asset", "durationMs", "cues"], `${videoLabel} media`);
       if (entry.video.assetSlot !== entry.id) throw new Error(`${videoLabel} media identity is invalid.`);
       const durationMs = integer(entry.video.durationMs, `${videoLabel} duration`, 1);
-      return { id: entry.id, title: title(entry.title, `${videoLabel} title`), video: { assetSlot: entry.video.assetSlot, asset: normalizeAssetReference(entry.video.asset, entry.video.assetSlot, `${videoLabel} asset`), durationMs, cues: normalizeCues(entry.video.cues, durationMs, `${videoLabel} subtitles`) } };
+      return { id: entry.id, title: title(entry.title, `${videoLabel} title`), video: { assetSlot: entry.video.assetSlot, asset: normalizeAssetReference(entry.video.asset, entry.video.assetSlot, "unit_extra_video", `${videoLabel} asset`), durationMs, cues: normalizeCues(entry.video.cues, durationMs, `${videoLabel} subtitles`) } };
+    });
+    if (hasAudios && (!Array.isArray(unit.categories.audios) || unit.categories.audios.length > ULTIMATE_B2_UNIT_EXTRA_LIMITS.audiosPerUnit)) throw new Error(`${label} audios are invalid.`);
+    const audios = (unit.categories.audios || []).map((entry, audioIndex) => {
+      const audioLabel = `${label} audios[${audioIndex}]`; exact(entry, ["id", "title", "audio"], audioLabel);
+      if (!isNativeChildId(entry.id, "audio")) throw new Error(`${audioLabel} identity is invalid.`);
+      exact(entry.audio, ["assetSlot", "asset"], `${audioLabel} media`);
+      if (entry.audio.assetSlot !== entry.id) throw new Error(`${audioLabel} media identity is invalid.`);
+      return { id: entry.id, title: title(entry.title, `${audioLabel} title`), audio: { assetSlot: entry.audio.assetSlot, asset: normalizeAssetReference(entry.audio.asset, entry.audio.assetSlot, "unit_extra_audio", `${audioLabel} asset`) } };
     });
     if (new Set(videos.map((video) => video.id)).size !== videos.length || videos.some((video) => !video.video.asset)) throw new Error(`${label} videos are invalid.`);
-    return { ...identity, categories: { videos } };
+    if (new Set(audios.map((audio) => audio.id)).size !== audios.length || audios.some((audio) => !audio.audio.asset)) throw new Error(`${label} audios are invalid.`);
+    return { ...identity, categories: { videos, audios } };
   });
   if (new Set(units.map((unit) => unit.unitId)).size !== units.length) throw new Error("Published Unit identities must be unique.");
   const pages = value.pages.map(normalizePage);
@@ -157,4 +187,12 @@ export function unitExtrasForPage(publication, { unitNumber, pageId } = {}) {
   const page = extras.pages.find((entry) => entry.pageId === pageId && entry.unitId === `unit-${unitNumber}`);
   if (!page?.extrasVisibility.videos) return [];
   return extras.units.find((unit) => unit.unitNumber === unitNumber)?.categories.videos || [];
+}
+
+export function unitExtraAudiosForPage(publication, { unitNumber, pageId } = {}) {
+  const extras = ["published", "draft"].includes(publication?.kind) ? publication.projection?.unitExtras : null;
+  if (!extras) return [];
+  const page = extras.pages.find((entry) => entry.pageId === pageId && entry.unitId === `unit-${unitNumber}`);
+  if (!page?.extrasVisibility.audios) return [];
+  return extras.units.find((unit) => unit.unitNumber === unitNumber)?.categories.audios || [];
 }

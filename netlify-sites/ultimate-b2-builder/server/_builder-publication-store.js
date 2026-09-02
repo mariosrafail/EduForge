@@ -54,7 +54,10 @@ export async function collectUltimateB2PublicationV2Sources(sql) {
   }
   const references = Object.values(activities).flatMap((entry) => entry.public?.payload?.assets || []);
   const assetRows = await loadNativePublicationAssets(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", references });
-  const unitExtraReferences = (unitExtras?.payload?.units || []).flatMap((unit) => unit.categories.videos.flatMap((video) => video.asset ? [video.asset] : []));
+  const unitExtraReferences = (unitExtras?.payload?.units || []).flatMap((unit) => [
+    ...(unit.categories.videos || []).flatMap((video) => video.asset ? [video.asset] : []),
+    ...(unit.categories.audios || []).flatMap((audio) => audio.asset ? [audio.asset] : []),
+  ]);
   const unitExtraAssetRows = await loadNativePublicationAssets(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", references: unitExtraReferences });
   return { ...legacy, pages, native: { index, activities, assetRows }, unitExtras: { document: unitExtras, assetRows: unitExtraAssetRows } };
 }

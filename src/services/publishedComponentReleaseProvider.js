@@ -44,6 +44,7 @@ export function publishedNativeAssetUrl(publication, reference) {
 export function publishedUnitExtraVideoUrl(publication, reference) {
   return publishedNativeAssetUrl(publication, reference);
 }
+export const publishedUnitExtraAudioUrl = publishedUnitExtraVideoUrl;
 
 export async function loadPublishedNativeTeacherDocument(publication, activityId, { signal } = {}) {
   if (publication.kind !== "published") throw new Error("Published release is unavailable.");

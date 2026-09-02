@@ -28,6 +28,7 @@ const enabled = Boolean(databaseUrl) && process.env.TEST_DATABASE_CONFIRMATION =
 const actor = "10000000-0000-4000-8000-000000000001";
 const otherActor = "10000000-0000-4000-8000-000000000002";
 const itemId = nativeChildIdFromUuid("video", "10000000-0000-4000-8000-000000000003");
+const audioItemId = nativeChildIdFromUuid("audio", "10000000-0000-4000-8000-000000000004");
 const pageId = ultimateB2StudentsBookAuthoringPages.find((page) => page.unitNumber === 1).id;
 
 function scoped(base, schema) { const url = new URL(base); url.searchParams.set("options", `-c search_path=${schema}`); return url.toString(); }
@@ -44,6 +45,50 @@ function draft(asset = null, title = "Welcome") {
     pages: [{ pageId, unitId: "unit-1", extrasVisibility: { videos: true } }],
   });
 }
+
+function audioDraft(asset = null) {
+  return normalizeUltimateB2UnitExtrasDocument({
+    schemaVersion: "1.0",
+    units: [{ unitId: "unit-1", unitNumber: 1, categories: { videos: [], audios: [{ id: audioItemId, title: "Pronunciation", assetSlot: audioItemId, asset, fileName: asset ? "pronunciation.mp3" : "", byteSize: asset ? 4_096 : null }] } }],
+    pages: [{ pageId, unitId: "unit-1", extrasVisibility: { videos: false, audios: true } }],
+  });
+}
+
+test("isolated PostgreSQL persists and compiles a standalone managed Unit Extra MP3", { skip: !enabled }, async (t) => {
+  const schema = `builder_unit_extra_audio_${randomBytes(8).toString("hex")}`;
+  const admin = new Pool({ connectionString: databaseUrl, max: 1 });
+  await admin.query(`create schema "${schema}"`);
+  const pool = new Pool({ connectionString: scoped(databaseUrl, schema), max: 3 });
+  t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
+  await applyCanonicalProductionMigrations(pool);
+  await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Audio Actor','unit-extra-audio@example.test','hash')", [actor]);
+  const sql = tag(pool);
+  const resource = await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "unit-extras");
+  const placeholder = audioDraft();
+  await saveBuilderComponentDocument(sql, { resource, expectedRevision: 0, clientMutationId: randomUUID(), document: placeholder, payloadSha256: builderDocumentSha256(placeholder), builderUserId: actor });
+  const uploadId = randomUUID(); const clientMutationId = randomUUID();
+  const prepared = await prepareBuilderUnitExtraAssetUpload(sql, {
+    bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", unitSlug: "unit-1", itemId: audioItemId, assetSlot: audioItemId,
+    expectedRevision: 1, clientMutationId, uploadId, requestSha256: randomBytes(32).toString("hex"),
+    fileDescriptor: { name: "pronunciation.mp3", size: 4_096, type: "audio/mpeg", assetSlot: audioItemId },
+    stagingObjectKey: `builder-unit-extra-assets/ultimate-b2/ultimate-b2-students-book/unit-1/${audioItemId}/${uploadId}/staging/audio`,
+    builderUserId: actor, expiresAt: new Date(Date.now() + 600_000).toISOString(),
+  });
+  assert.equal(prepared.outcome, "prepared");
+  assert.equal((await claimBuilderUnitExtraAssetUpload(sql, { uploadId, expectedRevision: 1, clientMutationId, builderUserId: actor })).outcome, "claimed");
+  const checksumSha256 = "d".repeat(64);
+  const objectKey = `builder-unit-extra-assets/ultimate-b2/ultimate-b2-students-book/unit-1/${audioItemId}/assets/${checksumSha256}.mp3`;
+  const assetId = await completeBuilderUnitExtraAssetUpload(sql, { uploadId, builderUserId: actor, objectKey, storageBucket: "private-assets", mimeType: "audio/mpeg", byteSize: 4_096, checksumSha256, durationMs: null });
+  const reference = { assetId, checksumSha256, role: "unit_extra_audio", slot: audioItemId };
+  const attached = audioDraft(reference);
+  await assert.doesNotReject(validateBuilderUnitExtraAssetReferences(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", document: attached }));
+  await saveBuilderComponentDocument(sql, { resource, expectedRevision: 1, clientMutationId: randomUUID(), document: attached, payloadSha256: builderDocumentSha256(attached), builderUserId: actor });
+  const row = await loadBuilderUnitExtraAsset(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", unitSlug: "unit-1", mediaKind: "audios", itemId: audioItemId, assetId });
+  assert.deepEqual({ role: row.asset_role, mime: row.mime_type, duration: row.duration_seconds }, { role: "unit_extra_audio", mime: "audio/mpeg", duration: null });
+  const compiled = compileUltimateB2ComponentReleaseV2(await collectUltimateB2PublicationV2Sources(sql));
+  assert.equal(compiled.publicProjection.unitExtras.units[0].categories.audios[0].audio.asset.assetId, assetId);
+  assert.equal(compiled.assetManifest.some((entry) => entry.role === "unit_extra_audio" && entry.mediaType === "audio/mpeg" && entry.extension === "mp3"), true);
+});
 
 test("isolated PostgreSQL enforces Unit Extra upload ownership, lifecycle, reuse, cleanup, and publication freshness", { skip: !enabled }, async (t) => {
   const schema = `builder_unit_extras_${randomBytes(8).toString("hex")}`;

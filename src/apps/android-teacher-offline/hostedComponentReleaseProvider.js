@@ -85,6 +85,17 @@ export function publishedUnitExtraVideoUrl(publication, reference) {
   return publishedNativeAssetUrl(publication, reference);
 }
 
+export function publishedUnitExtraAudioUrl(publication, reference) {
+  if (publication.kind === "draft" && reference) {
+    for (const unit of publication.projection.unitExtras.units) {
+      const audio = unit.categories.audios.find((entry) => entry.audio.asset.assetId === reference.assetId && entry.audio.asset.checksumSha256 === reference.checksumSha256);
+      if (audio) return authorizedHostedPreviewPath(`/preview/unit-extras/books/${publication.identity.bookSlug}/components/${publication.identity.componentSlug}/units/${unit.unitId}/audios/${audio.id}/assets/${reference.assetId}/preview`, publication.runtimeContext.authorization);
+    }
+    return "";
+  }
+  return publishedNativeAssetUrl(publication, reference);
+}
+
 export async function loadPublishedNativeTeacherDocument(publication, activityId, { signal } = {}) {
   const response = await fetch(hostedReleasePath(publication.runtimeContext, publication.identity, `native-teacher/${activityId}`), { method: "GET", credentials: "omit", cache: "no-store", signal });
   if (!response.ok) throw new Error("Prepared Teacher activity is unavailable.");

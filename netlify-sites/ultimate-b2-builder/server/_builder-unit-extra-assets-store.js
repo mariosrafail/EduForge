@@ -35,7 +35,8 @@ export async function failBuilderUnitExtraAssetUpload(sql, input) {
   return rows[0]?.failed === true;
 }
 
-export async function loadBuilderUnitExtraAsset(sql, { bookSlug, componentSlug, unitSlug, itemId, assetId }) {
+export async function loadBuilderUnitExtraAsset(sql, { bookSlug, componentSlug, unitSlug, mediaKind, itemId, assetId }) {
+  const role = mediaKind === "audios" ? "unit_extra_audio" : "unit_extra_video";
   const rows = await sql`
     select asset.id,asset.checksum_sha256,asset.asset_role,asset.object_key,asset.storage_profile,asset.storage_bucket,
       asset.mime_type,asset.byte_size,asset.duration_seconds,asset.publication_status,asset.access_level,
@@ -45,7 +46,7 @@ export async function loadBuilderUnitExtraAsset(sql, { bookSlug, componentSlug, 
     join book_components component on component.id=asset.book_component_id and component.book_package_id=package.id
     join units unit_record on unit_record.id=asset.unit_id and unit_record.book_component_id=component.id
     where package.slug=${bookSlug} and component.slug=${componentSlug} and unit_record.slug=${unitSlug}
-      and asset.id=${assetId}::uuid and asset.asset_role='unit_extra_video'
+      and asset.id=${assetId}::uuid and asset.asset_role=${role}
       and asset.source_metadata->>'unit_extra_item_id'=${itemId}
     limit 1
   `;
@@ -53,9 +54,12 @@ export async function loadBuilderUnitExtraAsset(sql, { bookSlug, componentSlug, 
 }
 
 export async function validateBuilderUnitExtraAssetReferences(sql, { bookSlug, componentSlug, document }) {
-  const references = document.units.flatMap((unit) => unit.categories.videos.filter((video) => video.asset).map((video) => ({ unit, video })));
+  const references = document.units.flatMap((unit) => [
+    ...unit.categories.videos.filter((item) => item.asset).map((item) => ({ unit, item, role: "unit_extra_video", mimeType: "video/mp4" })),
+    ...unit.categories.audios.filter((item) => item.asset).map((item) => ({ unit, item, role: "unit_extra_audio", mimeType: "audio/mpeg" })),
+  ]);
   if (!references.length) return;
-  const ids = references.map(({ video }) => video.asset.assetId);
+  const ids = references.map(({ item }) => item.asset.assetId);
   const rows = await sql`
     select asset.id,asset.checksum_sha256,asset.asset_role,asset.mime_type,asset.byte_size,asset.duration_seconds,
       asset.publication_status,asset.access_level,asset.storage_profile,asset.activity_id,asset.page_id,asset.source_metadata,unit_record.slug as unit_slug
@@ -66,12 +70,12 @@ export async function validateBuilderUnitExtraAssetReferences(sql, { bookSlug, c
     where package.slug=${bookSlug} and component.slug=${componentSlug} and asset.id=any(${ids}::uuid[])
   `;
   const byId = new Map(rows.map((row) => [String(row.id), row]));
-  for (const { unit, video } of references) {
-    const row = byId.get(video.asset.assetId);
-    if (!row || row.unit_slug !== unit.unitId || row.checksum_sha256 !== video.asset.checksumSha256 || row.asset_role !== "unit_extra_video"
-      || row.mime_type !== "video/mp4" || Number(row.byte_size) !== video.byteSize || Math.round(Number(row.duration_seconds) * 1_000) !== video.durationMs
+  for (const { unit, item, role, mimeType } of references) {
+    const row = byId.get(item.asset.assetId);
+    if (!row || row.unit_slug !== unit.unitId || row.checksum_sha256 !== item.asset.checksumSha256 || row.asset_role !== role
+      || row.mime_type !== mimeType || Number(row.byte_size) !== item.byteSize || (role === "unit_extra_video" && Math.round(Number(row.duration_seconds) * 1_000) !== item.durationMs)
       || row.publication_status !== "draft" || row.access_level !== "internal" || row.storage_profile !== "private"
-      || row.activity_id !== null || row.page_id !== null || row.source_metadata?.unit_extra_item_id !== video.id || row.source_metadata?.asset_slot !== video.assetSlot) {
+      || row.activity_id !== null || row.page_id !== null || row.source_metadata?.unit_extra_item_id !== item.id || row.source_metadata?.asset_slot !== item.assetSlot) {
       throw new Error("unit_extra_asset_invalid");
     }
   }

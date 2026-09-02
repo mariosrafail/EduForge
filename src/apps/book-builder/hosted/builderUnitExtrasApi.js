@@ -4,9 +4,9 @@ const root = "/builder/api/unit-extras";
 
 async function payload(response) { return response.json().catch(() => ({})); }
 
-function path({ bookSlug, componentSlug, unitSlug = "", itemId = "" }, action) {
+function path({ bookSlug, componentSlug, unitSlug = "", itemId = "", mediaKind = "videos" }, action) {
   const base = `${root}/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}`;
-  return unitSlug ? `${base}/units/${encodeURIComponent(unitSlug)}/videos/${encodeURIComponent(itemId)}/assets/${action}` : `${base}/${action}`;
+  return unitSlug ? `${base}/units/${encodeURIComponent(unitSlug)}/${encodeURIComponent(mediaKind)}/${encodeURIComponent(itemId)}/assets/${action}` : `${base}/${action}`;
 }
 
 async function post(url, body) {
@@ -21,8 +21,16 @@ export async function saveUnitExtrasDocument({ bookSlug, componentSlug, expected
 }
 
 export async function uploadUnitExtraVideo({ bookSlug, componentSlug, unitSlug, itemId, expectedRevision, file, onProgress }) {
+  return uploadUnitExtraMedia({ bookSlug, componentSlug, unitSlug, itemId, expectedRevision, file, onProgress, mediaKind: "videos" });
+}
+
+export async function uploadUnitExtraAudio({ bookSlug, componentSlug, unitSlug, itemId, expectedRevision, file, onProgress }) {
+  return uploadUnitExtraMedia({ bookSlug, componentSlug, unitSlug, itemId, expectedRevision, file, onProgress, mediaKind: "audios" });
+}
+
+async function uploadUnitExtraMedia({ bookSlug, componentSlug, unitSlug, itemId, expectedRevision, file, onProgress, mediaKind }) {
   const clientMutationId = newBuilderClientMutationId();
-  const identity = { bookSlug, componentSlug, unitSlug, itemId };
+  const identity = { bookSlug, componentSlug, unitSlug, itemId, mediaKind };
   const prepared = await post(path(identity, "prepare"), { expectedRevision, clientMutationId, file: { name: file.name, size: file.size, type: file.type, assetSlot: itemId } });
   await new Promise((resolve, reject) => {
     const upload = new XMLHttpRequest();

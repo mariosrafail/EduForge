@@ -56,6 +56,7 @@ Apply production migrations in this exact order:
 52. `052_builder_page_unit_extras_preservation.sql`
 53. `053_builder_page_lifecycle_completion.sql`
 54. `054_builder_component_font_library.sql`
+55. `055_builder_unit_extra_audio.sql`
 
 The two `010` files are historical, already-deployed migrations. Their duplicate number is resolved by this manifest rather than renaming applied files. New migrations must use a unique, increasing number.
 

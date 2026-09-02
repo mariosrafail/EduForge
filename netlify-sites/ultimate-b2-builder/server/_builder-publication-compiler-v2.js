@@ -233,6 +233,19 @@ function validateUnitExtraAssetRows(document, assetRows) {
     const identity = `${row.checksum_sha256}.mp4`;
     if (!sources.has(identity)) sources.set(identity, { descriptor: { sha256: row.checksum_sha256, extension: "mp4", mediaType: "video/mp4", role: COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_VIDEO }, row });
   }
+  for (const unit of document.units) for (const audio of unit.categories.audios || []) {
+    if (!audio.asset) throw new NativePublicationError("unit_extra_audio_not_ready", audio.id, ["A managed MP3 is required."]);
+    const row = byId.get(audio.asset.assetId);
+    if (!row || row.checksum_sha256 !== audio.asset.checksumSha256 || row.asset_role !== COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_AUDIO
+      || row.mime_type !== "audio/mpeg" || row.publication_status !== "draft" || row.access_level !== "internal" || row.storage_profile !== "private"
+      || row.activity_id !== null || row.page_id !== null || row.source_metadata?.unit_slug !== unit.unitId
+      || row.source_metadata?.unit_extra_item_id !== audio.id || row.source_metadata?.asset_slot !== audio.assetSlot
+      || Number(row.byte_size) !== audio.byteSize || !row.object_key) {
+      throw new NativePublicationError("unit_extra_audio_asset_invalid", audio.id, ["Managed MP3 is missing, invalid, or owned by another Unit."]);
+    }
+    const identity = `${row.checksum_sha256}.mp3`;
+    if (!sources.has(identity)) sources.set(identity, { descriptor: { sha256: row.checksum_sha256, extension: "mp3", mediaType: "audio/mpeg", role: COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_AUDIO }, row });
+  }
   return [...sources.values()].sort((left, right) => left.descriptor.sha256.localeCompare(right.descriptor.sha256));
 }
 
