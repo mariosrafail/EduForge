@@ -165,7 +165,7 @@ test("isolated PostgreSQL catalog ignores unrelated malformed legacy publication
   });
 });
 
-test("isolated PostgreSQL derives managed native placement from active same-component pages and returns to empty", { skip: !enabled }, async (t) => {
+test("isolated PostgreSQL recovers managed native activities from unavailable pages for catalog, move, and deletion", { skip: !enabled }, async (t) => {
   const schema = `builder_managed_native_${randomBytes(8).toString("hex")}`;
   const admin = new Pool({ connectionString: testDatabaseUrl, max: 1 });
   await admin.query(`create schema "${schema}"`);
@@ -188,6 +188,7 @@ test("isolated PostgreSQL derives managed native placement from active same-comp
   const sql = tag(pool);
   const handler = createBuilderNativeActivitiesHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
   const managedEvent = (componentSlug, action, body) => ({ httpMethod: "POST", path: `/builder/api/native-activities/books/ultimate-b2/components/${componentSlug}/${action}`, headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" }, body: JSON.stringify(body) });
+  const managedCatalogEvent = (componentSlug) => ({ httpMethod: "GET", path: `/builder/api/native-activities/books/ultimate-b2/components/${componentSlug}/catalog`, headers: { host: "localhost:8888" }, body: "" });
   const workbookCreate = await handler(managedEvent("ultimate-b2-workbook", "create", { kind: "open-response", pageId: workbookPage1, title: "First Workbook activity", clientMutationId: randomUUID() }));
   assert.equal(workbookCreate.statusCode, 200);
   const workbook = JSON.parse(workbookCreate.body);
@@ -205,8 +206,34 @@ test("isolated PostgreSQL derives managed native placement from active same-comp
   assert.equal(JSON.parse(moved.body).destinationPageId, workbookPage2);
   const movedPublic = (await pool.query("select payload from builder_component_documents document join book_components component on component.id=document.book_component_id where component.slug='ultimate-b2-workbook' and document.document_type='native_activity_public' and document.document_key=$1", [workbook.activityId])).rows[0].payload;
   assert.equal(movedPublic.placement.pageId, workbookPage2);
-  await pool.query("update book_pages set source_metadata=source_metadata||'{\"is_active\":false}'::jsonb where stable_key=$1", [`ultimate-b2-workbook/pages/${workbookPage1}`]);
+
+  await pool.query("update book_pages set unit_id=null where stable_key=$1", [`ultimate-b2-workbook/pages/${workbookPage2}`]);
+  const unavailableUnitCatalog = await handler(managedCatalogEvent("ultimate-b2-workbook"));
+  assert.equal(unavailableUnitCatalog.statusCode, 200, unavailableUnitCatalog.body);
+  assert.deepEqual(JSON.parse(unavailableUnitCatalog.body).activities[0].assignment, { state: "unassigned", reason: "page-unavailable" });
+  assert.equal((await handler(managedEvent("ultimate-b2-workbook", "create", { kind: "image", pageId: workbookPage2, title: "Missing Unit", clientMutationId: randomUUID() }))).statusCode, 400);
+  assert.equal((await handler(managedEvent("ultimate-b2-workbook", `activities/${workbook.activityId}/move`, { sourcePageId: workbookPage2, destinationPageId: workbookPage2, clientMutationId: randomUUID() }))).statusCode, 400);
+
+  const recovered = await handler(managedEvent("ultimate-b2-workbook", `activities/${workbook.activityId}/move`, { sourcePageId: workbookPage2, destinationPageId: workbookPage1, clientMutationId: randomUUID() }));
+  assert.equal(recovered.statusCode, 200, recovered.body);
+  const recoveredDocuments = (await pool.query("select document_type,payload from builder_component_documents document join book_components component on component.id=document.book_component_id where component.slug='ultimate-b2-workbook' and (document.document_type='native_activity_index' or (document.document_type='native_activity_public' and document.document_key=$1)) order by document.document_type", [workbook.activityId])).rows;
+  assert.equal(recoveredDocuments.find((row) => row.document_type === "native_activity_index").payload.activities[0].placement.pageId, workbookPage1);
+  assert.equal(recoveredDocuments.find((row) => row.document_type === "native_activity_public").payload.placement.pageId, workbookPage1);
+
+  await pool.query("update book_pages set source_metadata=source_metadata||'{\"is_active\":false,\"is_deleted\":true}'::jsonb where stable_key=$1", [`ultimate-b2-workbook/pages/${workbookPage1}`]);
+  const deletedPageCatalog = await handler(managedCatalogEvent("ultimate-b2-workbook"));
+  assert.equal(deletedPageCatalog.statusCode, 200, deletedPageCatalog.body);
+  assert.deepEqual(JSON.parse(deletedPageCatalog.body).activities[0].assignment, { state: "unassigned", reason: "page-deleted" });
   assert.equal((await handler(managedEvent("ultimate-b2-workbook", "create", { kind: "image", pageId: workbookPage1, title: "Inactive", clientMutationId: randomUUID() }))).statusCode, 400);
+  assert.equal((await handler(managedEvent("ultimate-b2-workbook", `activities/${workbook.activityId}/move`, { sourcePageId: workbookPage1, destinationPageId: workbookPage2, clientMutationId: randomUUID() }))).statusCode, 400);
+
+  await pool.query("delete from book_pages where stable_key=$1", [`ultimate-b2-workbook/pages/${workbookPage1}`]);
+  const absentPageCatalog = await handler(managedCatalogEvent("ultimate-b2-workbook"));
+  assert.equal(absentPageCatalog.statusCode, 200, absentPageCatalog.body);
+  const absentActivity = JSON.parse(absentPageCatalog.body).activities[0];
+  assert.equal(absentActivity.sourcePageId, workbookPage1);
+  assert.deepEqual(absentActivity.placement, { pageId: workbookPage1 });
+  assert.deepEqual(absentActivity.assignment, { state: "unassigned", reason: "page-unavailable" });
   const index = (await pool.query("select payload from builder_component_documents document join book_components component on component.id=document.book_component_id where component.slug='ultimate-b2-workbook' and document.document_type='native_activity_index'")).rows[0].payload;
   const deleted = await handler(managedEvent("ultimate-b2-workbook", `activities/${workbook.activityId}/delete`, { clientMutationId: randomUUID() }));
   assert.equal(deleted.statusCode, 200);

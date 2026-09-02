@@ -75,6 +75,26 @@ function harness(overrides = {}) {
   return { handler, documents, getIndex: () => indexState, getHotspots: () => hotspotState, setHotspots: (document, revision = 1) => { hotspotState = { revision, source: "database", document }; } };
 }
 
+function createWorkbookCatalogSources(entries) {
+  const kind = resolveNativeActivityKind("open-response");
+  const index = { schemaVersion: "1.0", activities: entries.map(({ activityId, pageId, sortOrder }) => ({ activityId, kind: "open-response", placement: { pageId }, sortOrder })) };
+  return {
+    native: {
+      index: { payload: index, revision: 1, sha256: builderDocumentSha256(index) },
+      activities: Object.fromEntries(index.activities.map((entry) => {
+        const publicDocument = kind.createBlankPublic({ activityId: entry.activityId, title: `Workbook ${entry.activityId}`, placement: entry.placement });
+        const teacherDocument = kind.createBlankTeacher({ activityId: entry.activityId });
+        return [entry.activityId, {
+          index: entry,
+          public: { payload: publicDocument, revision: 1, sha256: builderDocumentSha256(publicDocument) },
+          teacher: { payload: teacherDocument, revision: 1, sha256: builderDocumentSha256(teacherDocument) },
+        }];
+      })),
+      assetRows: [],
+    },
+  };
+}
+
 test("native creation HTTP boundary rejects missing auth, wrong origin, unknown scope, kind, and placement", async () => {
   const { handler } = harness();
   assert.equal((await handler(request({ headers: { cookie: "" } }))).statusCode, 401);
@@ -405,6 +425,42 @@ test("Students Book catalog keeps a native activity on a tombstoned canonical pa
   assert.ok(activities.length > 0);
   assert.ok(activities.every((activity) => activity.sourcePageId === publicationV2Fixture.pageId && activity.placement.pageId === publicationV2Fixture.pageId));
   assert.ok(activities.every((activity) => activity.assignment.state === "unassigned" && activity.assignment.reason === "page-deleted"));
+});
+
+test("Workbook catalog keeps an unavailable historical placement visible beside a valid sibling without exposing Teacher data", async () => {
+  const orphanPageId = "workbook-historical-page";
+  const activePageId = "workbook-active-page";
+  const orphanActivityId = "ultimate-b2-wb-historical-o1";
+  const activeActivityId = "ultimate-b2-wb-active-o1";
+  const sources = createWorkbookCatalogSources([
+    { activityId: orphanActivityId, pageId: orphanPageId, sortOrder: 1 },
+    { activityId: activeActivityId, pageId: activePageId, sortOrder: 2 },
+  ]);
+  const sql = async (_strings, ...values) => values.includes(`ultimate-b2-workbook/pages/${activePageId}`) ? [{
+    stable_key: `ultimate-b2-workbook/pages/${activePageId}`,
+    sort_order: 2,
+    source_metadata: { is_active: true },
+    unit_id: "20000000-0000-4000-8000-000000000001",
+    unit_number: 1,
+    unit_title: "Unit 1",
+  }] : [];
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => sql,
+    authorize: async () => ({ builderUser: { id: actor } }),
+    collectCatalog: async () => sources,
+    logger: { error() {} },
+  });
+
+  const response = await handler(request({ method: "GET", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-workbook/catalog" }));
+  assert.equal(response.statusCode, 200, response.body);
+  const payload = JSON.parse(response.body);
+  assert.deepEqual(payload.activities.map((activity) => activity.activityId), [orphanActivityId, activeActivityId]);
+  const orphan = payload.activities[0];
+  assert.equal(orphan.sourcePageId, orphanPageId);
+  assert.deepEqual(orphan.placement, { pageId: orphanPageId });
+  assert.deepEqual(orphan.assignment, { state: "unassigned", reason: "page-unavailable" });
+  assert.deepEqual(payload.activities[1].assignment, { state: "assigned" });
+  assert.doesNotMatch(response.body, /solution|modelAnswers/i);
 });
 
 test("catalog fails closed when a Students Book activity is supplied for Workbook", async () => {

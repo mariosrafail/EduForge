@@ -16,7 +16,7 @@ export function createManagedNativeActivityAdapter(value) {
   const { bookSlug, componentSlug } = registration;
   const prefix = registration.nativeActivity.activityPrefix;
   const pagePrefix = `${registration.pageCatalog.pagePrefix}-page-`;
-  async function resolvePlacement(input, context, { requireActive }) {
+  async function resolvePlacement(input, context, { allowUnavailable }) {
     const { sql, bookSlug, componentSlug: requestedComponentSlug } = context || {};
     if (!SAFE_PAGE_ID.test(String(input?.pageId || "")) || typeof sql !== "function" || bookSlug !== registration.bookSlug || requestedComponentSlug !== componentSlug) throw new Error("Managed native activity placement is invalid.");
     const stableKey = `${componentSlug}/pages/${input.pageId}`;
@@ -25,20 +25,29 @@ export function createManagedNativeActivityAdapter(value) {
       from book_pages page
       join book_packages package on package.id=page.book_package_id
       join book_components component on component.id=page.book_component_id and component.book_package_id=package.id
-      join units unit on unit.id=page.unit_id and unit.book_component_id=component.id
+      left join units unit on unit.id=page.unit_id and unit.book_component_id=component.id and unit.unit_number between 1 and 10
       where package.slug=${bookSlug} and component.slug=${componentSlug} and page.stable_key=${stableKey}
-        and unit.unit_number between 1 and 10
       limit 1
     `;
     const row = rows[0];
-    if (!row) throw new Error("Managed native activity placement is unknown.");
+    const unitNumber = Number(row?.unit_number);
+    const hasValidUnit = row?.unit_id != null && Number.isInteger(unitNumber) && unitNumber >= 1 && unitNumber <= 10;
+    if (!row || !hasValidUnit) {
+      if (!allowUnavailable) throw new Error("Managed native activity placement is unknown.");
+      return {
+        pageId: input.pageId,
+        sourcePageId: input.pageId,
+        assignmentState: "unassigned",
+        unassignedReason: "page-unavailable",
+      };
+    }
     const active = row.source_metadata?.is_active === true && row.source_metadata?.is_permanently_deleted !== true;
-    if (requireActive && !active) throw new Error("Managed native activity placement is inactive.");
+    if (!allowUnavailable && !active) throw new Error("Managed native activity placement is inactive.");
     return {
       pageId: input.pageId,
       sourcePageId: input.pageId,
       unitId: String(row.unit_id),
-      unitNumber: Number(row.unit_number),
+      unitNumber,
       unitTitle: row.unit_title,
       sortOrder: Number(row.sort_order),
       assignmentState: active ? "assigned" : "unassigned",
@@ -48,9 +57,9 @@ export function createManagedNativeActivityAdapter(value) {
   return Object.freeze({
     id: `${componentSlug}-native-activities`, bookSlug, componentSlug, kinds: NATIVE_ACTIVITY_KINDS,
     ownsActivityId(activityId) { return new RegExp(`^${prefix}-[a-z0-9-]+-o\\d+$`).test(String(activityId || "")); },
-    normalizePlacement(input, context) { return resolvePlacement(input, context, { requireActive: true }); },
-    normalizeDestinationPlacement(input, context) { return resolvePlacement(input, context, { requireActive: true }); },
-    resolveExistingPlacement(input, context) { return resolvePlacement(input, context, { requireActive: false }); },
+    normalizePlacement(input, context) { return resolvePlacement(input, context, { allowUnavailable: false }); },
+    normalizeDestinationPlacement(input, context) { return resolvePlacement(input, context, { allowUnavailable: false }); },
+    resolveExistingPlacement(input, context) { return resolvePlacement(input, context, { allowUnavailable: true }); },
     nextActivityId({ placement, nativeIndex, occupiedActivityIds = [] }) {
       const occupied = new Set([...(nativeIndex?.activities || []).map((item) => item.activityId), ...occupiedActivityIds]);
       const pageToken = (placement.pageId.startsWith(pagePrefix) ? placement.pageId.slice(pagePrefix.length) : placement.pageId).slice(-40);

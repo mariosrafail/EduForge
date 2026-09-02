@@ -80,14 +80,49 @@ test("managed native adapters derive authoritative Unit placement and keep Workb
   assert.notEqual(workbookId, grammarId);
 });
 
-test("managed existing placement resolution accepts a deleted owned page while destination normalization rejects it", async () => {
+test("managed existing placement resolution classifies active, deleted, unavailable-Unit, and absent owned pages without weakening destinations", async () => {
   const adapter = createManagedNativeActivityAdapter(workbook);
-  const sql = async () => [{ stable_key: `${workbook}/pages/wb-deleted`, sort_order: 8, source_metadata: { is_active: false, is_deleted: true }, unit_id: "20000000-0000-4000-8000-000000000001", unit_number: 3, unit_title: "Unit 3" }];
-  const existing = await adapter.resolveExistingPlacement({ pageId: "wb-deleted" }, { sql, bookSlug: "ultimate-b2", componentSlug: workbook });
-  assert.deepEqual({ pageId: existing.pageId, state: existing.assignmentState, reason: existing.unassignedReason }, { pageId: "wb-deleted", state: "unassigned", reason: "page-deleted" });
-  await assert.rejects(adapter.normalizeDestinationPlacement({ pageId: "wb-deleted" }, { sql, bookSlug: "ultimate-b2", componentSlug: workbook }), /inactive/);
-  await assert.rejects(adapter.resolveExistingPlacement({ pageId: "wb-deleted" }, { sql: async () => [], bookSlug: "ultimate-b2", componentSlug: workbook }), /unknown/);
-  await assert.rejects(adapter.resolveExistingPlacement({ pageId: "wb-deleted" }, { sql, bookSlug: "ultimate-b2", componentSlug: grammar }), /invalid/);
+  const unit = { unit_id: "20000000-0000-4000-8000-000000000001", unit_number: 3, unit_title: "Unit 3" };
+  const row = (pageId, sourceMetadata, overrides = {}) => ({
+    stable_key: `${workbook}/pages/${pageId}`,
+    sort_order: 8,
+    source_metadata: sourceMetadata,
+    ...unit,
+    ...overrides,
+  });
+  const context = (sql, componentSlug = workbook) => ({ sql, bookSlug: "ultimate-b2", componentSlug });
+
+  const activeSql = async () => [row("wb-active", { is_active: true })];
+  const active = await adapter.resolveExistingPlacement({ pageId: "wb-active" }, context(activeSql));
+  assert.deepEqual({ state: active.assignmentState, unitId: active.unitId, unitNumber: active.unitNumber }, { state: "assigned", unitId: unit.unit_id, unitNumber: 3 });
+  assert.equal((await adapter.normalizeDestinationPlacement({ pageId: "wb-active" }, context(activeSql))).assignmentState, "assigned");
+
+  const deletedSql = async () => [row("wb-deleted", { is_active: false, is_deleted: true })];
+  const deleted = await adapter.resolveExistingPlacement({ pageId: "wb-deleted" }, context(deletedSql));
+  assert.deepEqual({ pageId: deleted.pageId, state: deleted.assignmentState, reason: deleted.unassignedReason }, { pageId: "wb-deleted", state: "unassigned", reason: "page-deleted" });
+  await assert.rejects(adapter.normalizeDestinationPlacement({ pageId: "wb-deleted" }, context(deletedSql)), /inactive/);
+
+  let invalidUnitQuery = "";
+  const invalidUnitSql = async (strings) => {
+    invalidUnitQuery = strings.join("?");
+    return [row("wb-invalid-unit", { is_active: true }, { unit_id: null, unit_number: null, unit_title: null })];
+  };
+  const invalidUnit = await adapter.resolveExistingPlacement({ pageId: "wb-invalid-unit" }, context(invalidUnitSql));
+  assert.deepEqual(invalidUnit, { pageId: "wb-invalid-unit", sourcePageId: "wb-invalid-unit", assignmentState: "unassigned", unassignedReason: "page-unavailable" });
+  assert.match(invalidUnitQuery, /left join units unit/i);
+  await assert.rejects(adapter.normalizePlacement({ pageId: "wb-invalid-unit" }, context(invalidUnitSql)), /unknown/);
+  await assert.rejects(adapter.normalizeDestinationPlacement({ pageId: "wb-invalid-unit" }, context(invalidUnitSql)), /unknown/);
+
+  const absentSql = async () => [];
+  assert.deepEqual(await adapter.resolveExistingPlacement({ pageId: "wb-absent" }, context(absentSql)), {
+    pageId: "wb-absent", sourcePageId: "wb-absent", assignmentState: "unassigned", unassignedReason: "page-unavailable",
+  });
+  await assert.rejects(adapter.normalizePlacement({ pageId: "wb-absent" }, context(absentSql)), /unknown/);
+  await assert.rejects(adapter.normalizeDestinationPlacement({ pageId: "wb-absent" }, context(absentSql)), /unknown/);
+
+  await assert.rejects(adapter.resolveExistingPlacement({ pageId: "wb-deleted" }, context(deletedSql, grammar)), /invalid/);
+  const databaseFailure = Object.assign(new Error("database unavailable"), { code: "CONNECTION_LOST" });
+  await assert.rejects(adapter.resolveExistingPlacement({ pageId: "wb-absent" }, context(async () => { throw databaseFailure; })), (error) => error === databaseFailure);
 });
 
 function managedCatalog(componentSlug) {
