@@ -192,12 +192,9 @@
 .unit-extra-video-actions .studio-upload-action { flex:1 1 190px; }
 .unit-extra-page-visibility { display:grid; gap:10px; padding-top:8px; border-top:1px solid #e2e8f0; }
 .unit-extra-page-visibility > div { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
-.unit-extra-page-visibility-row { display:grid; grid-template-columns:minmax(180px,1fr) minmax(150px,auto) minmax(150px,auto); align-items:center; gap:8px; }
-.unit-extra-page-visibility-row > span { display:grid; min-width:0; }
-.unit-extra-page-visibility-row > span small { color:#64748b; }
 .unit-extra-page-visibility label { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:9px; padding:9px 10px; border:1px solid #e2e8f0; border-radius:9px; }
 .unit-extra-page-visibility label span { display:grid; }
 .unit-extra-page-visibility label small { color:#64748b; }
 .unit-extra-page-visibility label em { font-size:.72rem; font-style:normal; color:#475569; }
-@media (max-width:760px) { .builder-modal-backdrop:has(.builder-modal--unit-extras) { padding:12px; } .builder-modal.builder-modal--unit-extras { width:100%; max-height:calc(100dvh - 24px); padding:16px; } .unit-extras-editor > header { align-items:flex-start; } .unit-extra-page-visibility > div,.unit-extra-page-visibility-row { grid-template-columns:1fr; } .unit-extra-video-card { grid-template-columns:1fr; } .unit-extra-video-card > * { grid-column:1; } .unit-extra-video-order { flex-direction:row; } }
+@media (max-width:760px) { .builder-modal-backdrop:has(.builder-modal--unit-extras) { padding:12px; } .builder-modal.builder-modal--unit-extras { width:100%; max-height:calc(100dvh - 24px); padding:16px; } .unit-extras-editor > header { align-items:flex-start; } .unit-extra-page-visibility > div { grid-template-columns:1fr; } .unit-extra-video-card { grid-template-columns:1fr; } .unit-extra-video-card > * { grid-column:1; } .unit-extra-video-order { flex-direction:row; } }
 @media (max-width:520px) { .unit-extras-editor > header,.unit-extras-editor > footer { align-items:stretch; flex-direction:column; } .unit-extras-editor > footer button { width:100%; } .unit-extra-page-visibility label { grid-template-columns:auto minmax(0,1fr); } .unit-extra-page-visibility label em { grid-column:2; } }
