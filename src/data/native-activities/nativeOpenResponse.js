@@ -595,9 +595,7 @@ export function assessNativeOpenResponseReadiness(publicDocument, teacherDocumen
     if (!membership.has(questionValue.id)) issues.push(`Question ${index + 1} must be assigned to a panel.`);
     const modelAnswers = answers.get(questionValue.id) || [];
     if (!modelAnswers.length || modelAnswers.some((modelAnswer) => !modelAnswer.trim())) issues.push(`Question ${index + 1} needs one or two model answers.`);
-    else modelAnswers.forEach((modelAnswer, answerIndex) => {
-      if (!autoFitNativeOpenResponseAnswer({ text: modelAnswer, responseRegion: questionValue.responseRegion }).fits) issues.push(`Question ${index + 1} model answer ${answerIndex + 1} does not fit its authored lines.`);
-    });
+    else if (!autoFitNativeOpenResponseAnswer({ text: modelAnswers.filter((modelAnswer) => modelAnswer.trim()).join(" / "), responseRegion: questionValue.responseRegion }).fits) issues.push(`Question ${index + 1} combined model answer does not fit its authored lines.`);
   }
   panels.forEach((panel, panelIndex) => panel.images.forEach((item, imageIndex) => {
     if (!item.decorative && !item.altText.trim()) issues.push(`Panel ${panelIndex + 1} image ${imageIndex + 1} needs alt text or must be marked decorative.`);

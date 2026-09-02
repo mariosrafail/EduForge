@@ -11,7 +11,7 @@ import { assessNativeOldschoolListeningReadiness, initialNativeOldschoolListenin
 import { clearNativeOldschoolListeningMappings } from "../../../data/native-activities/nativeOldschoolListeningAuthoring.js";
 import { createNativeOpenResponseQuestion, removeNativeOpenResponseArtwork, resizeNativeOpenResponseRegion } from "../../../data/native-activities/nativeOpenResponse.js";
 import { getBuilderContent } from "./builderContentApi.js";
-import { saveNativeActivityPair, uploadNativeActivityArtwork, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
+import { getBuilderFontLibrary, nativeFontPreviewUrl, saveNativeActivityPair, uploadNativeActivityArtwork, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
 import { NativeListeningQuestionAuthoring } from "./NativeListeningQuestionAuthoring.jsx";
@@ -43,6 +43,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
   const [uploading, setUploading] = useState("");
   const [readableTextIncomplete, setReadableTextIncomplete] = useState(false);
   const [videoIncomplete, setVideoIncomplete] = useState(false);
+  const [fonts, setFonts] = useState([]);
   useEffect(() => {
     const controller = new AbortController();
     setState({
@@ -76,11 +77,13 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
         },
         { signal: controller.signal },
       ),
+      getBuilderFontLibrary({ bookSlug, componentSlug }, { signal: controller.signal }),
     ])
-      .then(([publicValue, teacherValue]) => {
+      .then(([publicValue, teacherValue, fontLibrary]) => {
         if (controller.signal.aborted) return;
         setPublicDraft(projectNativeActivityPublicForAuthoring(publicValue.document));
         setTeacherDraft(teacherValue.document);
+        setFonts(fontLibrary);
         setState({
           kind: "ready",
           publicRevision: publicValue.revision,
@@ -134,10 +137,23 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
   const selectedSnippet = snippets.find((entry) => entry.id === selectedSnippetId) || null;
   const readiness = useMemo(() => (publicDraft && teacherDraft ? (oldschool ? assessNativeOldschoolListeningReadiness(publicDraft, teacherDraft) : assessNativeListeningReadiness(publicDraft, teacherDraft)) : null), [oldschool, publicDraft, teacherDraft]);
   const assetUrl = (assetId) => nativeListeningPreviewRoot(bookSlug, componentSlug, activityId, assetId);
+  const previewAssetUrl = (assetId) => publicDraft?.assets.find((asset) => asset.assetId === assetId)?.role === "activity_font" ? nativeFontPreviewUrl(bookSlug, componentSlug, assetId) : assetUrl(assetId);
   const audioReference = publicDraft?.assets.find((asset) => asset.slot === interaction?.audioAssetSlot);
   const backgroundReference = publicDraft?.assets.find((asset) => asset.slot === interaction?.panels[1].backgroundAssetSlot);
   const pageReference = publicDraft?.assets.find((asset) => asset.slot === interaction?.panels[1].pageAssetSlot);
   const selectedSnippetAudioReference = publicDraft?.assets.find((asset) => asset.slot === selectedSnippet?.audioAssetSlot) || null;
+  const recordUploadedFont = (font) => setFonts((current) => current.some((entry) => entry.assetId === font.assetId) ? current : [...current, font]);
+  const setAnswerFont = (font) => mutatePublic((next) => {
+    const target = next.parts[0].interaction.questions.find((question) => question.id === selectedQuestionId);
+    if (!target) return;
+    const presentation = target.responseRegion.presentation;
+    const previousSlot = presentation.answerFontAssetSlot;
+    if (font) {
+      next.assets = mergeNativeManagedAssetReference(next.assets, { assetId: font.assetId, checksumSha256: font.checksumSha256, role: font.role, slot: font.slot });
+      presentation.answerFontAssetSlot = font.slot;
+    } else delete presentation.answerFontAssetSlot;
+    if (previousSlot && previousSlot !== font?.slot) removeNativeManagedAssetReferenceIfUnused(next, previousSlot);
+  });
 
   const addQuestion = () => {
     const id = createNativeChildId("q");
@@ -596,7 +612,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
               selection: questionSelection,
               selectedArea,
               surface: questionSurface,
-              assetUrl,
+              assetUrl: previewAssetUrl,
               uploading,
               setSelectedQuestionId,
               setSelectedSnippetId,
@@ -613,6 +629,12 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
               removeSnippet,
               removeArtwork,
               commitArea: commitQuestionArea,
+              bookSlug,
+              componentSlug,
+              fonts,
+              setAnswerFont,
+              recordUploadedFont,
+              onMessage: (message) => setState((current) => ({ ...current, message })),
             }}
           />
         ) : null}
@@ -632,7 +654,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
                 Teacher Preview
               </button>
             </div>
-            {preview === "student" ? (oldschool ? <NativeOldschoolListeningStudentSurface document={publicDraft} assetUrl={assetUrl} /> : <NativeListeningStudentSurface document={publicDraft} assetUrl={assetUrl} />) : (oldschool ? <NativeOldschoolListeningTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={assetUrl} /> : <NativeListeningTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={assetUrl} />)}
+            {preview === "student" ? (oldschool ? <NativeOldschoolListeningStudentSurface document={publicDraft} assetUrl={previewAssetUrl} /> : <NativeListeningStudentSurface document={publicDraft} assetUrl={previewAssetUrl} />) : (oldschool ? <NativeOldschoolListeningTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={previewAssetUrl} /> : <NativeListeningTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={previewAssetUrl} />)}
           </section>
         ) : null}
         {tab === "readable-text" ? <NativeReadableTextEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={assetUrl} onIncompleteChange={setReadableTextIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}

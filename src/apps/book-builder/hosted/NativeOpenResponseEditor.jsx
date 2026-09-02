@@ -20,6 +20,7 @@ import { getBuilderContent } from "./builderContentApi.js";
 import { getBuilderFontLibrary, nativeFontPreviewUrl, saveNativeActivityPair, uploadNativeActivityArtwork } from "./builderNativeActivityApi.js";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeBulkGenerator } from "./NativeBulkGenerator.jsx";
+import { NativeOpenResponseResponseControls } from "./NativeOpenResponseResponseControls.jsx";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
 import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
 import { NativeActivityFontControls } from "./NativeCompleteSentencesFontControls.jsx";
@@ -424,18 +425,7 @@ function OpenResponseQuickControls({ selection, area, question, answerText, docu
     <QuickNumber label="Width" value={area.width} minimum={1} maximum={surface.width - area.x} disabled={locked} onChange={(value) => updateArea("width", value)} />
     <QuickNumber label="Height" value={area.height} minimum={1} maximum={surface.height - area.y} disabled={locked} onChange={(value) => updateArea("height", value)} />
     {selection.type === "response" && question ? <>
-      <StudioField label="Accessibility label" className="studio-quick-field studio-quick-field--wide"><input value={question.responseRegion.ariaLabel} maxLength={300} onChange={(event) => updateQuestion(question.id, (target) => { target.responseRegion.ariaLabel = event.target.value; })} /></StudioField>
-      <QuickNumber label="Padding X" value={question.responseRegion.presentation.paddingX} maximum={100} onChange={(value) => changeResponse(question.id, "paddingX", Math.round(Number(value)))} />
-      <QuickNumber label="Padding Y" value={question.responseRegion.presentation.paddingY} maximum={100} onChange={(value) => changeResponse(question.id, "paddingY", Math.round(Number(value)))} />
-      <QuickNumber label="Line count" value={presentation.lineCount} minimum={1} maximum={20} onChange={(value) => changeResponse(question.id, "lineCount", Math.round(Number(value)))} />
-      <QuickNumber label="Line width" value={question.responseRegion.presentation.lineWidth} minimum={1} maximum={question.responseRegion.area.width - 2 * question.responseRegion.presentation.paddingX} onChange={(value) => changeResponse(question.id, "lineWidth", Math.round(Number(value)))} />
-      <QuickNumber label="Line spacing" value={question.responseRegion.presentation.lineSpacing} minimum={8} maximum={120} onChange={(value) => changeResponse(question.id, "lineSpacing", Math.round(Number(value)))} />
-      <QuickNumber label="Auto-fit minimum" value={presentation.answerFontSizeMin} minimum={8} maximum={Math.min(48, presentation.answerFontSizeMax)} onChange={(value) => changeResponse(question.id, "answerFontSizeMin", Math.round(Number(value)))} />
-      <ConfiguredAnswerFontSize value={presentation.answerFontSizeMax} presentation={presentation} onChange={(value) => changeResponse(question.id, "answerFontSizeMax", value)} />
-      <NativeActivityFontControls bookSlug={bookSlug} componentSlug={componentSlug} fonts={fonts} selectedSlot={presentation.answerFontAssetSlot} onSelect={setAnswerFont} onUploaded={recordUploadedFont} onMessage={onMessage} />
-      <StudioField label="Answer text color" className="studio-quick-field"><input aria-label="Answer text color" type="color" value={presentation.color} onChange={(event) => changeResponse(question.id, "color", event.target.value)} /></StudioField>
-      <StudioField label="Answer align" className="studio-quick-field"><select aria-label="Quick Answer align" value={presentation.align} onChange={(event) => changeResponse(question.id, "align", event.target.value)}><option>left</option><option>center</option><option>right</option></select></StudioField>
-      <OpenResponseTypographyFeedback document={document} assetUrl={assetUrl} question={question} text={answerText} sample />
+      <NativeOpenResponseResponseControls document={document} assetUrl={assetUrl} question={question} modelAnswerText={answerText} changeResponse={changeResponse} updateQuestion={updateQuestion} bookSlug={bookSlug} componentSlug={componentSlug} fonts={fonts} setAnswerFont={setAnswerFont} recordUploadedFont={recordUploadedFont} onMessage={onMessage} />
     </> : null}
     {selection.type === "prompt" && question ? <><QuickNumber label="Font size" value={question.promptStyle.fontSize} minimum={8} maximum={96} onChange={(value) => updateQuestion(question.id, (target) => { target.promptStyle.fontSize = Number(value); })} /><StudioField label="Align" className="studio-quick-field"><select aria-label="Quick Align" value={question.promptStyle.align} onChange={(event) => updateQuestion(question.id, (target) => { target.promptStyle.align = event.target.value; })}><option>left</option><option>center</option><option>right</option></select></StudioField></> : null}
     {selection.type === "artwork" && artwork ? <>

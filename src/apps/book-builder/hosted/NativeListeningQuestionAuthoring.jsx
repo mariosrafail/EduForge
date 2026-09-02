@@ -5,8 +5,9 @@ import { StageGeometryControls } from "../../../components/builder-studio/StageG
 import { StudioButton, StudioField } from "../../../components/builder-studio/StudioControls.jsx";
 import { NativeOpenResponseFontSurface } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
 import { resizeNativeOpenResponseRegion } from "../../../data/native-activities/nativeOpenResponse.js";
+import { NativeOpenResponseResponseControls } from "./NativeOpenResponseResponseControls.jsx";
 
-export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDraft, interaction, questions, cues, snippets, selectedQuestion, selectedArtwork, selectedSnippet, selectedSnippetAudioReference, selection, selectedArea, surface, assetUrl, uploading, setSelectedQuestionId, setSelectedSnippetId, setSelection, mutatePublic, mutateTeacher, addQuestion, removeQuestion, moveQuestion, uploadArtwork, uploadSnippetAudio, removeSnippetAudio, addSnippet, removeSnippet, removeArtwork, commitArea }) {
+export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDraft, interaction, questions, cues, snippets, selectedQuestion, selectedArtwork, selectedSnippet, selectedSnippetAudioReference, selection, selectedArea, surface, assetUrl, uploading, setSelectedQuestionId, setSelectedSnippetId, setSelection, mutatePublic, mutateTeacher, addQuestion, removeQuestion, moveQuestion, uploadArtwork, uploadSnippetAudio, removeSnippetAudio, addSnippet, removeSnippet, removeArtwork, commitArea, bookSlug, componentSlug, fonts, setAnswerFont, recordUploadedFont, onMessage }) {
   const surfaceDocument = {
     ...publicDraft,
     parts: [
@@ -22,6 +23,16 @@ export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDra
     ],
   };
   const selectedSurfaceQuestion = selection && !["artwork", "snippet"].includes(selection.type) ? questions.find((entry) => entry.id === selection.id) : null;
+  const changeResponse = (questionId, key, value) => mutatePublic((next) => {
+    const target = next.parts[0].interaction.questions.find((question) => question.id === questionId);
+    const presentation = target.responseRegion.presentation;
+    presentation[key] = value;
+    if (key === "paddingX") presentation.lineWidth = Math.min(presentation.lineWidth, Math.max(1, target.responseRegion.area.width - 2 * value));
+    if (key === "lineSpacing") { presentation.answerFontSizeMax = Math.min(presentation.answerFontSizeMax, Math.floor(value * .9), 72); presentation.answerFontSizeMin = Math.min(presentation.answerFontSizeMin, presentation.answerFontSizeMax); }
+    if (key === "answerFontSizeMin") presentation.answerFontSizeMin = Math.min(Math.max(value, 8), presentation.answerFontSizeMax, 48);
+    if (["paddingY", "lineSpacing", "lineCount"].includes(key)) resizeNativeOpenResponseRegion(target.responseRegion, target.responseRegion.area);
+  });
+  const updateQuestion = (questionId, mutator) => mutatePublic((next) => mutator(next.parts[0].interaction.questions.find((question) => question.id === questionId)));
   return (
     <div className="native-listening-question-authoring" data-authoring-mode={mode}>
       {["content", "answer-key"].includes(mode) ? (
@@ -236,46 +247,7 @@ export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDra
                 ) : null}
                 {selection.type === "response" && selectedSurfaceQuestion ? (
                   <>
-                    <StudioField label="Accessibility label">
-                      <input
-                        value={selectedSurfaceQuestion.responseRegion.ariaLabel}
-                        onChange={(event) =>
-                          mutatePublic((next) => {
-                            next.parts[0].interaction.questions.find((entry) => entry.id === selectedSurfaceQuestion.id).responseRegion.ariaLabel = event.target.value;
-                          })
-                        }
-                      />
-                    </StudioField>
-                    <StudioField label="Answer line count">
-                      <input
-                        type="number"
-                        min="1"
-                        max="20"
-                        value={selectedSurfaceQuestion.responseRegion.presentation.lineCount}
-                        onChange={(event) =>
-                          mutatePublic((next) => {
-                            const question = next.parts[0].interaction.questions.find((entry) => entry.id === selectedSurfaceQuestion.id);
-                            question.responseRegion.presentation.lineCount = Math.max(1, Math.min(20, Number(event.target.value) || 1));
-                            resizeNativeOpenResponseRegion(question.responseRegion, question.responseRegion.area);
-                          })
-                        }
-                      />
-                    </StudioField>
-                    <StudioField label="Answer line spacing">
-                      <input
-                        type="number"
-                        min="8"
-                        max="120"
-                        value={selectedSurfaceQuestion.responseRegion.presentation.lineSpacing}
-                        onChange={(event) =>
-                          mutatePublic((next) => {
-                            const question = next.parts[0].interaction.questions.find((entry) => entry.id === selectedSurfaceQuestion.id);
-                            question.responseRegion.presentation.lineSpacing = Math.max(8, Math.min(120, Number(event.target.value) || 8));
-                            resizeNativeOpenResponseRegion(question.responseRegion, question.responseRegion.area);
-                          })
-                        }
-                      />
-                    </StudioField>
+                    <NativeOpenResponseResponseControls document={publicDraft} assetUrl={assetUrl} question={selectedSurfaceQuestion} modelAnswerText={teacherDraft.parts[0].solution.modelAnswers.find((entry) => entry.questionId === selectedSurfaceQuestion.id)?.text || ""} changeResponse={changeResponse} updateQuestion={updateQuestion} bookSlug={bookSlug} componentSlug={componentSlug} fonts={fonts} setAnswerFont={setAnswerFont} recordUploadedFont={recordUploadedFont} onMessage={onMessage} />
                   </>
                 ) : null}
                 {selection.type === "snippet" && selectedSnippet ? (

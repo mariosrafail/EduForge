@@ -12,6 +12,8 @@ test("native Teacher reveal is an explicit wrapper around the public renderer", 
   const source = await readFile(new URL("../src/components/native-open-response/NativeOpenResponseTeacherSurface.jsx", import.meta.url), "utf8");
   assert.match(source, /NativeOpenResponseSurface/);
   assert.match(source, /fitNativeOpenResponseRuntimeAnswer/);
+  assert.match(source, /\.filter\(\(text\) => String\(text\)\.trim\(\)\)\.join\(" \/ "\)/);
+  assert.doesNotMatch(source, /Model answer 1|Model answer 2|native-or-answer-variant/);
   assert.doesNotMatch(source, /getBoundingClientRect|measureText|canvas/);
   const runtimeFit = await readFile(new URL("../src/components/native-open-response/nativeOpenResponseRuntimeFit.js", import.meta.url), "utf8");
   assert.match(runtimeFit, /autoFitNativeOpenResponseAnswer/);
