@@ -2,6 +2,11 @@ import assert from "node:assert/strict";
 
 const number = async (scope, label) => Number(await scope.getByLabel(`Quick ${label}`, { exact: true }).inputValue());
 const ratio = async (scope) => (await number(scope, "Width")) / (await number(scope, "Height"));
+const before = async (first, second) => {
+  const handle = await second.elementHandle();
+  try { return await first.evaluate((element, following) => Boolean(element.compareDocumentPosition(following) & Node.DOCUMENT_POSITION_FOLLOWING), handle); }
+  finally { await handle?.dispose(); }
+};
 
 export async function exerciseOuterFocusAspectRatio(page, audioEditor) {
   await audioEditor.locator(".native-audio-hotspot-focus-tools").getByRole("button", { name: "Select outer focus", exact: true }).click();
@@ -27,6 +32,8 @@ export async function exerciseOuterFocusAspectRatio(page, audioEditor) {
 
 export async function exerciseCompleteSentencesGeometry(page, editor) {
   await editor.locator(".native-single-choice-authoring-hotspot").first().click();
+  const sentence = editor.getByLabel("Sentence to map"); const create = editor.getByRole("button", { name: "New hotspot", exact: true }); const draw = editor.getByRole("button", { name: "Draw custom hotspot", exact: true }); const geometry = editor.getByRole("group", { name: "Complete Sentences hotspot geometry", exact: true }); const style = editor.getByRole("group", { name: "Activity-wide answer style", exact: true });
+  assert.equal(await before(sentence, create) && await before(create, draw) && await before(draw, geometry) && await before(geometry, style), true, "Complete Sentences inspector follows map, create, geometry, then answer-style order");
   const x = editor.getByLabel("Quick X", { exact: true }); const y = editor.getByLabel("Quick Y", { exact: true }); const width = editor.getByLabel("Quick Width", { exact: true }); const height = editor.getByLabel("Quick Height", { exact: true });
   await x.fill("111"); await y.fill("123"); await width.fill("280"); await height.fill("64");
   const frame = editor.getByRole("group", { name: "Blank hotspot selected", exact: true }); const beforeMove = Number(await x.inputValue()); await frame.press("ArrowRight"); assert.equal(Number(await x.inputValue()), beforeMove + 1);

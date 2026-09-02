@@ -478,44 +478,6 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                 <aside className="studio-inspector">
                   <header><span className="studio-section-icon"><ImagePlus aria-hidden="true" /></span><div><h3>{selectedHotspot ? "Hotspot properties" : "Panel properties"}</h3><p>{selectedPanel ? `Panel ${panels.indexOf(selectedPanel) + 1}` : "Select a panel."}</p></div></header>
                   {selectedPanel ? <>
-                  <label className="studio-upload-action">
-                    <Upload />
-                    <span>
-                      <strong>{uploading ? "Uploading…" : backgroundReference ? "Replace background" : "Upload background"}</strong>
-                      <small>PNG, JPEG or WebP</small>
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/png,image/jpeg,image/webp"
-                      disabled={uploading}
-                      onChange={(event) => {
-                        uploadBackground(event.target.files?.[0]);
-                        event.target.value = "";
-                      }}
-                    />
-                  </label>
-                  <fieldset className="studio-content-panel native-complete-sentences-answer-style">
-                    <legend>Activity-wide answer style</legend>
-                    <p>Applied to every Student answer and Teacher revealed answer on every panel.</p>
-                    <QuickNumber
-                      label="Answer font size"
-                      value={answerStyle.fontSize}
-                      minimum={NATIVE_COMPLETE_SENTENCES_LIMITS.fontSizeMinimum}
-                      onChange={(value) => mutatePublic((next) => { const fontSize = Math.round(Number(value)); if (Number.isFinite(fontSize) && fontSize >= NATIVE_COMPLETE_SENTENCES_LIMITS.fontSizeMinimum) next.parts[0].interaction.presentation.answerStyle.fontSize = fontSize; })}
-                    />
-                    <NativeCompleteSentencesFontControls
-                      bookSlug={bookSlug}
-                      componentSlug={componentSlug}
-                      fonts={fonts}
-                      selectedSlot={answerStyle.fontAssetSlot}
-                      onSelect={setAnswerFont}
-                      onUploaded={recordUploadedFont}
-                      onMessage={(message) => setState((current) => ({ ...current, message }))}
-                    />
-                    <StudioField label="Answer text color" className="studio-quick-field">
-                      <input aria-label="Answer text color" type="color" value={answerStyle.color} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.presentation.answerStyle.color = event.target.value; })} />
-                    </StudioField>
-                  </fieldset>
                   <StudioField label="Sentence to map">
                     <select
                       value={drawItemId}
@@ -576,6 +538,44 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                       </StudioButton>
                     </>
                   ) : <p>Draw or select a hotspot to style its answer.</p>}
+                  <fieldset className="studio-content-panel native-complete-sentences-answer-style">
+                    <legend>Activity-wide answer style</legend>
+                    <p>Applied to every Student answer and Teacher revealed answer on every panel.</p>
+                    <QuickNumber
+                      label="Answer font size"
+                      value={answerStyle.fontSize}
+                      minimum={NATIVE_COMPLETE_SENTENCES_LIMITS.fontSizeMinimum}
+                      onChange={(value) => mutatePublic((next) => { const fontSize = Math.round(Number(value)); if (Number.isFinite(fontSize) && fontSize >= NATIVE_COMPLETE_SENTENCES_LIMITS.fontSizeMinimum) next.parts[0].interaction.presentation.answerStyle.fontSize = fontSize; })}
+                    />
+                    <NativeCompleteSentencesFontControls
+                      bookSlug={bookSlug}
+                      componentSlug={componentSlug}
+                      fonts={fonts}
+                      selectedSlot={answerStyle.fontAssetSlot}
+                      onSelect={setAnswerFont}
+                      onUploaded={recordUploadedFont}
+                      onMessage={(message) => setState((current) => ({ ...current, message }))}
+                    />
+                    <StudioField label="Answer text color" className="studio-quick-field">
+                      <input aria-label="Answer text color" type="color" value={answerStyle.color} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.presentation.answerStyle.color = event.target.value; })} />
+                    </StudioField>
+                  </fieldset>
+                  <label className="studio-upload-action">
+                    <Upload />
+                    <span>
+                      <strong>{uploading ? "Uploading…" : backgroundReference ? "Replace background" : "Upload background"}</strong>
+                      <small>PNG, JPEG or WebP</small>
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      disabled={uploading}
+                      onChange={(event) => {
+                        uploadBackground(event.target.files?.[0]);
+                        event.target.value = "";
+                      }}
+                    />
+                  </label>
                   </> : <p>Select or add a panel.</p>}
                 </aside>
               </div>
