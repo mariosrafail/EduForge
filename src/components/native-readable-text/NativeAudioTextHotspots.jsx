@@ -5,7 +5,8 @@ import audioHotspotPressed from "../../assets/native-activities/audio-text-hotsp
 import readableHotspotActive from "../../assets/native-activities/readable-text-hotspot-active.svg";
 import readableHotspotPressed from "../../assets/native-activities/readable-text-hotspot-pressed.svg";
 import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
-import { nativeAudioTextHighlightColor, nativeAudioTextReadableHighlightArea } from "../../data/native-activities/nativeAudioTextHotspots.js";
+import { nativeAudioTextFocusLayout, nativeAudioTextHighlightColor, nativeAudioTextReadableHighlightArea } from "../../data/native-activities/nativeAudioTextHotspots.js";
+import { NativeVerticalScrollViewport } from "./NativeVerticalScrollViewport.jsx";
 
 export const nativeAudioHotspotArtwork = Object.freeze({ active: audioHotspotActive, pressed: audioHotspotPressed });
 export const nativeReadableTextHotspotArtwork = Object.freeze({ active: readableHotspotActive, pressed: readableHotspotPressed });
@@ -44,6 +45,7 @@ export function NativeAudioTextFocusContent({ document, hotspot, assetUrl, autoP
   }, [autoPlay, hotspot?.audioAssetSlot, hotspot?.id]);
   if (!hotspot || !readableReference) return null;
   const focus = hotspot.readableFocusArea;
+  const focusLayout = nativeAudioTextFocusLayout(hotspot);
   const highlight = nativeAudioTextReadableHighlightArea(hotspot);
   const highlightStyle = highlight ? {
     left: `${(highlight.x - focus.x) / focus.width * 100}%`,
@@ -51,8 +53,7 @@ export function NativeAudioTextFocusContent({ document, hotspot, assetUrl, autoP
     width: `${highlight.width / focus.width * 100}%`,
     height: `${highlight.height / focus.height * 100}%`,
   } : null;
-  return <section className="native-audio-text-focus" aria-label={`Focused readable text: ${hotspot.label}`}>
-    <div
+  const crop = <div
       className="native-audio-text-focus-crop"
       data-highlight-color={nativeAudioTextHighlightColor(hotspot.highlightColor)}
       style={{ aspectRatio: `${focus.width} / ${focus.height}` }}
@@ -61,7 +62,9 @@ export function NativeAudioTextFocusContent({ document, hotspot, assetUrl, autoP
         <image href={assetUrl(readableReference.assetId)} x="0" y="0" width={document.readableText.sourceWidth} height={document.readableText.sourceHeight} preserveAspectRatio="xMidYMid meet" />
       </svg>
       {highlightStyle ? <span className="native-audio-text-focus-highlight" style={highlightStyle} aria-hidden="true" /> : null}
-    </div>
+    </div>;
+  return <section className="native-audio-text-focus" data-focus-layout={focusLayout} aria-label={`Focused readable text: ${hotspot.label}`}>
+    {focusLayout === "natural-width" ? <NativeVerticalScrollViewport id={`${document.activityId}-${hotspot.id}-focus-scroll`} className="native-audio-text-focus-scroll" ariaLabel="Focused readable text vertical scroll" resetKey={hotspot.id}>{crop}</NativeVerticalScrollViewport> : crop}
     {audioReference ? <audio ref={audioRef} hidden autoPlay={autoPlay} preload="metadata" src={assetUrl(audioReference.assetId)} /> : null}
   </section>;
 }

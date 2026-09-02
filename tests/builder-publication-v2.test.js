@@ -137,7 +137,7 @@ test("v2 validates and materializes a public Readable Text image without Builder
 
   const compiled = compileUltimateB2ComponentReleaseV2(input);
   assert.deepEqual(compiled.publicProjection.nativeActivities[openId].document.readableText, publicDocument.readableText);
-  assert.deepEqual(compiled.publicProjection.nativeActivities[openId].document.audioTextHotspots, publicDocument.audioTextHotspots);
+  assert.deepEqual(compiled.publicProjection.nativeActivities[openId].document.audioTextHotspots, { hotspots: [{ ...publicDocument.audioTextHotspots.hotspots[0], focusLayout: "natural-width" }] });
   assert.deepEqual(compiled.publicProjection.nativeActivities[openId].document.video, publicDocument.video);
   assert.equal(compiled.nativeAssetSources.some((asset) => asset.row.object_key.endsWith("readable.png")), true);
   assert.equal(compiled.nativeAssetSources.some((asset) => asset.descriptor.extension === "mp3" && asset.descriptor.mediaType === "audio/mpeg"), true);

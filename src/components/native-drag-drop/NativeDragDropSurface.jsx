@@ -17,23 +17,8 @@ const DRAG_MOVEMENT_THRESHOLD = 5;
 const DRAG_RETURN_MS = 160;
 
 function PanelArtwork({ document, panel, assetUrl, children }) {
-  const slotRef = useRef(null);
-  const [containedSize, setContainedSize] = useState(null);
   const assets = new Map(document.assets.map((asset) => [asset.slot, asset]));
-  useEffect(() => {
-    const slot = slotRef.current;
-    if (!slot) return undefined;
-    const update = () => {
-      const bounds = slot.getBoundingClientRect();
-      const scale = Math.min(bounds.width / panel.surface.width, bounds.height / panel.surface.height);
-      const next = scale > 0 ? { width: panel.surface.width * scale, height: panel.surface.height * scale } : null;
-      setContainedSize((current) => current && next && Math.abs(current.width - next.width) < .25 && Math.abs(current.height - next.height) < .25 ? current : next);
-    };
-    update();
-    if (typeof ResizeObserver === "undefined") { globalThis.addEventListener?.("resize", update); return () => globalThis.removeEventListener?.("resize", update); }
-    const observer = new ResizeObserver(update); observer.observe(slot); return () => observer.disconnect();
-  }, [panel.surface.height, panel.surface.width]);
-  return <div className="native-drag-drop-stage-slot" ref={slotRef}><div className="native-drag-drop-stage" style={{ aspectRatio: `${panel.surface.width} / ${panel.surface.height}`, ...(containedSize || {}) }} data-surface-width={panel.surface.width} data-surface-height={panel.surface.height}>
+  return <div className="native-drag-drop-stage-slot"><div className="native-drag-drop-stage" data-surface-width={panel.surface.width} data-surface-height={panel.surface.height}>
     {panel.images.map((image) => {
       const reference = assets.get(image.assetSlot);
       return <div key={image.id} className="native-drag-drop-artwork" style={{ ...logicalAreaStyle(image.area, panel.surface), zIndex: image.order + 1 }}>

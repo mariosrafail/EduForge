@@ -95,7 +95,8 @@ try {
       stage: snapshot(stage),
       bank: snapshot(bank),
       surfaceHostFill: surfaceBox.height / hostBox.height,
-      stageAspectRatio: stageBox.width / stageBox.height,
+      stageHostWidthFill: stageBox.width / hostBox.width,
+      stageHostHeightFill: stageBox.height / hostBox.height,
       bankHeightRatio: bankBox.height / stageBox.height,
       bankTopRatio: (bankBox.top - stageBox.top) / stageBox.height,
       stageInsideHost: stageBox.left >= hostBox.left - 1 && stageBox.right <= hostBox.right + 1 && stageBox.top >= hostBox.top - 1 && stageBox.bottom <= hostBox.bottom + 1,
@@ -115,7 +116,8 @@ try {
     assert.ok(metrics.activityView.height > 0, JSON.stringify(metrics));
     assert.ok(metrics.surfaceHostFill > 0.98, JSON.stringify(metrics));
     assert.ok(metrics.stageInsideHost, JSON.stringify(metrics));
-    assert.ok(Math.abs(metrics.stageAspectRatio - 1024 / 582) < 0.02, JSON.stringify(metrics));
+    assert.ok(metrics.stageHostWidthFill > 0.98, JSON.stringify(metrics));
+    assert.ok(metrics.stageHostHeightFill > 0.98, JSON.stringify(metrics));
     assert.ok(metrics.bankHeightRatio > 0.18 && metrics.bankHeightRatio < 0.22, JSON.stringify(metrics));
     assert.ok(metrics.bankTopRatio > 0.78 && metrics.bankTopRatio < 0.82, JSON.stringify(metrics));
     assert.ok(metrics.surfaceOverflow.x <= 1 && metrics.surfaceOverflow.y <= 1, JSON.stringify(metrics));

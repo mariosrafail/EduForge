@@ -7,14 +7,14 @@ import { NativeAudioTextFocusContent, nativeAudioTextHotspotArtwork } from "../.
 import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
 import { StageGeometryControls } from "../../../components/builder-studio/StageGeometryControls.jsx";
 import { logicalAreaStyle, normalizeStageGeometryAspectRatio, roundStageValue } from "../../../components/builder-studio/stageGeometry.js";
-import { NATIVE_AUDIO_TEXT_DEFAULT_HIGHLIGHT_COLOR, NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS, nativeAudioTextHighlightColor, nativeAudioTextHotspotTargets, nativeAudioTextReadableHighlightArea, normalizeNativeAudioTextHotspots } from "../../../data/native-activities/nativeAudioTextHotspots.js";
+import { NATIVE_AUDIO_TEXT_DEFAULT_HIGHLIGHT_COLOR, NATIVE_AUDIO_TEXT_FIXED_FOCUS_ASPECT_RATIO, NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS, nativeAudioTextFocusLayout, nativeAudioTextHighlightColor, nativeAudioTextHotspotTargets, nativeAudioTextReadableHighlightArea, normalizeNativeAudioTextHotspots } from "../../../data/native-activities/nativeAudioTextHotspots.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import "./nativeAudioTextHotspotEditor.css";
 
 const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
-const OUTER_FOCUS_ASPECT_RATIO = 1024 / 291;
+const OUTER_FOCUS_ASPECT_RATIO = NATIVE_AUDIO_TEXT_FIXED_FOCUS_ASPECT_RATIO;
 
 function defaultActivityArea(target) {
   const size = clamp(Math.round(Math.min(target.width, target.height) * 0.08), 24, 96);
@@ -75,11 +75,11 @@ function ActivityCanvas({ document, target, hotspot, assetUrl, onPlace }) {
   </div>;
 }
 
-function FocusCanvas({ readableText, imageUrl, hotspot, onFocusArea, onHighlightArea, onDeleteHighlight }) {
+function FocusCanvas({ readableText, imageUrl, hotspot, onFocusArea, onFocusLayout, onHighlightArea, onDeleteHighlight }) {
   const gesture = useRef(null);
   const [selectedRegion, setSelectedRegion] = useState(nativeAudioTextReadableHighlightArea(hotspot) ? "highlight" : "focus");
   const [drawRegion, setDrawRegion] = useState(null);
-  const [keepAspectRatio, setKeepAspectRatio] = useState(false);
+  const keepAspectRatio = nativeAudioTextFocusLayout(hotspot) === "fixed-aspect";
   const bounds = { width: readableText.sourceWidth, height: readableText.sourceHeight };
   const highlight = nativeAudioTextReadableHighlightArea(hotspot);
   const select = (region) => { gesture.current = null; setSelectedRegion(region); setDrawRegion(null); };
@@ -106,7 +106,7 @@ function FocusCanvas({ readableText, imageUrl, hotspot, onFocusArea, onHighlight
     <div className="native-audio-hotspot-focus-tools" aria-label="Readable text rectangle tools">
       <button type="button" className="studio-button" aria-pressed={selectedRegion === "focus" && !drawRegion} onClick={() => select("focus")}>Select outer focus</button>
       <button type="button" className="studio-button" aria-pressed={drawRegion === "focus"} onClick={() => armDraw("focus")}>Redraw outer focus</button>
-      <label className="studio-quick-check"><input type="checkbox" checked={keepAspectRatio} onChange={(event) => { const checked = event.target.checked; setKeepAspectRatio(checked); if (checked) onFocusArea(normalizeStageGeometryAspectRatio(hotspot.readableFocusArea, bounds, { aspectRatio: OUTER_FOCUS_ASPECT_RATIO, minWidth: 16, minHeight: 16 })); }} /> Keep aspect ratio</label>
+      <label className="studio-quick-check"><input type="checkbox" checked={keepAspectRatio} onChange={(event) => { const checked = event.target.checked; onFocusLayout(checked ? "fixed-aspect" : "natural-width"); if (checked) onFocusArea(normalizeStageGeometryAspectRatio(hotspot.readableFocusArea, bounds, { aspectRatio: OUTER_FOCUS_ASPECT_RATIO, minWidth: 16, minHeight: 16 })); }} /> Keep aspect ratio</label>
       {highlight ? <><button type="button" className="studio-button" aria-pressed={selectedRegion === "highlight" && !drawRegion} onClick={() => select("highlight")}>Select inner highlight</button><button type="button" className="studio-button" aria-pressed={drawRegion === "highlight"} onClick={() => armDraw("highlight")}>Redraw inner highlight</button><button type="button" className="studio-button studio-button--danger-ghost" onClick={() => { gesture.current = null; onDeleteHighlight(); setSelectedRegion("focus"); setDrawRegion(null); }}>Delete inner highlight</button></> : <button type="button" className="studio-button" onClick={() => { gesture.current = null; onHighlightArea(nativeAudioTextReadableHighlightArea({ readableFocusArea: hotspot.readableFocusArea })); setSelectedRegion("highlight"); }}>Add inner highlight</button>}
     </div>
     <div
@@ -167,6 +167,7 @@ export function NativeAudioTextHotspotEditor({ bookSlug, componentSlug, activity
         panelId: target.panelId,
         activityArea: defaultActivityArea(target),
         readableFocusArea,
+        focusLayout: "natural-width",
         readableHighlightArea: nativeAudioTextReadableHighlightArea({ readableFocusArea }),
         audioAssetSlot: "",
         label: `Open readable excerpt ${next.audioTextHotspots.hotspots.length + 1}`,
@@ -223,7 +224,7 @@ export function NativeAudioTextHotspotEditor({ bookSlug, componentSlug, activity
         hotspot.activityArea.x = Math.round(clamp(point.x - hotspot.activityArea.width / 2, 0, selectedTarget.width - hotspot.activityArea.width));
         hotspot.activityArea.y = Math.round(clamp(point.y - hotspot.activityArea.height / 2, 0, selectedTarget.height - hotspot.activityArea.height));
       })} /></div>
-      <div><h4>2. Set transparent focus and colored highlight</h4><FocusCanvas readableText={publicDraft.readableText} imageUrl={previewUrl(readableReference.assetId)} hotspot={selected} onFocusArea={(area) => updateSelected((hotspot) => { hotspot.readableFocusArea = area; if (hotspot.readableHighlightArea) hotspot.readableHighlightArea = containedArea(hotspot.readableHighlightArea, area); })} onHighlightArea={(area) => updateSelected((hotspot) => { hotspot.readableHighlightArea = containedArea(area, hotspot.readableFocusArea); })} onDeleteHighlight={() => updateSelected((hotspot) => { hotspot.readableHighlightArea = null; })} /></div>
+      <div><h4>2. Set transparent focus and colored highlight</h4><FocusCanvas readableText={publicDraft.readableText} imageUrl={previewUrl(readableReference.assetId)} hotspot={selected} onFocusArea={(area) => updateSelected((hotspot) => { hotspot.readableFocusArea = area; if (hotspot.readableHighlightArea) hotspot.readableHighlightArea = containedArea(hotspot.readableHighlightArea, area); })} onFocusLayout={(focusLayout) => updateSelected((hotspot) => { hotspot.focusLayout = focusLayout; })} onHighlightArea={(area) => updateSelected((hotspot) => { hotspot.readableHighlightArea = containedArea(area, hotspot.readableFocusArea); })} onDeleteHighlight={() => updateSelected((hotspot) => { hotspot.readableHighlightArea = null; })} /></div>
       <fieldset className="native-audio-hotspot-highlight-colors">
         <legend>Highlight color</legend>
         {NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS.map((color) => <label key={color} data-highlight-color={color}>
