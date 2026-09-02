@@ -18,7 +18,7 @@ import { useTeacherOfflineSettings } from "./teacherOfflineSettings.js";
 import { normalizeTeacherActivityPresentationState } from "./teacherActivityPresentation.js";
 import { getUltimateB2ReadingExercisePresentationFeatures } from "../../data/ultimate-b2/readingExerciseRuntimeData.js";
 import { unitExtrasForPage } from "../../data/ultimate-b2/unitExtras.js";
-import { BookUnitExtraAudios } from "../../components/lms/books/BookUnitExtraAudios.jsx";
+import { BookUnitExtraAudiosForPublication } from "../../components/lms/books/BookUnitExtraAudios.jsx";
 import { NativeVideoPlayer } from "../../components/native-video/NativeVideoPlayer.jsx";
 import { publishedUnitExtraVideoUrl, usePublishedComponentRelease } from "virtual:component-publication";
 
@@ -505,7 +505,7 @@ export default function TeacherOfflinePages({
           <button ref={extraLauncherRef} type="button" className="teacher-unit-extra-launcher" aria-haspopup="menu" aria-expanded={extraMenuOpen} onClick={() => setExtraMenuOpen((current) => !current)}><Video aria-hidden="true" /> Extra Videos</button>
         </div> : null}
         {activeExtraVideo ? <div className="teacher-unit-extra-overlay" role="dialog" aria-modal="true" aria-labelledby="teacher-unit-extra-title" onPointerDown={(event) => { if (event.target === event.currentTarget) { setActiveExtraVideo(null); extraLauncherRef.current?.focus(); } }}><section><header><div><span>Extra Videos</span><h2 id="teacher-unit-extra-title">{activeExtraVideo.title}</h2></div><button ref={extraCloseRef} type="button" aria-label="Close Extra Video" onClick={() => { setActiveExtraVideo(null); extraLauncherRef.current?.focus(); }}><X /></button></header><div><NativeVideoPlayer video={activeExtraVideo.video} src={publishedUnitExtraVideoUrl(publication, activeExtraVideo.video.asset)} autoPlayAttemptKey={activeExtraVideo.id} ariaLabel={`${activeExtraVideo.title} Extra Video player`} /></div></section></div> : null}
-        <BookUnitExtraAudios unitNumber={unit?.number} pageId={page?.id} hidden={activityActive || Boolean(activeExtraVideo)} />
+        <BookUnitExtraAudiosForPublication publication={publication} unitNumber={unit?.number} pageId={page?.id} hidden={activityActive || Boolean(activeExtraVideo)} />
       </div>
 
       <TeacherBookNavigation

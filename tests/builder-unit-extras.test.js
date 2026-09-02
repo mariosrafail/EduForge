@@ -154,10 +154,12 @@ test("Viewer renders accessible lower-right Unit Extra Audio without colliding w
   assert.match(audioPlayer, /audioRef\.current\.pause\(\)/);
   assert.match(audioPlayer, /setActiveId\(""\)/);
   assert.match(audioPlayer, /audios\.length > 1/);
+  assert.match(audioPlayer, /BookUnitExtraAudiosForPublication\(\{ publication,/);
+  assert.match(audioPlayer, /BookUnitExtraAudiosForPublication \{\.\.\.props\} publication=\{publication\}/);
   assert.match(audioCss, /right:max\(20px,env\(safe-area-inset-right\)\); bottom:max\(18px,env\(safe-area-inset-bottom\)\)/);
   assert.match(audioCss, /book-page-extra-videos:has\(~ \.book-page-extra-audios\)/);
   assert.match(viewer, /<BookUnitExtraVideos[\s\S]*<BookUnitExtraAudios/);
-  assert.match(teacher, /<BookUnitExtraAudios/);
+  assert.match(teacher, /<BookUnitExtraAudiosForPublication publication=\{publication\}/);
 });
 
 test("migration 055 expands the existing fail-closed Unit Extra upload and pin contracts for MP3", async () => {

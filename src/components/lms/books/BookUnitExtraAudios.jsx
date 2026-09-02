@@ -5,8 +5,7 @@ import { publishedUnitExtraAudioUrl, usePublishedComponentRelease } from "virtua
 import { unitExtraAudiosForPage } from "../../../data/ultimate-b2/unitExtras.js";
 import "./BookUnitExtraAudios.css";
 
-export function BookUnitExtraAudios({ unitNumber, pageId, hidden = false }) {
-  const publication = usePublishedComponentRelease();
+export function BookUnitExtraAudiosForPublication({ publication, unitNumber, pageId, hidden = false }) {
   const audios = useMemo(() => unitExtraAudiosForPage(publication, { unitNumber, pageId }), [pageId, publication, unitNumber]);
   const [activeId, setActiveId] = useState("");
   const audioRef = useRef(null);
@@ -24,4 +23,9 @@ export function BookUnitExtraAudios({ unitNumber, pageId, hidden = false }) {
     {audios.length > 1 ? <label><span>Audio track</span><select value={active.id} onChange={(event) => { audioRef.current?.pause(); setActiveId(event.target.value); }} aria-label="Extra Audio track">{audios.map((entry) => <option key={entry.id} value={entry.id}>{entry.title}</option>)}</select></label> : null}
     <audio ref={audioRef} controls preload="metadata" src={publishedUnitExtraAudioUrl(publication, active.audio.asset)} aria-label={`${active.title} Extra Audio player`} />
   </section>;
+}
+
+export function BookUnitExtraAudios(props) {
+  const publication = usePublishedComponentRelease();
+  return <BookUnitExtraAudiosForPublication {...props} publication={publication} />;
 }
