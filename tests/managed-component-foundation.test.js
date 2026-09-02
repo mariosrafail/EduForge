@@ -71,7 +71,7 @@ test("managed native adapters derive authoritative Unit placement and keep Workb
   const workbookAdapter = createManagedNativeActivityAdapter(workbook);
   const placement = await workbookAdapter.normalizePlacement({ pageId: "wb-page-one", unitNumber: 9 }, { sql, bookSlug: "ultimate-b2", componentSlug: workbook });
   assert.deepEqual(placement, { pageId: "wb-page-one", sourcePageId: "wb-page-one", unitId: "20000000-0000-4000-8000-000000000001", unitNumber: 3, unitTitle: "Unit 3", sortOrder: 7, assignmentState: "assigned" });
-  assert.ok(observed[0].values.includes(`${workbook}/pages/wb-page-one`));
+  assert.ok(observed[0].values.flat().includes(`${workbook}/pages/wb-page-one`));
   await assert.rejects(workbookAdapter.normalizePlacement({ pageId: "gb-page-one" }, { sql, bookSlug: "ultimate-b2", componentSlug: grammar }), /invalid/);
   const workbookId = workbookAdapter.nextActivityId({ placement, nativeIndex: { activities: [] } });
   const grammarId = createManagedNativeActivityAdapter(grammar).nextActivityId({ placement: { ...placement, pageId: "gb-page-one" }, nativeIndex: { activities: [] } });
@@ -123,6 +123,47 @@ test("managed existing placement resolution classifies active, deleted, unavaila
   await assert.rejects(adapter.resolveExistingPlacement({ pageId: "wb-deleted" }, context(deletedSql, grammar)), /invalid/);
   const databaseFailure = Object.assign(new Error("database unavailable"), { code: "CONNECTION_LOST" });
   await assert.rejects(adapter.resolveExistingPlacement({ pageId: "wb-absent" }, context(async () => { throw databaseFailure; })), (error) => error === databaseFailure);
+});
+
+test("managed existing placements batch one scoped SQL read and preserve active, deleted, unavailable, and absent semantics", async () => {
+  const adapter = createManagedNativeActivityAdapter(workbook);
+  const unit = { unit_id: "20000000-0000-4000-8000-000000000001", unit_number: 3, unit_title: "Unit 3" };
+  const row = (pageId, sourceMetadata, overrides = {}) => ({
+    stable_key: `${workbook}/pages/${pageId}`,
+    sort_order: 8,
+    source_metadata: sourceMetadata,
+    ...unit,
+    ...overrides,
+  });
+  const calls = [];
+  const sql = async (strings, ...values) => {
+    calls.push({ text: strings.join("?"), values });
+    return [
+      row("wb-active", { is_active: true }),
+      row("wb-deleted", { is_active: false, is_deleted: true }),
+      row("wb-invalid-unit", { is_active: true }, { unit_id: null, unit_number: null, unit_title: null }),
+    ];
+  };
+  const context = { sql, bookSlug: "ultimate-b2", componentSlug: workbook };
+  const placements = await adapter.resolveExistingPlacements([
+    { pageId: "wb-active" }, { pageId: "wb-deleted" }, { pageId: "wb-invalid-unit" },
+    { pageId: "wb-absent" }, { pageId: "wb-active" },
+  ], context);
+
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].text, /page\.stable_key=any\(\?::text\[\]\)/i);
+  assert.deepEqual(calls[0].values.at(-1), [
+    `${workbook}/pages/wb-active`, `${workbook}/pages/wb-deleted`,
+    `${workbook}/pages/wb-invalid-unit`, `${workbook}/pages/wb-absent`,
+  ]);
+  assert.equal(placements.size, 4);
+  assert.equal(placements.get("wb-active").assignmentState, "assigned");
+  assert.equal(placements.get("wb-deleted").unassignedReason, "page-deleted");
+  assert.equal(placements.get("wb-invalid-unit").unassignedReason, "page-unavailable");
+  assert.equal(placements.get("wb-absent").unassignedReason, "page-unavailable");
+  await assert.rejects(adapter.resolveExistingPlacements([{ pageId: "wb-active" }], { ...context, componentSlug: grammar }), /invalid/);
+  const databaseFailure = Object.assign(new Error("database unavailable"), { code: "CONNECTION_LOST" });
+  await assert.rejects(adapter.resolveExistingPlacements([{ pageId: "wb-active" }], { ...context, sql: async () => { throw databaseFailure; } }), (error) => error === databaseFailure);
 });
 
 function managedCatalog(componentSlug) {

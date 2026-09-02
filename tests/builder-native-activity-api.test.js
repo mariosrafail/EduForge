@@ -409,7 +409,7 @@ test("catalog boundary failures retain one generic response and emit only their 
     },
     {
       name: "resolved placement mismatch",
-      resolveAdapter: () => ({ ...baseAdapter, resolveExistingPlacement: async () => ({ pageId: "different-students-page" }) }),
+      resolveAdapter: () => ({ ...baseAdapter, resolveExistingPlacements: async () => new Map([[publicationV2Fixture.pageId, { pageId: "different-students-page" }]]) }),
       expected: {
         code: "native_catalog_boundary_invalid", boundaryStage: "placement_mismatch",
         bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: publicationV2Fixture.openResponseId,
@@ -482,6 +482,7 @@ test("catalog processing failures retain safe phase and code diagnostics without
     safeContext: { activityId: "forged-activity", solution: "PRIVATE_SECRET_MARKER" },
   });
   const codedFailure = () => Object.assign(uncodedFailure(), { code: "42P01" });
+  const baseAdapter = resolveNativeActivityAdapter("ultimate-b2", "ultimate-b2-students-book");
   const cases = [
     {
       name: "uncoded source collection",
@@ -492,6 +493,25 @@ test("catalog processing failures retain safe phase and code diagnostics without
       name: "database-coded source collection",
       collectCatalog: async () => { throw codedFailure(); },
       expected: { code: "42P01", processingStage: "source_collection", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" },
+    },
+    {
+      name: "uncoded placement batch load",
+      resolveAdapter: () => ({ ...baseAdapter, resolveExistingPlacements: async () => { throw uncodedFailure(); } }),
+      expected: { code: "native_catalog_processing_failed", processingStage: "placement_batch_load", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" },
+    },
+    {
+      name: "database-coded placement batch load",
+      resolveAdapter: () => ({ ...baseAdapter, resolveExistingPlacements: async () => { throw codedFailure(); } }),
+      expected: { code: "42P01", processingStage: "placement_batch_load", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" },
+    },
+    {
+      name: "adapter without batch placement capability",
+      resolveAdapter() {
+        const adapter = { ...baseAdapter };
+        delete adapter.resolveExistingPlacements;
+        return adapter;
+      },
+      expected: { code: "native_catalog_processing_failed", processingStage: "placement_batch_load", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" },
     },
     {
       name: "uncoded catalog asset load",
@@ -534,6 +554,7 @@ test("catalog processing failures retain safe phase and code diagnostics without
       getDatabase: () => ({}),
       authorize: async () => ({ builderUser: { id: actor } }),
       collectCatalog: scenario.collectCatalog || (async () => sources),
+      ...(scenario.resolveAdapter ? { resolveAdapter: scenario.resolveAdapter } : {}),
       ...(scenario.loadCatalogAssets ? { loadCatalogAssets: scenario.loadCatalogAssets } : {}),
       ...(scenario.resolveKind ? { resolveKind: scenario.resolveKind } : {}),
       ...(scenario.deriveAssetRequirements ? { deriveAssetRequirements: scenario.deriveAssetRequirements } : {}),
@@ -567,7 +588,9 @@ test("unexpected placement SQL failures preserve their safe infrastructure code 
   const response = await handler(request({ method: "GET", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-workbook/catalog" }));
   assert.equal(response.statusCode, 500);
   assert.deepEqual(JSON.parse(response.body), { error: "native_activity_request_failed" });
-  assert.deepEqual(errors, [{ message: "Builder native activity request failed", fields: { code: "57P01" } }]);
+  assert.deepEqual(errors, [{ message: "Builder native activity request failed", fields: {
+    code: "57P01", processingStage: "placement_batch_load", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-workbook",
+  } }]);
   assert.doesNotMatch(JSON.stringify({ response: response.body, errors }), /private_teacher_payload|hidden_table|PRIVATE ANSWER|placement_resolution_failed/i);
 });
 
@@ -605,7 +628,7 @@ test("catalog normalizes supported pre-rich Teacher answer shapes instead of qua
 
 test("Students Book catalog keeps a native activity on a tombstoned canonical page as Unassigned", async () => {
   const sources = createPublicationV2FixtureSources();
-  const sql = async () => [{ source_metadata: { is_active: false, is_deleted: true } }];
+  const sql = async () => [{ stable_key: `ultimate-b2-students-book/pages/${publicationV2Fixture.pageId}`, source_metadata: { is_active: false, is_deleted: true } }];
   const handler = createBuilderNativeActivitiesHandler({
     getDatabase: () => sql,
     authorize: async () => ({ builderUser: { id: actor } }),
@@ -629,7 +652,7 @@ test("Workbook catalog keeps an unavailable historical placement visible beside 
     { activityId: orphanActivityId, pageId: orphanPageId, sortOrder: 1 },
     { activityId: activeActivityId, pageId: activePageId, sortOrder: 2 },
   ]);
-  const sql = async (_strings, ...values) => values.includes(`ultimate-b2-workbook/pages/${activePageId}`) ? [{
+  const sql = async (_strings, ...values) => values.flat().includes(`ultimate-b2-workbook/pages/${activePageId}`) ? [{
     stable_key: `ultimate-b2-workbook/pages/${activePageId}`,
     sort_order: 2,
     source_metadata: { is_active: true },
@@ -654,6 +677,116 @@ test("Workbook catalog keeps an unavailable historical placement visible beside 
   assert.deepEqual(orphan.assignment, { state: "unassigned", reason: "page-unavailable" });
   assert.deepEqual(payload.activities[1].assignment, { state: "assigned" });
   assert.doesNotMatch(response.body, /solution|modelAnswers/i);
+});
+
+test("catalog placement loading remains one batch and never calls the per-entry resolver as Activity count grows", async () => {
+  const path = "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-workbook/catalog";
+  const baseAdapter = resolveNativeActivityAdapter("ultimate-b2", "ultimate-b2-workbook");
+  for (const size of [1, 10, 60, 101]) {
+    const entries = Array.from({ length: size }, (_, index) => ({
+      activityId: `ultimate-b2-wb-scale-${index + 1}-o1`,
+      pageId: `workbook-scale-page-${index + 1}`,
+      sortOrder: index + 1,
+    }));
+    const sources = createWorkbookCatalogSources(entries);
+    let batchCalls = 0;
+    let perEntryCalls = 0;
+    const handler = createBuilderNativeActivitiesHandler({
+      getDatabase: () => ({}),
+      authorize: async () => ({ builderUser: { id: actor } }),
+      collectCatalog: async () => sources,
+      resolveAdapter: () => ({
+        ...baseAdapter,
+        async resolveExistingPlacements(inputs) {
+          batchCalls += 1;
+          return new Map(inputs.map(({ pageId }) => [pageId, { pageId, sourcePageId: pageId, assignmentState: "assigned" }]));
+        },
+        async resolveExistingPlacement() { perEntryCalls += 1; throw new Error("per-entry placement lookup must not run"); },
+      }),
+      logger: { error() {} },
+    });
+    const response = await handler(request({ method: "GET", path }));
+    assert.equal(response.statusCode, 200, `${size} Activities: ${response.body}`);
+    assert.equal(JSON.parse(response.body).activities.length, size);
+    assert.equal(batchCalls, 1, `${size} Activities`);
+    assert.equal(perEntryCalls, 0, `${size} Activities`);
+  }
+});
+
+test("a 64-Activity Workbook catalog uses one deduplicated placement SQL query without dropping lifecycle states", async () => {
+  const count = 64;
+  const entries = Array.from({ length: count }, (_, index) => ({
+    activityId: `ultimate-b2-wb-budget-${index + 1}-o1`,
+    pageId: `workbook-budget-page-${index + 1}`,
+    sortOrder: index + 1,
+  }));
+  const sources = createWorkbookCatalogSources(entries);
+  let placementSqlCalls = 0;
+  const sql = async (strings, ...values) => {
+    const query = strings.join("?");
+    if (!/from book_pages page/i.test(query)) return [];
+    placementSqlCalls += 1;
+    const stableKeys = values.find(Array.isArray) || [];
+    return stableKeys.flatMap((stableKey) => {
+      const pageNumber = Number(stableKey.match(/-(\d+)$/)?.[1]);
+      if (pageNumber % 4 === 3) return [];
+      const unavailableUnit = pageNumber % 4 === 2;
+      const deleted = pageNumber % 4 === 1;
+      return [{
+        stable_key: stableKey,
+        sort_order: pageNumber,
+        source_metadata: { is_active: !deleted, is_deleted: deleted },
+        unit_id: unavailableUnit ? null : "20000000-0000-4000-8000-000000000001",
+        unit_number: unavailableUnit ? null : 1,
+        unit_title: unavailableUnit ? null : "Unit 1",
+      }];
+    });
+  };
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => sql,
+    authorize: async () => ({ builderUser: { id: actor } }),
+    collectCatalog: async () => sources,
+    logger: { error() {} },
+  });
+  const response = await handler(request({ method: "GET", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-workbook/catalog" }));
+  assert.equal(response.statusCode, 200, response.body);
+  const payload = JSON.parse(response.body);
+  assert.equal(payload.activities.length, count);
+  assert.equal(placementSqlCalls, 1);
+  assert.equal(payload.activities.filter((activity) => activity.assignment.state === "assigned").length, 16);
+  assert.equal(payload.activities.filter((activity) => activity.assignment.reason === "page-deleted").length, 16);
+  assert.equal(payload.activities.filter((activity) => activity.assignment.reason === "page-unavailable").length, 32);
+  assert.doesNotMatch(response.body, /solution|modelAnswers|correctAnswers|mappings/i);
+});
+
+test("a 101-Activity Students Book catalog uses one deduplicated tombstone-overlay SQL query", async () => {
+  const adapter = resolveNativeActivityAdapter("ultimate-b2", "ultimate-b2-students-book");
+  const entries = Array.from({ length: 101 }, (_, index) => ({
+    activityId: `ultimate-b2-sb-budget-o${index + 1}`,
+    pageId: adapter.placements[index % adapter.placements.length].pageId,
+    sortOrder: index + 1,
+  }));
+  const sources = createWorkbookCatalogSources(entries);
+  let placementSqlCalls = 0;
+  let stableKeyCount = 0;
+  const sql = async (strings, ...values) => {
+    if (/from book_pages page/i.test(strings.join("?"))) {
+      placementSqlCalls += 1;
+      stableKeyCount = (values.find(Array.isArray) || []).length;
+    }
+    return [];
+  };
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => sql,
+    authorize: async () => ({ builderUser: { id: actor } }),
+    collectCatalog: async () => sources,
+    logger: { error() {} },
+  });
+  const response = await handler(request({ method: "GET", path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/catalog" }));
+  assert.equal(response.statusCode, 200, response.body);
+  assert.equal(JSON.parse(response.body).activities.length, entries.length);
+  assert.equal(placementSqlCalls, 1);
+  assert.equal(stableKeyCount, new Set(entries.map((entry) => entry.pageId)).size);
 });
 
 test("catalog fails closed when a Students Book activity is supplied for Workbook", async () => {

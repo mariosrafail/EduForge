@@ -653,17 +653,32 @@ async function nativeCatalog(dependencies, sql, parsedRoute) {
     });
   };
   const candidates = [];
-  for (const entry of sources.native.index?.payload?.activities || []) {
+  const entries = sources.native.index?.payload?.activities || [];
+  for (const entry of entries) {
     const identityContext = nativeCatalogIdentityContext(parsedRoute, entry);
     if (!adapter.ownsActivityId?.(entry.activityId)) throw nativeCatalogBoundary("activity_identity_outside_component", "Native activity catalog identity is outside its component.", identityContext);
     if (!adapter.kinds.includes(entry.kind)) throw nativeCatalogBoundary("activity_kind_unsupported", "Native activity catalog kind is unsupported.", identityContext);
-    let placement;
+  }
+  const placements = await withNativeCatalogProcessing("placement_batch_load", parsedRoute, async () => {
+    if (typeof adapter.resolveExistingPlacements !== "function") throw new Error("Native activity adapter lacks batch placement support.");
     try {
-      placement = await (adapter.resolveExistingPlacement || adapter.normalizePlacement)(entry.placement, { sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug });
+      const resolved = await adapter.resolveExistingPlacements(entries.map((entry) => entry.placement), {
+        sql, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug,
+      });
+      if (!(resolved instanceof Map)) throw new Error("Native activity batch placement result is invalid.");
+      return resolved;
     } catch (error) {
       if (!isNativeActivityPlacementError(error)) throw error;
-      throw nativeCatalogBoundary("placement_resolution_failed", "Native activity catalog placement is outside its component.", identityContext);
+      const failedEntry = Number.isInteger(error.placementIndex)
+        ? entries[error.placementIndex]
+        : entries.find((entry) => entry.placement?.pageId === error.pageId);
+      throw nativeCatalogBoundary("placement_resolution_failed", "Native activity catalog placement is outside its component.", nativeCatalogIdentityContext(parsedRoute, failedEntry));
     }
+  });
+  for (const entry of entries) {
+    const identityContext = nativeCatalogIdentityContext(parsedRoute, entry);
+    const placement = placements.get(entry.placement.pageId);
+    if (!placement) throw nativeCatalogBoundary("placement_mismatch", "Native activity catalog placement does not match its stored source.", identityContext);
     if (placement.pageId !== entry.placement.pageId) throw nativeCatalogBoundary("placement_mismatch", "Native activity catalog placement does not match its stored source.", identityContext);
     const pair = sources.native.activities[entry.activityId];
     const kind = dependencies.resolveKind(entry.kind);

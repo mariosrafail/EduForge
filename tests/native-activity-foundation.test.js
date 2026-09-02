@@ -113,3 +113,31 @@ test("native index is exact, deterministic, and Ultimate B2 identity remains ada
   assert.throws(() => normalizeNativeActivityIndex({ schemaVersion: "1.0", activities: [{ ...normalized.activities[0], kind: "matching" }] }, { allowedKinds: NATIVE_ACTIVITY_KINDS }));
   assert.match(ultimateB2NativeActivityAdapter.nextActivityId({ placement, nativeIndex: normalized }), /^ultimate-b2-sb-u1-p1-o\d+$/);
 });
+
+test("Students Book existing placements batch one tombstone-overlay read without making absent canonical pages unavailable", async () => {
+  const [deleted, active, absent] = ultimateB2NativeActivityPlacements.slice(0, 3);
+  const calls = [];
+  const sql = async (strings, ...values) => {
+    calls.push({ text: strings.join("?"), values });
+    return [
+      { stable_key: `ultimate-b2-students-book/pages/${deleted.pageId}`, source_metadata: { is_deleted: true } },
+      { stable_key: `ultimate-b2-students-book/pages/${active.pageId}`, source_metadata: { is_active: true } },
+    ];
+  };
+  const context = { sql, bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" };
+  const placements = await ultimateB2NativeActivityAdapter.resolveExistingPlacements([
+    { pageId: deleted.pageId }, { pageId: active.pageId }, { pageId: absent.pageId }, { pageId: active.pageId },
+  ], context);
+
+  assert.equal(calls.length, 1);
+  assert.match(calls[0].text, /page\.stable_key=any\(\?::text\[\]\)/i);
+  assert.equal(calls[0].values.at(-1).length, 3);
+  assert.equal(placements.size, 3);
+  assert.equal(placements.get(deleted.pageId).unassignedReason, "page-deleted");
+  assert.equal(placements.get(active.pageId).assignmentState, "assigned");
+  assert.equal(placements.get(absent.pageId).assignmentState, "assigned");
+  await assert.rejects(ultimateB2NativeActivityAdapter.resolveExistingPlacements([{ pageId: "unknown-page" }], context), /unknown/);
+  await assert.rejects(ultimateB2NativeActivityAdapter.resolveExistingPlacements([{ pageId: active.pageId }], { ...context, componentSlug: "ultimate-b2-workbook" }), /invalid/);
+  const databaseFailure = Object.assign(new Error("database unavailable"), { code: "CONNECTION_LOST" });
+  await assert.rejects(ultimateB2NativeActivityAdapter.resolveExistingPlacements([{ pageId: active.pageId }], { ...context, sql: async () => { throw databaseFailure; } }), (error) => error === databaseFailure);
+});

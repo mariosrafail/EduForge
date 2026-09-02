@@ -33,9 +33,12 @@ function componentHarness() {
   }]));
   const scopes = [];
   const sql = async (strings, ...values) => {
-    const stableKey = values.find((value) => typeof value === "string" && value.includes("/pages/"));
-    const component = components.find(({ componentSlug, pageId }) => stableKey === `${componentSlug}/pages/${pageId}`);
-    return component ? [{ stable_key: stableKey, sort_order: 10, source_metadata: { is_active: !states[component.componentSlug].pageDeleted, is_deleted: states[component.componentSlug].pageDeleted }, unit_id: "10000000-0000-4000-8000-000000000001", unit_number: 1, unit_title: "Unit 1" }] : [];
+    const stableKeyValue = values.find((value) => (typeof value === "string" && value.includes("/pages/")) || Array.isArray(value));
+    const stableKeys = Array.isArray(stableKeyValue) ? stableKeyValue : [stableKeyValue];
+    return stableKeys.flatMap((stableKey) => {
+      const component = components.find(({ componentSlug, pageId }) => stableKey === `${componentSlug}/pages/${pageId}`);
+      return component ? [{ stable_key: stableKey, sort_order: 10, source_metadata: { is_active: !states[component.componentSlug].pageDeleted, is_deleted: states[component.componentSlug].pageDeleted }, unit_id: "10000000-0000-4000-8000-000000000001", unit_number: 1, unit_title: "Unit 1" }] : [];
+    });
   };
   const loadDocument = async (_sql, resource) => {
     const state = states[resource.componentSlug]; if (!state) return null;

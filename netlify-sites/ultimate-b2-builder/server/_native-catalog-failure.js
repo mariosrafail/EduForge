@@ -12,6 +12,7 @@ const boundaryStages = new Set([
 ]);
 const processingStages = new Set([
   "source_collection",
+  "placement_batch_load",
   "catalog_asset_load",
   "readiness_assessment",
   "asset_requirement_derivation",

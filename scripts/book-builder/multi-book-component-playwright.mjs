@@ -104,12 +104,12 @@ let nativeSequence = 500;
 function nativeState(componentSlug) { return managedNativeStates[componentSlug] || null; }
 function nativeDocumentKey(resource) { return `${resource.documentType}:${resource.documentKey}`; }
 const managedNativeSql = async (strings, ...values) => {
-  const query = strings.join(" ");
-  if (!query.includes("from book_pages page")) return [];
-  const stableKey = values.find((value) => typeof value === "string" && value.includes("/pages/"));
-  const [componentSlug, , pageId] = String(stableKey || "").split("/");
-  const page = managedCatalogs[componentSlug]?.pages.find((candidate) => candidate.id === pageId);
-  return page ? [{ stable_key: stableKey, sort_order: page.sortOrder, unit_id: page.unitId, unit_number: page.unitNumber, unit_title: page.unitTitle, source_metadata: { is_active: page.isActive !== false, is_deleted: page.isActive === false } }] : [];
+  const query = strings.join(" "); if (!query.includes("from book_pages page")) return [];
+  const stableKeyValue = values.find((value) => (typeof value === "string" && value.includes("/pages/")) || Array.isArray(value));
+  return (Array.isArray(stableKeyValue) ? stableKeyValue : [stableKeyValue]).flatMap((stableKey) => {
+    const [componentSlug, , pageId] = String(stableKey || "").split("/"); const page = managedCatalogs[componentSlug]?.pages.find((candidate) => candidate.id === pageId);
+    return page ? [{ stable_key: stableKey, sort_order: page.sortOrder, unit_id: page.unitId, unit_number: page.unitNumber, unit_title: page.unitTitle, source_metadata: { is_active: page.isActive !== false, is_deleted: page.isActive === false } }] : [];
+  });
 };
 
 async function loadNativeDocument(_sql, resource) {

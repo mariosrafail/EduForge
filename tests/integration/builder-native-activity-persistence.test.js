@@ -242,6 +242,85 @@ test("isolated PostgreSQL recovers managed native activities from unavailable pa
   assert.deepEqual(after.activities, []);
 });
 
+test("isolated PostgreSQL resolves a 64-Activity Workbook catalog with one component-scoped placement query", { skip: !enabled }, async (t) => {
+  const schema = `builder_managed_native_batch_${randomBytes(8).toString("hex")}`;
+  const admin = new Pool({ connectionString: testDatabaseUrl, max: 1 });
+  await admin.query(`create schema "${schema}"`);
+  const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 3 });
+  t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
+  await applyCanonicalProductionMigrations(pool);
+  await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Batch Actor','batch-native@example.test','hash')", [actor]);
+  const identity = (await pool.query(`
+    select package.id package_id,component.id component_id,unit.id unit_id
+    from book_packages package
+    join book_components component on component.book_package_id=package.id
+    join units unit on unit.book_component_id=component.id and unit.unit_number=1
+    where package.slug='ultimate-b2' and component.slug='ultimate-b2-workbook'
+  `)).rows[0];
+  const pageIds = Array.from({ length: 64 }, (_, index) => `wb-batch-page-${index + 1}`);
+  for (const [index, pageId] of pageIds.entries()) {
+    await pool.query(`
+      insert into book_pages(book_package_id,book_component_id,unit_id,stable_key,label,sort_order,source_metadata)
+      values($1,$2,$3,$4,$5,$6,'{"source":"builder-pages","is_active":true}'::jsonb)
+    `, [identity.package_id, identity.component_id, identity.unit_id, `ultimate-b2-workbook/pages/${pageId}`, pageId, index + 1]);
+  }
+
+  const baseSql = tag(pool);
+  let totalCatalogSqlCalls = 0;
+  let placementSqlCalls = 0;
+  let countCatalogQueries = false;
+  const sql = async (strings, ...values) => {
+    if (countCatalogQueries) {
+      totalCatalogSqlCalls += 1;
+      if (/from book_pages page[\s\S]*page\.stable_key=any\(/i.test(strings.join("?"))) placementSqlCalls += 1;
+    }
+    return baseSql(strings, ...values);
+  };
+  const handler = createBuilderNativeActivitiesHandler({
+    getDatabase: () => sql,
+    authorize: async () => ({ builderUser: { id: actor } }),
+    logger: { error() {} },
+  });
+  const managedEvent = (action, body = null, method = "POST") => ({
+    httpMethod: method,
+    path: `/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-workbook/${action}`,
+    headers: { host: "localhost:8888", origin: "http://localhost:8888", "content-type": "application/json" },
+    body: body ? JSON.stringify(body) : "",
+  });
+  const activityIds = [];
+  for (const [index, pageId] of pageIds.entries()) {
+    const created = await handler(managedEvent("create", {
+      kind: "open-response", pageId, title: `Batch Activity ${index + 1}`, clientMutationId: randomUUID(),
+    }));
+    assert.equal(created.statusCode, 200, created.body);
+    activityIds.push(JSON.parse(created.body).activityId);
+  }
+  const before = (await pool.query(`
+    select document_type,document_key,revision,payload,payload_sha256
+    from builder_component_documents document
+    where document.book_component_id=$1 and document.document_type like 'native_activity_%'
+    order by document_type,document_key
+  `, [identity.component_id])).rows;
+
+  countCatalogQueries = true;
+  const response = await handler(managedEvent("catalog", null, "GET"));
+  countCatalogQueries = false;
+  assert.equal(response.statusCode, 200, response.body);
+  const payload = JSON.parse(response.body);
+  assert.equal(payload.activities.length, 64);
+  assert.deepEqual(payload.activities.map((activity) => activity.activityId), activityIds);
+  assert.equal(payload.activities.every((activity) => activity.assignment.state === "assigned"), true);
+  assert.equal(placementSqlCalls, 1);
+  assert.ok(totalCatalogSqlCalls <= 4, `expected a constant small catalog query budget, received ${totalCatalogSqlCalls}`);
+  assert.deepEqual((await pool.query(`
+    select document_type,document_key,revision,payload,payload_sha256
+    from builder_component_documents document
+    where document.book_component_id=$1 and document.document_type like 'native_activity_%'
+    order by document_type,document_key
+  `, [identity.component_id])).rows, before);
+  assert.doesNotMatch(response.body, /solution|modelAnswers|correctAnswers|mappings/i);
+});
+
 test("isolated PostgreSQL logically deletes native activity membership and hotspots while retaining immutable history", { skip: !enabled }, async (t) => {
   const schema = `builder_native_delete_${randomBytes(8).toString("hex")}`;
   const admin = new Pool({ connectionString: testDatabaseUrl, max: 1 });

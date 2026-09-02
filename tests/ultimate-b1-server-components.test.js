@@ -163,8 +163,10 @@ test("native creation persists and reloads only the exact B1/B1+ component ident
   let pairSaveCalls = 0;
   const sql = async (_strings, ...values) => {
     const state = states.get(`${values[0]}/${values[1]}`);
-    return state && values[2] === `${state.identity.componentSlug}/pages/${state.pageId}` ? [{
-      stable_key: values[2],
+    const stableKeys = Array.isArray(values[2]) ? values[2] : [values[2]];
+    const stableKey = state ? `${state.identity.componentSlug}/pages/${state.pageId}` : null;
+    return state && stableKeys.includes(stableKey) ? [{
+      stable_key: stableKey,
       sort_order: 1,
       source_metadata: { is_active: true, is_permanently_deleted: false },
       unit_id: "10000000-0000-4000-8000-000000000001",
