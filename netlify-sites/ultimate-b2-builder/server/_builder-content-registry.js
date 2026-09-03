@@ -31,14 +31,21 @@ async function loadUltimateB2HotspotActivityUniverse(loadRelated, { includeCanon
     : null;
   const storedIndex = await loadRelated("native-activity-index", "");
   const index = storedIndex?.document || createEmptyNativeActivityIndex();
+  const storedPublicDocuments = await loadRelated.batch("native-activity-public", index.activities.map((entry) => entry.activityId));
   const nativeActivities = [];
   for (const entry of index.activities) {
-    const storedPublic = await loadRelated("native-activity-public", entry.activityId);
+    const storedPublic = storedPublicDocuments.get(entry.activityId);
     const publicDocument = storedPublic?.document;
     if (!publicDocument || publicDocument.kind !== entry.kind || publicDocument.placement.pageId !== entry.placement.pageId) throw new Error(`Native activity ${entry.activityId} is incomplete.`);
-    nativeActivities.push({ activityKey: entry.activityId, title: publicDocument.metadata.title, pageId: entry.placement.pageId, kind: entry.kind, native: true });
+    nativeActivities.push({ activityKey: entry.activityId, title: publicDocument.metadata.title, pageId: entry.placement.pageId, kind: entry.kind, native: true, hotspotPageInvariant: true });
   }
-  return [...(includeCanonical ? applyUltimateB2ActivityLifecycle(ultimateB2StudentsBookAuthoringActivities, lifecycle) : []), ...nativeActivities];
+  const canonicalActivities = includeCanonical
+    ? applyUltimateB2ActivityLifecycle(ultimateB2StudentsBookAuthoringActivities, lifecycle).map((activity) => ({
+      ...activity,
+      hotspotPageInvariant: lifecycle.activities[activity.activityKey]?.status === "active",
+    }))
+    : [];
+  return [...canonicalActivities, ...nativeActivities];
 }
 
 const ultimateB2HotspotResource = Object.freeze({
@@ -58,7 +65,7 @@ const ultimateB2HotspotResource = Object.freeze({
     return validateUltimateB2HotspotManifestStructure(document);
   },
   async validateMutationContext({ document, loadRelated }) {
-    validateAndNormalizeUltimateB2HotspotManifest(document, await loadUltimateB2HotspotActivityUniverse(loadRelated));
+    validateAndNormalizeUltimateB2HotspotManifest(document, await loadUltimateB2HotspotActivityUniverse(loadRelated), { requireActivityPage: true });
   },
   requiredRelatedForPreview: Object.freeze(["activity-lifecycle", "native-activity-index", "native-activity-public"]),
   async projectPreview(document, { loadRelated }) {
@@ -90,7 +97,7 @@ function managedHotspotResource(registration) {
         loadBuilderPages(sql, identity),
         loadUltimateB2HotspotActivityUniverse(loadRelated, { includeCanonical: false }),
       ]);
-      validateAndNormalizeManagedComponentHotspotManifest(document, { ...identity, pages: managedPages(storedPages, componentSlug), activities });
+      validateAndNormalizeManagedComponentHotspotManifest(document, { ...identity, pages: managedPages(storedPages, componentSlug), activities, requireActivityPage: true });
     },
     requiredRelatedForPreview: Object.freeze(["native-activity-index", "native-activity-public"]),
     async projectPreview(document, { loadRelated, sql }) {

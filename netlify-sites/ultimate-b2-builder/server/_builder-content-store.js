@@ -26,6 +26,39 @@ export async function loadBuilderComponentDocument(sql, resource) {
   return rowDocument(rows[0], resource);
 }
 
+export async function loadBuilderComponentDocuments(sql, resources) {
+  if (!Array.isArray(resources)) throw new Error("Builder document batch must be an array");
+  if (!resources.length) return new Map();
+  const [scope] = resources;
+  const byKey = new Map();
+  for (const resource of resources) {
+    if (resource.bookSlug !== scope.bookSlug || resource.componentSlug !== scope.componentSlug || resource.documentType !== scope.documentType) {
+      throw new Error("Builder document batch must use one component and document type");
+    }
+    if (byKey.has(resource.documentKey)) throw new Error("Builder document batch contains a duplicate key");
+    byKey.set(resource.documentKey, resource);
+  }
+  const documentKeys = [...byKey.keys()];
+  const rows = await sql`
+    select document.document_key, document.schema_version, document.revision, document.payload, document.payload_sha256
+    from builder_component_documents document
+    join book_components component on component.id=document.book_component_id
+      and component.book_package_id=document.book_package_id
+    join book_packages package on package.id=document.book_package_id
+    where package.slug=${scope.bookSlug}
+      and component.slug=${scope.componentSlug}
+      and document.document_type=${scope.documentType}
+      and document.document_key=any(${documentKeys}::text[])
+  `;
+  const documents = new Map();
+  for (const row of rows) {
+    const resource = byKey.get(row.document_key);
+    if (!resource || documents.has(row.document_key)) throw new Error("Builder document batch returned an unexpected document");
+    documents.set(row.document_key, rowDocument(row, resource));
+  }
+  return documents;
+}
+
 export async function saveBuilderComponentDocument(sql, {
   resource,
   expectedRevision,

@@ -4,7 +4,9 @@ import test from "node:test";
 import pg from "pg";
 
 import { createBuilderContentHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content.js";
+import { resolveBuilderContentResource } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-registry.js";
 import { builderDocumentSha256 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
+import { saveBuilderComponentDocument } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-store.js";
 import { createBuilderNativeActivitiesHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activities.js";
 import { claimBuilderNativeAssetUpload, completeBuilderNativeAssetUpload, createBuilderNativeActivity, prepareBuilderNativeAssetUpload } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-activity-store.js";
 import { collectUltimateB2PublicationSources } from "../../netlify-sites/ultimate-b2-builder/server/_builder-publication-store.js";
@@ -338,7 +340,7 @@ test("isolated PostgreSQL logically deletes native activity membership and hotsp
   const offPlacement = structuredClone(baseline.document);
   offPlacement.pages["ub2-sb-unit-1-part-2"] ||= [];
   offPlacement.pages["ub2-sb-unit-1-part-2"].push({ id: "delete-integration-off-placement", unitNumber: 1, pageId: "ub2-sb-unit-1-part-2", pageNumber: 6, left: 1, top: 1, width: 10, height: 10, label: "Invalid placement", actionType: "normalized_activity", activityKey: created.activityId });
-  assert.equal((await content(hotspotEvent("PUT", { expectedRevision: baseline.revision, clientMutationId: randomUUID(), document: offPlacement }))).statusCode, 500);
+  assert.equal((await content(hotspotEvent("PUT", { expectedRevision: baseline.revision, clientMutationId: randomUUID(), document: offPlacement }))).statusCode, 400);
   assert.equal(JSON.parse((await content(hotspotEvent("GET"))).body).revision, baseline.revision);
 
   const candidate = structuredClone(baseline.document);
@@ -469,6 +471,82 @@ test("isolated PostgreSQL atomically relocates native and canonical identities a
   const audit = (await pool.query("select metadata from builder_audit_log where action in ('activity_moved','activity_retired') order by id")).rows;
   assert.equal(audit.length, 3);
   assert.doesNotMatch(JSON.stringify(audit), /payload|document|answer|solution|token|secret|checksum/i);
+});
+
+test("isolated PostgreSQL hotspot trigger accepts same-page targets and rejects retired, moved, and inactive targets", { skip: !enabled }, async (t) => {
+  const schema = `builder_hotspot_trigger_${randomBytes(8).toString("hex")}`;
+  const admin = new Pool({ connectionString: testDatabaseUrl, max: 1 });
+  await admin.query(`create schema "${schema}"`);
+  const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 5 });
+  t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
+  await applyCanonicalProductionMigrations(pool);
+  await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Hotspot Trigger Actor','hotspot-trigger@example.test','hash')", [actor]);
+  const sql = tag(pool);
+  const native = createBuilderNativeActivitiesHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
+  const content = createBuilderContentHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
+  const resource = await resolveBuilderContentResource("ultimate-b2", "ultimate-b2-students-book", "hotspots");
+  const sourcePage = "ub2-sb-unit-1-part-1";
+  const destinationPage = "reading-19";
+  const hotspot = (id, activityKey, pageId = sourcePage, unitNumber = 1, pageNumber = 5) => ({
+    id, unitNumber, pageId, pageNumber, left: 1, top: 1, width: 10, height: 10,
+    label: id, actionType: "normalized_activity", activityKey,
+  });
+  const current = async () => (await pool.query("select revision,payload from builder_component_documents where document_type='hotspots' and document_key='default'")).rows[0];
+  const expectTriggerRejection = async (document) => {
+    const before = await current();
+    await assert.rejects(saveBuilderComponentDocument(sql, {
+      resource,
+      expectedRevision: Number(before.revision),
+      clientMutationId: randomUUID(),
+      document,
+      payloadSha256: builderDocumentSha256(document),
+      builderUserId: actor,
+    }), (error) => error?.code === "23514" && /hotspot target activity is not active/.test(error.message));
+    assert.equal(Number((await current()).revision), Number(before.revision));
+  };
+
+  const initial = JSON.parse((await content(hotspotEvent("GET"))).body);
+  const validCanonical = await content(hotspotEvent("PUT", { expectedRevision: 0, clientMutationId: randomUUID(), document: initial.document }));
+  assert.equal(validCanonical.statusCode, 200, validCanonical.body);
+
+  const movedNative = JSON.parse((await native(event({ title: "Moved trigger native" }))).body);
+  let state = await current();
+  const withValidNative = structuredClone(state.payload);
+  withValidNative.pages[sourcePage].push(hotspot("trigger-valid-native", movedNative.activityId));
+  const validNative = await content(hotspotEvent("PUT", { expectedRevision: Number(state.revision), clientMutationId: randomUUID(), document: withValidNative }));
+  assert.equal(validNative.statusCode, 200, validNative.body);
+  assert.equal((await native(lifecycleEvent(movedNative.activityId, "move", sourcePage, destinationPage))).statusCode, 200);
+  state = await current();
+  const staleMovedNative = structuredClone(state.payload);
+  staleMovedNative.pages[sourcePage].push(hotspot("trigger-stale-moved-native", movedNative.activityId));
+  await expectTriggerRejection(staleMovedNative);
+
+  const inactiveNative = JSON.parse((await native(event({ title: "Inactive trigger native" }))).body);
+  state = await current();
+  const withInactiveNative = structuredClone(state.payload);
+  withInactiveNative.pages[sourcePage].push(hotspot("trigger-active-before-delete", inactiveNative.activityId));
+  assert.equal((await content(hotspotEvent("PUT", { expectedRevision: Number(state.revision), clientMutationId: randomUUID(), document: withInactiveNative }))).statusCode, 200);
+  assert.equal((await native(deleteEvent(inactiveNative.activityId))).statusCode, 200);
+  state = await current();
+  const staleInactiveNative = structuredClone(state.payload);
+  staleInactiveNative.pages[sourcePage].push(hotspot("trigger-stale-inactive-native", inactiveNative.activityId));
+  await expectTriggerRejection(staleInactiveNative);
+
+  const movedCanonicalId = "ultimate-b2-sb-u1-p1-o1";
+  assert.equal((await native(lifecycleEvent(movedCanonicalId, "move", sourcePage, destinationPage))).statusCode, 200);
+  state = await current();
+  const staleMovedCanonical = structuredClone(state.payload);
+  staleMovedCanonical.pages[sourcePage] ||= [];
+  staleMovedCanonical.pages[sourcePage].push(hotspot("trigger-stale-moved-canonical", movedCanonicalId));
+  await expectTriggerRejection(staleMovedCanonical);
+
+  const retiredCanonicalId = "ultimate-b2-sb-u1-p1-o2";
+  assert.equal((await native(lifecycleEvent(retiredCanonicalId, "retire", sourcePage))).statusCode, 200);
+  state = await current();
+  const staleRetiredCanonical = structuredClone(state.payload);
+  staleRetiredCanonical.pages[sourcePage] ||= [];
+  staleRetiredCanonical.pages[sourcePage].push(hotspot("trigger-stale-retired-canonical", retiredCanonicalId));
+  await expectTriggerRejection(staleRetiredCanonical);
 });
 
 test("isolated PostgreSQL reads a legacy native payload by its persisted checksum without mutating it", { skip: !enabled }, async (t) => {

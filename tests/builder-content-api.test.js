@@ -5,7 +5,8 @@ import { json } from "../netlify-sites/ultimate-b2-builder/server/_builder-auth.
 import { createBuilderContentHandler } from "../netlify-sites/ultimate-b2-builder/server/_builder-content.js";
 import { resolveBuilderContentResource } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-registry.js";
 import { builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
-import { loadBuilderComponentDocument } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-store.js";
+import { loadBuilderComponentDocument, loadBuilderComponentDocuments } from "../netlify-sites/ultimate-b2-builder/server/_builder-content-store.js";
+import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { createPublicationV2FixtureSources, publicationV2Fixture } from "./fixtures/publication-v2.js";
 
 const builderUserId = "10000000-0000-4000-8000-000000000001";
@@ -69,8 +70,14 @@ function baseline() {
   return hotspotResource.baseline();
 }
 
+function saveReadyDocument(document = baseline()) {
+  const result = structuredClone(document);
+  delete result.pages["review-30"];
+  return result;
+}
+
 function changedDocument(label = "Changed safely") {
-  const document = baseline();
+  const document = saveReadyDocument();
   const pageId = Object.keys(document.pages)[0];
   document.pages[pageId][0].label = label;
   return document;
@@ -220,6 +227,112 @@ test("stored documents verify raw checksums before validation and fail corrupt s
   );
 });
 
+test("component document batches are exact-scope, public-only, bounded, and canonically validated", async () => {
+  const fixture = createPublicationV2FixtureSources();
+  const ids = [publicationV2Fixture.openResponseId, publicationV2Fixture.imageId];
+  const resources = await Promise.all(ids.map((id) => resolveBuilderContentResource(
+    "ultimate-b2", "ultimate-b2-students-book", "native-activity-public", id,
+  )));
+  let calls = 0;
+  let capturedQuery = "";
+  let capturedValues = [];
+  const sql = async (strings, ...values) => {
+    calls += 1;
+    capturedQuery = strings.join(" ");
+    capturedValues = values;
+    return values.at(-1).map((documentKey) => {
+      const source = fixture.native.activities[documentKey].public;
+      return {
+        document_key: documentKey,
+        schema_version: "1.0",
+        revision: source.revision,
+        payload: source.payload,
+        payload_sha256: source.sha256,
+      };
+    });
+  };
+
+  assert.deepEqual(await loadBuilderComponentDocuments(() => { throw new Error("empty batch queried"); }, []), new Map());
+  const one = await loadBuilderComponentDocuments(sql, resources.slice(0, 1));
+  assert.equal(one.get(ids[0]).document.activityId, ids[0]);
+  const many = await loadBuilderComponentDocuments(sql, resources);
+  assert.deepEqual([...many.keys()], ids);
+  assert.equal(calls, 2);
+  assert.match(capturedQuery, /document\.document_key=any/);
+  assert.deepEqual(capturedValues.slice(0, 3), ["ultimate-b2", "ultimate-b2-students-book", "native_activity_public"]);
+  assert.deepEqual(capturedValues.at(-1), ids);
+  assert.equal(capturedValues.includes("native_activity_teacher"), false);
+
+  const firstSource = fixture.native.activities[ids[0]].public;
+  const corruptRow = {
+    document_key: ids[0], schema_version: "1.0", revision: firstSource.revision,
+    payload: firstSource.payload, payload_sha256: "0".repeat(64),
+  };
+  await assert.rejects(loadBuilderComponentDocuments(async () => [corruptRow], resources.slice(0, 1)), /checksum is invalid/);
+  await assert.rejects(loadBuilderComponentDocuments(async () => [{ ...corruptRow, payload_sha256: firstSource.sha256, schema_version: "0.0" }], resources.slice(0, 1)), /schema is unsupported/);
+  await assert.rejects(loadBuilderComponentDocuments(async () => [{ ...corruptRow, payload_sha256: firstSource.sha256, revision: 0 }], resources.slice(0, 1)), /revision is invalid/);
+  await assert.rejects(loadBuilderComponentDocuments(async () => [{ ...corruptRow, document_key: "ultimate-b2-sb-foreign-o1" }], resources.slice(0, 1)), /unexpected document/);
+  await assert.rejects(loadBuilderComponentDocuments(async () => [], [resources[0], resources[0]]), /duplicate key/);
+  const foreignComponent = await resolveBuilderContentResource(
+    "ultimate-b2", "ultimate-b2-workbook", "native-activity-public", "ultimate-b2-wb-unit-1-page-1-o1",
+  );
+  await assert.rejects(loadBuilderComponentDocuments(async () => [], [resources[0], foreignComponent]), /one component and document type/);
+});
+
+test("native validation uses one public batch for zero, one, and many activities and stays below the save budget", async () => {
+  const pageId = "ub2-sb-unit-1-part-1";
+  const kind = resolveNativeActivityKind("open-response");
+  for (const activityCount of [0, 1, 60]) {
+    const entries = Array.from({ length: activityCount }, (_, index) => ({
+      activityId: `ultimate-b2-sb-batch-o${index + 100}`,
+      kind: "open-response",
+      placement: { pageId },
+      sortOrder: index + 1,
+    }));
+    const publicDocuments = new Map(entries.map((entry) => [entry.activityId, {
+      revision: 1,
+      source: "database",
+      document: kind.createBlankPublic({ activityId: entry.activityId, title: entry.activityId, placement: entry.placement }),
+    }]));
+    let operations = 0;
+    let batchCalls = 0;
+    let batchSize = 0;
+    const consumeBudget = () => {
+      operations += 1;
+      if (operations > 50) {
+        const error = new Error("outbound operation budget exceeded");
+        error.name = "NeonDbError";
+        throw error;
+      }
+    };
+    const handler = createBuilderContentHandler({
+      getDatabase: () => ({}),
+      authorize: async () => ({ builderUser: { id: builderUserId, role: "developer", status: "active" } }),
+      loadDocument: async (_sql, candidate) => {
+        consumeBudget();
+        if (candidate.resource === "native-activity-index") return { revision: 1, source: "database", document: { schemaVersion: "1.0", activities: entries } };
+        return null;
+      },
+      loadDocuments: async (_sql, resources) => {
+        consumeBudget();
+        batchCalls += 1;
+        batchSize = resources.length;
+        assert.equal(resources.every((candidate) => candidate.resource === "native-activity-public" && candidate.audience === "public"), true);
+        return new Map(resources.map((candidate) => [candidate.documentKey, publicDocuments.get(candidate.documentKey)]));
+      },
+      saveDocument: async (_sql, input) => {
+        consumeBudget();
+        return { outcome: "saved", revision: 1, currentRevision: 1, document: input.document, payloadSha256: input.payloadSha256 };
+      },
+    });
+    const response = await handler(event({ method: "PUT", body: saveBody(saveReadyDocument()) }));
+    assert.equal(response.statusCode, 200);
+    assert.equal(batchCalls, activityCount === 0 ? 0 : 1);
+    assert.equal(batchSize, activityCount);
+    assert.equal(operations, activityCount === 0 ? 3 : 4);
+  }
+});
+
 test("native hotspot targets save, reload, and fail closed when the saved native catalog cannot prove membership", async () => {
   const fixture = createPublicationV2FixtureSources();
   let saved = null;
@@ -229,18 +342,19 @@ test("native hotspot targets save, reload, and fail closed when the saved native
     loadDocument: async (_sql, resource) => {
       if (resource.resource === "hotspots") return saved;
       if (resource.resource === "native-activity-index") return { revision: fixture.native.index.revision, source: "database", document: fixture.native.index.payload };
-      if (resource.resource === "native-activity-public") {
-        const source = fixture.native.activities[resource.documentKey]?.public;
-        return source ? { revision: source.revision, source: "database", document: source.payload } : null;
-      }
+      if (resource.resource === "native-activity-public") throw new Error("Native hotspot validation must batch public documents.");
       return null;
     },
+    loadDocuments: async (_sql, resources) => new Map(resources.flatMap((resource) => {
+      const source = fixture.native.activities[resource.documentKey]?.public;
+      return source ? [[resource.documentKey, { revision: source.revision, source: "database", document: source.payload }]] : [];
+    })),
     saveDocument: async (_sql, input) => {
       saved = { revision: 1, source: "database", document: input.document };
       return { outcome: "saved", revision: 1, currentRevision: 1, document: input.document, payloadSha256: input.payloadSha256 };
     },
   });
-  const document = fixture.documents.hotspots.payload;
+  const document = saveReadyDocument(fixture.documents.hotspots.payload);
   const response = await handler(event({ method: "PUT", body: saveBody(document) }));
   assert.equal(response.statusCode, 200);
   assert.equal(parsed(await handler(event())).document.pages[publicationV2Fixture.pageId].some((hotspot) => hotspot.activityKey === publicationV2Fixture.openResponseId), true);
@@ -250,4 +364,71 @@ test("native hotspot targets save, reload, and fail closed when the saved native
   const rejected = await handler(event({ method: "PUT", body: saveBody(document, 0, mutationTwo) }));
   assert.equal(rejected.statusCode, 400);
   assert.match(parsed(rejected).detail, /incomplete/);
+});
+
+test("hotspot PUT rejects retired and moved canonical targets before save_document", async () => {
+  const document = saveReadyDocument();
+  const pageId = Object.keys(document.pages)[0];
+  const activityId = document.pages[pageId][0].activityKey;
+  for (const lifecycleEntry of [
+    { status: "retired", pageId },
+    { status: "active", pageId: "ub2-sb-unit-1-part-2" },
+  ]) {
+    let saveCalls = 0;
+    const handler = createBuilderContentHandler({
+      getDatabase: () => ({}),
+      authorize: async () => ({ builderUser: { id: builderUserId, role: "developer", status: "active" } }),
+      loadDocument: async (_sql, candidate) => {
+        if (candidate.resource === "activity-lifecycle") return { revision: 1, source: "database", document: { schemaVersion: "1.0", activities: { [activityId]: lifecycleEntry } } };
+        return null;
+      },
+      saveDocument: async () => { saveCalls += 1; throw new Error("save_document must not be reached"); },
+    });
+    const response = await handler(event({ method: "PUT", body: saveBody(document) }));
+    assert.equal(response.statusCode, 400);
+    assert.equal(parsed(response).error, "invalid_document");
+    assert.equal(saveCalls, 0);
+    assert.match(parsed(response).detail, lifecycleEntry.status === "retired" ? /unavailable activityKey/ : /another page/);
+  }
+});
+
+test("hotspot PUT rejects inactive, moved, kind-mismatched, and placement-mismatched native targets before save_document", async () => {
+  const makeCase = ({ indexTransform = (value) => value, publicTransform = (value) => value }) => {
+    const fixture = createPublicationV2FixtureSources();
+    const activityId = publicationV2Fixture.openResponseId;
+    const document = saveReadyDocument(fixture.documents.hotspots.payload);
+    document.pages[publicationV2Fixture.pageId] = document.pages[publicationV2Fixture.pageId]
+      .filter((hotspot) => hotspot.activityKey === activityId || !hotspot.activityKey.includes("-o9"));
+    const index = structuredClone(fixture.native.index.payload);
+    index.activities = indexTransform(index.activities.filter((entry) => entry.activityId === activityId));
+    const publicDocument = publicTransform(structuredClone(fixture.native.activities[activityId].public.payload));
+    return { activityId, document, index, publicDocument };
+  };
+  const cases = [
+    makeCase({ indexTransform: () => [] }),
+    makeCase({
+      indexTransform: ([entry]) => [{ ...entry, placement: { pageId: "ub2-sb-unit-1-part-2" } }],
+      publicTransform: (document) => ({ ...document, placement: { pageId: "ub2-sb-unit-1-part-2" } }),
+    }),
+    makeCase({ indexTransform: ([entry]) => [{ ...entry, kind: "image" }] }),
+    makeCase({ indexTransform: ([entry]) => [{ ...entry, placement: { pageId: "ub2-sb-unit-1-part-2" } }] }),
+  ];
+  for (const candidate of cases) {
+    let saveCalls = 0;
+    const handler = createBuilderContentHandler({
+      getDatabase: () => ({}),
+      authorize: async () => ({ builderUser: { id: builderUserId, role: "developer", status: "active" } }),
+      loadDocument: async (_sql, resource) => resource.resource === "native-activity-index"
+        ? { revision: 1, source: "database", document: candidate.index }
+        : null,
+      loadDocuments: async (_sql, resources) => new Map(resources.map((resource) => [resource.documentKey, {
+        revision: 1, source: "database", document: candidate.publicDocument,
+      }])),
+      saveDocument: async () => { saveCalls += 1; throw new Error("save_document must not be reached"); },
+    });
+    const response = await handler(event({ method: "PUT", body: saveBody(candidate.document) }));
+    assert.equal(response.statusCode, 400);
+    assert.equal(parsed(response).error, "invalid_document");
+    assert.equal(saveCalls, 0);
+  }
 });

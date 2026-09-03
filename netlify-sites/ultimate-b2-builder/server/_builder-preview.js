@@ -2,7 +2,7 @@ import { getBuilderSql, json } from "./_builder-auth.js";
 import { authorizeBuilderPreviewRequestWithDiagnostic, builderPreviewAuthorizationDiagnosticCodes } from "./_builder-preview-authorization.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
 import { assertPublicBuilderDocument } from "./_builder-content-security.js";
-import { loadBuilderComponentDocument } from "./_builder-content-store.js";
+import { loadBuilderComponentDocument, loadBuilderComponentDocuments } from "./_builder-content-store.js";
 import { createBuilderRelatedDocumentLoader } from "./_builder-related-context.js";
 
 const previewDiagnosticStages = new Set([
@@ -73,6 +73,7 @@ export function createBuilderPreviewHandler(overrides = {}) {
     getDatabase: overrides.getDatabase || getBuilderSql,
     resolveResource: overrides.resolveResource || resolveBuilderContentResource,
     loadDocument: overrides.loadDocument || loadBuilderComponentDocument,
+    loadDocuments: overrides.loadDocuments || loadBuilderComponentDocuments,
     authorizePreview: overrides.authorizePreview || authorizeBuilderPreviewRequestWithDiagnostic,
     logger: overrides.logger || console,
   };
@@ -119,6 +120,7 @@ export function createBuilderPreviewHandler(overrides = {}) {
           resource,
           resolveResource: dependencies.resolveResource,
           loadDocument: dependencies.loadDocument,
+          loadDocuments: dependencies.loadDocuments,
           allowedResources: requiredRelated,
         }),
       } : undefined;

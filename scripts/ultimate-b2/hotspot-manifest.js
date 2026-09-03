@@ -14,7 +14,7 @@ function finiteCoordinate(value, field, id) {
   return Math.round(number * 10_000) / 10_000;
 }
 
-function normalizeHotspot(hotspot, page, ids, activityByKey) {
+function normalizeHotspot(hotspot, page, ids, activityByKey, requireActivityPage) {
   if (!hotspot || typeof hotspot !== "object" || Array.isArray(hotspot)) throw new Error(`Page ${page.id} contains an invalid hotspot.`);
   const id = String(hotspot.id || "");
   if (!hotspotIdPattern.test(id)) throw new Error(`Page ${page.id} contains an invalid hotspot id.`);
@@ -28,6 +28,7 @@ function normalizeHotspot(hotspot, page, ids, activityByKey) {
 
   const activityKey = String(hotspot.activityKey || "");
   if (!activityKeyPattern.test(activityKey) || (activityByKey && !activityByKey.has(activityKey))) throw new Error(`Hotspot ${id} references an unavailable activityKey.`);
+  if (requireActivityPage && activityByKey.get(activityKey).hotspotPageInvariant === true && activityByKey.get(activityKey).pageId !== page.id) throw new Error(`Hotspot ${id} references an activityKey on another page.`);
   const left = finiteCoordinate(hotspot.left, "left", id);
   const top = finiteCoordinate(hotspot.top, "top", id);
   const width = finiteCoordinate(hotspot.width, "width", id);
@@ -51,7 +52,7 @@ function normalizeHotspot(hotspot, page, ids, activityByKey) {
   };
 }
 
-export function validateAndNormalizeUltimateB2HotspotManifest(input, activities = ultimateB2StudentsBookAuthoringActivities) {
+export function validateAndNormalizeUltimateB2HotspotManifest(input, activities = ultimateB2StudentsBookAuthoringActivities, { requireActivityPage = false } = {}) {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Hotspot manifest must be an object.");
   if (input.schemaVersion !== ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION) throw new Error("Unsupported hotspot manifest schemaVersion.");
   if (input.packageSlug !== ULTIMATE_B2_HOTSPOT_PACKAGE) throw new Error("Only ultimate-b2 hotspots can be saved.");
@@ -71,7 +72,7 @@ export function validateAndNormalizeUltimateB2HotspotManifest(input, activities 
   for (const page of ultimateB2StudentsBookAuthoringPages) {
     if (!(page.id in input.pages)) continue;
     if (!Array.isArray(input.pages[page.id])) throw new Error(`Hotspots for ${page.id} must be an array.`);
-    const normalized = input.pages[page.id].map((hotspot) => normalizeHotspot(hotspot, page, ids, activityByKey));
+    const normalized = input.pages[page.id].map((hotspot) => normalizeHotspot(hotspot, page, ids, activityByKey, requireActivityPage));
     if (normalized.length) pages[page.id] = normalized;
   }
 
@@ -123,7 +124,7 @@ export function createEmptyManagedComponentHotspotManifest(identity) {
   return { schemaVersion: ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION, packageSlug: bookSlug, componentSlug, pages: {} };
 }
 
-export function validateAndNormalizeManagedComponentHotspotManifest(input, { bookSlug = ULTIMATE_B2_HOTSPOT_PACKAGE, componentSlug, pages = null, activities = null } = {}) {
+export function validateAndNormalizeManagedComponentHotspotManifest(input, { bookSlug = ULTIMATE_B2_HOTSPOT_PACKAGE, componentSlug, pages = null, activities = null, requireActivityPage = false } = {}) {
   const identity = managedIdentity({ bookSlug, componentSlug });
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Managed hotspot manifest is invalid.");
   if (input.schemaVersion !== ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION || input.packageSlug !== identity.bookSlug || input.componentSlug !== identity.componentSlug
@@ -146,6 +147,7 @@ export function validateAndNormalizeManagedComponentHotspotManifest(input, { boo
       if (!Number.isInteger(unitNumber) || unitNumber < 1 || unitNumber > 10 || (page && unitNumber !== page.unitNumber)) throw new Error(`Hotspot ${id} has an invalid unitNumber.`);
       const activityKey = String(hotspot.activityKey || "");
       if (!activityKeyPattern.test(activityKey) || (activityById && !activityById.has(activityKey))) throw new Error(`Hotspot ${id} references an unavailable activityKey.`);
+      if (requireActivityPage && activityById.get(activityKey).hotspotPageInvariant === true && activityById.get(activityKey).pageId !== pageId) throw new Error(`Hotspot ${id} references an activityKey on another page.`);
       const left = finiteCoordinate(hotspot.left, "left", id); const top = finiteCoordinate(hotspot.top, "top", id);
       const width = finiteCoordinate(hotspot.width, "width", id); const height = finiteCoordinate(hotspot.height, "height", id);
       if (left < 0 || top < 0 || width <= 0 || height <= 0 || left + width > 100 || top + height > 100) throw new Error(`Hotspot ${id} coordinates must stay within the page image.`);

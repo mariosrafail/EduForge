@@ -13,6 +13,7 @@ import {
 } from "./_builder-content-security.js";
 import {
   loadBuilderComponentDocument,
+  loadBuilderComponentDocuments,
   saveBuilderComponentDocument,
 } from "./_builder-content-store.js";
 
@@ -135,6 +136,7 @@ export function createBuilderContentHandler(overrides = {}) {
     authorize: overrides.authorize || requireBuilderUser,
     resolveResource: overrides.resolveResource || resolveBuilderContentResource,
     loadDocument: overrides.loadDocument || loadBuilderComponentDocument,
+    loadDocuments: overrides.loadDocuments || loadBuilderComponentDocuments,
     saveDocument: overrides.saveDocument || saveBuilderComponentDocument,
     logger: overrides.logger || console,
   };
@@ -200,6 +202,7 @@ export function createBuilderContentHandler(overrides = {}) {
               resource,
               resolveResource: dependencies.resolveResource,
               loadDocument: dependencies.loadDocument,
+              loadDocuments: dependencies.loadDocuments,
             }),
           });
         } catch (error) {

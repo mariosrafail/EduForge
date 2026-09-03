@@ -80,10 +80,15 @@ async function managedPreview(componentSlug, { storedHotspots = null, nativeInde
       loaded.push(`${candidate.resource}:${candidate.documentKey}`);
       if (candidate.resource === "hotspots") return storedHotspots;
       if (candidate.resource === "native-activity-index") return nativeIndex;
-      if (candidate.resource === "native-activity-public") return publicDocuments[candidate.documentKey] || null;
+      if (candidate.resource === "native-activity-public") throw new Error("Managed hotspot preview must batch public documents.");
       if (candidate.resource === "native-activity-teacher") throw new Error("Teacher documents must not be loaded for managed hotspot preview.");
       return null;
     },
+    loadDocuments: async (_sql, resources) => new Map(resources.flatMap((candidate) => {
+      loaded.push(`batch:${candidate.resource}:${candidate.documentKey}`);
+      const source = publicDocuments[candidate.documentKey];
+      return source ? [[candidate.documentKey, source]] : [];
+    })),
     logger: { warn() {}, error() {} },
   });
   const response = await handler({
@@ -154,20 +159,22 @@ test("hotspot preview loads declared native context and preserves a valid persis
       loaded.push(`${candidate.resource}:${candidate.documentKey}`);
       if (candidate.resource === "hotspots") return { revision: fixture.documents.hotspots.revision, source: "database", document: fixture.documents.hotspots.payload };
       if (candidate.resource === "native-activity-index") return { revision: fixture.native.index.revision, source: "database", document: fixture.native.index.payload };
-      if (candidate.resource === "native-activity-public") {
-        const source = fixture.native.activities[candidate.documentKey]?.public;
-        return source ? { revision: source.revision, source: "database", document: source.payload } : null;
-      }
+      if (candidate.resource === "native-activity-public") throw new Error("Hotspot preview must batch public documents.");
       if (candidate.resource === "native-activity-teacher") throw new Error("Teacher documents must not be loaded for hotspot preview.");
       return null;
     },
+    loadDocuments: async (_sql, resources) => new Map(resources.flatMap((candidate) => {
+      loaded.push(`batch:${candidate.resource}:${candidate.documentKey}`);
+      const source = fixture.native.activities[candidate.documentKey]?.public;
+      return source ? [[candidate.documentKey, { revision: source.revision, source: "database", document: source.payload }]] : [];
+    })),
   });
   const response = await handler(event());
   const body = parsed(response);
   assert.equal(response.statusCode, 200);
   assert.equal(body.document.pages[publicationV2Fixture.pageId].some((hotspot) => hotspot.activityKey === publicationV2Fixture.openResponseId), true);
   assert.equal(loaded.includes("native-activity-index:default"), true);
-  assert.equal(loaded.includes(`native-activity-public:${publicationV2Fixture.openResponseId}`), true);
+  assert.equal(loaded.includes(`batch:native-activity-public:${publicationV2Fixture.openResponseId}`), true);
   assert.equal(loaded.some((value) => value.startsWith("native-activity-teacher:")), false);
   assert.doesNotMatch(response.body, forbiddenResponseData);
 });
@@ -234,7 +241,7 @@ test("persisted managed hotspots preview with same-component public native activ
   assert.equal(result.body.source, "database");
   assert.equal(result.body.revision, 6);
   assert.equal(result.body.document.pages[page.id][0].activityKey, activityId);
-  assert.equal(result.loaded.includes(`native-activity-public:${activityId}`), true);
+  assert.equal(result.loaded.includes(`batch:native-activity-public:${activityId}`), true);
   assert.equal(result.loaded.some((value) => value.startsWith("native-activity-teacher:")), false);
   assert.equal(result.resolved.some((value) => value.startsWith("activity-lifecycle:")), false);
   assert.doesNotMatch(result.response.body, forbiddenResponseData);
@@ -290,12 +297,13 @@ test("hotspot preview rejects deleted, unknown, and malformed native targets wit
     loadDocument: async (_sql, candidate) => {
       if (candidate.resource === "hotspots") return { revision: 4, source: "database", document };
       if (candidate.resource === "native-activity-index") return { revision: 2, source: "database", document: index };
-      if (candidate.resource === "native-activity-public") {
-        const source = publicDocuments[candidate.documentKey]?.public;
-        return source ? { revision: source.revision, source: "database", document: source.payload } : null;
-      }
+      if (candidate.resource === "native-activity-public") throw new Error("Hotspot preview must batch public documents.");
       return null;
     },
+    loadDocuments: async (_sql, resources) => new Map(resources.flatMap((candidate) => {
+      const source = publicDocuments[candidate.documentKey]?.public;
+      return source ? [[candidate.documentKey, { revision: source.revision, source: "database", document: source.payload }]] : [];
+    })),
     logger: { error() {} },
   })(event());
 
