@@ -211,6 +211,7 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, navigate
                     hideBreadcrumb
                     onSubmit={requestFinalSubmit}
                     submission={assignment}
+                    submitConfirmationOwner="runtime-shell"
                   />
                 ) : null}
                 {assignment.targetKind === "published_native" && !assignment.target?.capability?.submittable ? <div className="inline-status">This published activity is display-only and cannot be submitted.</div> : null}

@@ -21,6 +21,7 @@ export function UltimateB2CompleteSentencesStudentActivity({
   submitted = false,
   serverResult = null,
   submitError = "",
+  canSubmit = true,
   confirmBeforeSubmit = true,
   replaceAnswers,
   onSubmit,
@@ -36,12 +37,12 @@ export function UltimateB2CompleteSentencesStudentActivity({
   const selectedIsPlaced = selectedWord ? Object.values(answers).includes(selectedWord.text) : false;
 
   useEffect(() => {
-    if (frozen || submitted) {
+    if (frozen || submitted || !canSubmit) {
       setSelectedWordId("");
       setDraggingWordId("");
       setConfirmOpen(false);
     }
-  }, [frozen, submitted]);
+  }, [canSubmit, frozen, submitted]);
 
   if (!runtime) return null;
 
@@ -148,8 +149,8 @@ export function UltimateB2CompleteSentencesStudentActivity({
       </div>
 
       <footer className="complete-sentences-student-actions">
-        {!submitted && <button className="primary-action" type="button" disabled={!progress.complete || submitting || frozen} onClick={() => confirmBeforeSubmit ? setConfirmOpen(true) : onSubmit?.()}>{submitting ? "Submitting…" : "Done"}</button>}
-        {!progress.complete && !submitted && <span>Place all {progress.total} answers before submitting.</span>}
+        {canSubmit && !submitted && <button className="primary-action" type="button" disabled={!progress.complete || submitting || frozen} onClick={() => confirmBeforeSubmit ? setConfirmOpen(true) : onSubmit?.()}>{submitting ? "Submitting…" : "Done"}</button>}
+        {canSubmit && !progress.complete && !submitted && <span>Place all {progress.total} answers before submitting.</span>}
         {submitted && <div className="complete-sentences-score" role="status"><strong>{Number.isFinite(serverResult?.correctCount) ? `Score: ${serverResult.correctCount}/${serverResult.totalCount}` : "Submitted"}</strong>{Number.isFinite(serverResult?.scorePercent) && <span>{serverResult.scorePercent}%</span>}</div>}
         {submitError && <div className="inline-status error" role="alert">{submitError}</div>}
       </footer>

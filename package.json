@@ -93,6 +93,7 @@
     "test:ultimate-b2:legacy-pilot:assets": "node --test tests/ultimate-b2-unit-1-part-2-legacy-pilot.test.js",
     "test:ultimate-b2:legacy-pilot:visual": "node scripts/ultimate-b2/legacy-pilot-visual.mjs",
     "test:ultimate-b2:legacy-pilot:modes": "node scripts/ultimate-b2/legacy-pilot-modes.mjs",
+    "test:ultimate-b2:complete-sentences-confirmation": "node scripts/ultimate-b2/complete-sentences-confirmation.mjs",
     "test:ultimate-b2:multiple-choice-builder:visual": "node scripts/ultimate-b2/multiple-choice-builder-visual.mjs",
     "test:ultimate-b2:activity-builder:visual": "node scripts/ultimate-b2/multiple-choice-builder-visual.mjs",
     "test:android-teacher-device": "node scripts/android-teacher/device-smoke.mjs",

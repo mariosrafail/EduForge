@@ -52,7 +52,7 @@ test("mode separation preserves Teacher reveal rendering and routes only learner
     readFile("netlify/functions/_book-content/submission-actions.js", "utf8"),
     readFile("src/components/lms/teacher/components/TeacherAssignmentReviewWorkspace.jsx", "utf8"),
   ]);
-  assert.match(pilot, /capabilities\.isPresentation \|\| capabilities\.isReadOnly[\s\S]*UltimateB2CompleteSentencesActivity[\s\S]*UltimateB2CompleteSentencesStudentActivity/);
+  assert.match(pilot, /capabilities\.isPresentation \|\| \(capabilities\.isReadOnly && !learnerReview\)[\s\S]*UltimateB2CompleteSentencesActivity[\s\S]*UltimateB2CompleteSentencesStudentActivity/);
   assert.match(teacher, /revealedBlankIds/);
   assert.match(teacher, /show-next/);
   assert.match(teacher, /requestTeacherSolution/);
@@ -63,6 +63,7 @@ test("mode separation preserves Teacher reveal rendering and routes only learner
   assert.match(student, /Are you sure you want to submit\?/);
   assert.match(student, />Cancel</);
   assert.match(student, /Submitting…" : "Submit"/);
+  assert.match(student, /canSubmit && !submitted/);
   assert.match(normalized, /answers: responsePayload\(activity, answers\)/);
   assert.match(normalized, /typeof onSubmit !== "function"[\s\S]*This is independent practice/);
   assert.match(normalized, /const result = await onSubmit\(/);
@@ -76,7 +77,9 @@ test("mode separation preserves Teacher reveal rendering and routes only learner
   assert.match(workspace, /submission=\{assignment\}/);
   assert.match(workspace, /key=\{assignment\.assignmentId\}/);
   assert.doesNotMatch(workspace, /BookPackageBrowser/);
-  assert.match(normalized, /confirmBeforeSubmit: mode !== "student"/);
+  assert.match(normalized, /activityOwnsSubmitConfirmation\(submitConfirmationOwner\)/);
+  assert.match(normalized, /canSubmit: capabilities\.canSubmitStudentWork/);
+  assert.match(workspace, /submitConfirmationOwner="runtime-shell"/);
   assert.match(submissionBackend, /validateSubmittedAnswers\(activity, body\.answers \|\| body\.result\?\.answers\)/);
   assert.match(submissionBackend, /scorePercent[\s\S]*correctCount[\s\S]*totalCount[\s\S]*status/);
   assert.match(teacherWorkspace, /selectedRow\.scorePercent|scorePolicy/);

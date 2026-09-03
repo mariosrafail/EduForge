@@ -27,6 +27,7 @@ export function StudentInteractiveRuntimeShell({
   const stageRef = useRef(null);
   const submitButtonRef = useRef(null);
   const returnFocusRef = useRef(null);
+  const confirmationAttempt = useRef(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fullscreenMessage, setFullscreenMessage] = useState("");
   const [confirmation, setConfirmation] = useState({ open: false, payload: null });
@@ -62,14 +63,23 @@ export function StudentInteractiveRuntimeShell({
   }, [capabilities.canFinalSubmit, pending]);
 
   const confirmFinalSubmit = async () => {
-    if (!capabilities.canFinalSubmit || pending || typeof onConfirmSubmit !== "function") return;
-    const result = await onConfirmSubmit(confirmation.payload);
-    confirmation.resolve?.(result ?? true);
-    setConfirmation({ open: false, payload: null });
+    if (!capabilities.canFinalSubmit || pending || confirmationAttempt.current || typeof onConfirmSubmit !== "function") return;
+    confirmationAttempt.current = (async () => {
+      try {
+        const result = await onConfirmSubmit(confirmation.payload);
+        confirmation.resolve?.(result ?? true);
+        setConfirmation({ open: false, payload: null });
+      } catch {
+        confirmation.resolve?.(false);
+      } finally {
+        confirmationAttempt.current = null;
+      }
+    })();
+    await confirmationAttempt.current;
   };
 
   const cancelFinalSubmit = () => {
-    if (pending) return;
+    if (pending || confirmationAttempt.current) return;
     confirmation.resolve?.(false);
     setConfirmation({ open: false, payload: null });
   };

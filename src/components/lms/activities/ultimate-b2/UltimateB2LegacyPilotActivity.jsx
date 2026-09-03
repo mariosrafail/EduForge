@@ -350,6 +350,7 @@ export function UltimateB2LegacyPilotActivity({
   listeningPresentation = null,
   activityPresentation = null,
   studentSubmission = null,
+  learnerReview = false,
 }) {
   const images = ultimateB2Unit1Part2LegacyImages[activity.stableNormalizedId];
   const objectNumber = Number(activity.stableNormalizedId.at(-1));
@@ -369,10 +370,10 @@ export function UltimateB2LegacyPilotActivity({
   const teacherListening = objectNumber === 2 && capabilities.isPresentation && teacherPresentationCode;
   const teacherMultipleChoice = objectNumber === 3 && capabilities.isPresentation && teacherPresentationCode && activityPresentation?.multipleChoiceAuthoring;
 
-  if (objectNumber === 4) return capabilities.isPresentation || capabilities.isReadOnly
+  if (objectNumber === 4) return capabilities.isPresentation || (capabilities.isReadOnly && !learnerReview)
     ? <UltimateB2CompleteSentencesActivity activity={activity} teacherSolution={solutions} requestTeacherSolution={requestTeacherSolutions} presentation={activityPresentation} />
     : <UltimateB2CompleteSentencesStudentActivity activity={activity} {...studentSubmission} />;
-  if (objectNumber === 5) return <UltimateB2DebateClubActivity activity={activity} teacherPresentation={capabilities.isPresentation || capabilities.isReadOnly} teacherSolution={solutions} requestTeacherSolution={requestTeacherSolutions} presentation={activityPresentation} studentSubmission={studentSubmission} />;
+  if (objectNumber === 5) return <UltimateB2DebateClubActivity activity={activity} teacherPresentation={capabilities.isPresentation || (capabilities.isReadOnly && !learnerReview)} teacherSolution={solutions} requestTeacherSolution={requestTeacherSolutions} presentation={activityPresentation} studentSubmission={studentSubmission} />;
 
   return (
     <article

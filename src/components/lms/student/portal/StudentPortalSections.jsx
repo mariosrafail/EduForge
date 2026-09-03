@@ -457,6 +457,7 @@ export function StudentActivitySection({ activeExercise, setActiveExercise, comp
           mode={activityModeForStudentRuntime(runtimeMode)}
           onBack={backToPrevious}
           onSubmit={runtimeMode === STUDENT_RUNTIME_MODES.ASSIGNED ? requestFinalSubmit : undefined}
+          submitConfirmationOwner={runtimeMode === STUDENT_RUNTIME_MODES.ASSIGNED ? "runtime-shell" : "activity"}
           navigateTo={navigateTo}
           onNextActivity={(activityKey) => {
             const next = findUltimateB2Exercise(activityKey);

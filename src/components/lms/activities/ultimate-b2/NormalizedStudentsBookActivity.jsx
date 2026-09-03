@@ -8,7 +8,7 @@ import { useBookAsset } from "../../../../hooks/useBookAsset.js";
 import { getTeacherActivitySolutions } from "virtual:book-content-service";
 import { getOfflineTeacherSolution } from "virtual:teacher-offline-solutions";
 import { Card, Tag } from "../../Shared.jsx";
-import { getActivityModeCapabilities } from "../activityModes.js";
+import { ACTIVITY_MODES, getActivityModeCapabilities } from "../activityModes.js";
 import {
   checkPresentationAnswers,
   hidePresentationAnswers,
@@ -31,6 +31,7 @@ import { isUltimateB2ImageActivity } from "../../../../data/ultimate-b2/unit1Par
 import { UltimateB2ImageActivity } from "./UltimateB2ImageActivity.jsx";
 import { TeacherPresentationControls, TeacherQuestionFeedback } from "virtual:teacher-answer-ui";
 import { activeBuildProfile } from "../../../../config/buildProfiles.js";
+import { activityOwnsSubmitConfirmation, persistedStudentAnswers } from "../studentSubmissionState.js";
 
 const studentAndroidBuild = import.meta.env.VITE_APP_MODE === "android-offline";
 
@@ -181,7 +182,7 @@ function persistedSubmissionResult(submission) {
   };
 }
 
-export function NormalizedStudentsBookActivity({ activityId, mode = "student", onSubmit, submission = null, listeningPresentation = null, activityPresentation = null, activityPublicDraft = null, activityPublicImport = null, activityTeacherSolution = null }) {
+export function NormalizedStudentsBookActivity({ activityId, mode = "student", onSubmit, submission = null, submitConfirmationOwner = "activity", listeningPresentation = null, activityPresentation = null, activityPublicDraft = null, activityPublicImport = null, activityTeacherSolution = null }) {
   const canonicalActivity = findStudentsBookImplementation(activityId);
   let activity = canonicalActivity;
   let importedOpenResponseAuthoring = null;
@@ -194,7 +195,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
   const capabilities = getActivityModeCapabilities(mode);
   const initialSubmissionResult = persistedSubmissionResult(submission);
   const persistedSubmission = Boolean(initialSubmissionResult);
-  const [answers, setAnswers] = useState({});
+  const [answers, setAnswers] = useState(() => persistedStudentAnswers(activity, submission));
   const [submitted, setSubmitted] = useState(persistedSubmission);
   const [completed, setCompleted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -206,6 +207,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
   const [revealedQuestionIds, setRevealedQuestionIds] = useState([]);
   const [checkResults, setCheckResults] = useState({});
   const solutionRequest = useRef(null);
+  const submitPromise = useRef(null);
   const currentActivityId = useRef(activity?.stableNormalizedId || activityId);
   const presentationStateVersion = useRef(0);
   currentActivityId.current = activity?.stableNormalizedId || activityId;
@@ -214,7 +216,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
     solutionRequest.current?.abort();
     solutionRequest.current = null;
     presentationStateVersion.current += 1;
-    setAnswers({});
+    setAnswers(persistedStudentAnswers(activity, submission));
     setSubmitted(persistedSubmission);
     setCompleted(false);
     setSubmitting(false);
@@ -271,31 +273,36 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
   };
   const submit = async () => {
     if (!capabilities.canSubmitStudentWork) return;
+    if (submitPromise.current) return submitPromise.current;
     if (typeof onSubmit !== "function") {
       setSubmitError("This is independent practice. Open the activity from Assignments to submit work to your teacher.");
       return false;
     }
-    setSubmitting(true);
-    setSubmitError("");
-    try {
-      const result = await onSubmit({
-        activityKey: activity.stableNormalizedId,
-        activityId: activity.stableNormalizedId,
-        answers: responsePayload(activity, answers),
-        score: null,
-        implementationMode: activity.implementationMode,
-        status: activity.implementationMode === "teacher-reviewed" ? "awaiting_review" : "submitted",
-      });
-      if (result === false) return false;
-      setServerResult(result || null);
-      setSubmitted(true);
-      return true;
-    } catch (error) {
-      setSubmitError(error.message || "Submission could not be saved.");
-      return false;
-    } finally {
-      setSubmitting(false);
-    }
+    submitPromise.current = (async () => {
+      setSubmitting(true);
+      setSubmitError("");
+      try {
+        const result = await onSubmit({
+          activityKey: activity.stableNormalizedId,
+          activityId: activity.stableNormalizedId,
+          answers: responsePayload(activity, answers),
+          score: null,
+          implementationMode: activity.implementationMode,
+          status: activity.implementationMode === "teacher-reviewed" ? "awaiting_review" : "submitted",
+        });
+        if (result === false) return false;
+        setServerResult(result || null);
+        setSubmitted(true);
+        return true;
+      } catch (error) {
+        setSubmitError(error.message || "Submission could not be saved.");
+        return false;
+      } finally {
+        setSubmitting(false);
+        submitPromise.current = null;
+      }
+    })();
+    return submitPromise.current;
   };
   const markComplete = async () => {
     if (!capabilities.canSubmitStudentWork) return;
@@ -468,7 +475,8 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
         actions={(legacyPilotObjectOne && capabilities.isPresentation) || teacherOfflineListening || teacherOfflineMultipleChoice ? null : activityActions}
         listeningPresentation={listeningPresentation}
         activityPresentation={activityPresentation}
-        studentSubmission={{ answers, frozen, submitting, submitted, serverResult, submitError, replaceAnswers, onSubmit: submit, confirmBeforeSubmit: mode !== "student" }}
+        learnerReview={mode === ACTIVITY_MODES.STUDENT_REVIEW}
+        studentSubmission={{ answers, frozen, submitting, submitted, serverResult, submitError, replaceAnswers, onSubmit: submit, canSubmit: capabilities.canSubmitStudentWork, confirmBeforeSubmit: activityOwnsSubmitConfirmation(submitConfirmationOwner) }}
       />
     );
   }

@@ -26,7 +26,7 @@ function ImportedActivityPlaceholder({ activity }) {
   );
 }
 
-function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity, submission, publication }) {
+function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity, submission, publication, submitConfirmationOwner }) {
   const nativeActivity = publication.kind === "published" ? publication.projection?.nativeActivities?.[activityKey] : null;
   if (nativeActivity) {
     const capabilities = getActivityModeCapabilities(mode);
@@ -36,7 +36,7 @@ function ActivityBody({ activityKey, activity, mode, onSubmit, onNextActivity, s
     if (publication.kind === "error") return <Card><div className="inline-status error">{publication.message}</div></Card>;
     if (publication.kind === "loading") return <Card><div className="inline-status">Loading published content…</div></Card>;
     const publishedActivity = publication.kind === "published" ? publication.projection?.activities?.[activityKey] : null;
-    return <NormalizedStudentsBookActivity activityId={activityKey} mode={mode} onSubmit={onSubmit} submission={submission} activityPublicDraft={publishedActivity?.authoring || null} activityPublicImport={hydratePublishedActivityImport(activityKey, publishedActivity?.import, publication)} />;
+    return <NormalizedStudentsBookActivity activityId={activityKey} mode={mode} onSubmit={onSubmit} submission={submission} submitConfirmationOwner={submitConfirmationOwner} activityPublicDraft={publishedActivity?.authoring || null} activityPublicImport={hydratePublishedActivityImport(activityKey, publishedActivity?.import, publication)} />;
   }
   if (activity?.questions?.length) {
     return <DatabaseActivity activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} />;
@@ -71,7 +71,7 @@ function getBookHashForActivity(activityKey, mode = "student", resolved = null) 
   return bookId ? `${getActivityRouteRole(mode)}-book-${bookId}` : `${getActivityRouteRole(mode)}-books`;
 }
 
-export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mode = "student", onBack, onSubmit, onNextActivity, navigateTo, hideBreadcrumb = false, submission = null }) {
+export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mode = "student", onBack, onSubmit, onNextActivity, navigateTo, hideBreadcrumb = false, submission = null, submitConfirmationOwner = "activity" }) {
   const publication = usePublishedComponentRelease();
   const capabilities = getActivityModeCapabilities(mode);
   const resolved = findUltimateB2Exercise(activityKey || exerciseId);
@@ -118,7 +118,7 @@ export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mo
         action={<div className="ultimate-runner-tags"><Tag tone="gold">Ultimate B2</Tag><Tag tone="blue">{resolved?.unit.title || `Unit ${normalized?.unitNumber || 2}`}</Tag><Tag tone="green">{capabilities.isPresentation ? "Presentation" : capabilities.isReadOnly ? "Preview" : "Student mode"}</Tag></div>}
       />
       {mode === "teacher-preview" && <div className="inline-status">Teacher preview is read-only. Students can submit answers in student mode.</div>}
-      <ActivityBody activityKey={key} activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} submission={submission} publication={publication} />
+      <ActivityBody activityKey={key} activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} submission={submission} publication={publication} submitConfirmationOwner={submitConfirmationOwner} />
     </div>
   );
 }
