@@ -34,6 +34,7 @@ import { listBookMediaAssets, createBookMediaAsset } from "./_book-content/media
 import {
   getDashboardMetrics, withDashboardMetricsHeaders
 } from "./_book-content/dashboard-metrics.js";
+import { getTeacherGradeAnalytics } from "./_book-content/teacher-grade-analytics.js";
 import { getActiveComponentRelease, getPublishedNativeTeacherDocument, getPublishedReleaseAsset } from "./_book-content/publication-actions.js";
 
 export {
@@ -70,7 +71,7 @@ export async function handler(event) {
 
     const auth = await requireAuth(event, sql);
     if (auth.error) {
-      return query.action === "dashboard-metrics"
+      return ["dashboard-metrics", "teacher-grade-analytics"].includes(query.action)
         ? withDashboardMetricsHeaders(auth.error)
         : query.action === "teacher-activity-solutions"
         ? withTeacherSolutionHeaders(auth.error)
@@ -87,6 +88,9 @@ export async function handler(event) {
     if (event.httpMethod === "GET") {
       if (query.action === "dashboard-metrics") {
         return await getDashboardMetrics(sql, currentUser, event.queryStringParameters || {});
+      }
+      if (query.action === "teacher-grade-analytics") {
+        return await getTeacherGradeAnalytics(sql, currentUser, event.queryStringParameters || {});
       }
       if (requestsHiddenPhaseOneComponent(query)) {
         return json(404, { error: "Component not found" });
@@ -355,7 +359,7 @@ export async function handler(event) {
   } catch (error) {
     if (isDatabaseNotConfiguredError(error)) {
       const response = databaseNotConfiguredResponse();
-      return query.action === "dashboard-metrics"
+      return ["dashboard-metrics", "teacher-grade-analytics"].includes(query.action)
         ? withDashboardMetricsHeaders(response)
         : query.action === "teacher-activity-solutions"
         ? withTeacherSolutionHeaders(response)
@@ -366,14 +370,14 @@ export async function handler(event) {
         error: "Assignment database migration is missing",
         migration: "database/010_assignment_live_flow.sql",
       });
-      return query.action === "dashboard-metrics"
+      return ["dashboard-metrics", "teacher-grade-analytics"].includes(query.action)
         ? withDashboardMetricsHeaders(response)
         : query.action === "teacher-activity-solutions"
         ? withTeacherSolutionHeaders(response)
         : response;
     }
     const response = safeServerError(error, "Book content API failed");
-    return query.action === "dashboard-metrics"
+    return ["dashboard-metrics", "teacher-grade-analytics"].includes(query.action)
       ? withDashboardMetricsHeaders(response)
       : query.action === "teacher-activity-solutions"
       ? withTeacherSolutionHeaders(response)

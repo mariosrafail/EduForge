@@ -124,6 +124,14 @@ export async function getAssignmentResults(assignmentId) {
   return request(`/.netlify/functions/book-content?${query}`);
 }
 
+export async function getTeacherGradeAnalytics(filters = {}, { signal } = {}) {
+  const query = new URLSearchParams({ action: "teacher-grade-analytics" });
+  for (const key of ["classId", "assignmentId", "packageId", "componentId", "status", "window"]) {
+    if (filters[key]) query.set(key, filters[key]);
+  }
+  return request(`/.netlify/functions/book-content?${query}`, { signal });
+}
+
 export function assignmentResultsToCsv({ assignment = {}, rows = [] } = {}) {
   const headers = ["Student Name", "Email", "Class", "Assignment", "Status", "Score", "Correct Count", "Total Count", "Submitted At", "Due At"];
   const escapeCell = (value) => {
