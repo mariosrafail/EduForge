@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 
+import { waitForStableGeometry } from "./playwright-layout-stability.mjs";
+
 const number = async (scope, label) => Number(await scope.getByLabel(`Quick ${label}`, { exact: true }).inputValue());
 const ratio = async (scope) => (await number(scope, "Width")) / (await number(scope, "Height"));
 const before = async (first, second) => {
@@ -65,6 +67,17 @@ export async function measureListeningStage(root) {
   return root.evaluate((element) => { const bounds = (target) => { const rect = target.getBoundingClientRect(); return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height }; }; const stage = bounds(element.querySelector(".native-listening-activity-stage")); const player = bounds(element.querySelector(".native-listening-player-anchor")); return { stage, player, view: element.dataset.view, ratio: stage.width / stage.height, playerInside: player.left >= stage.left && player.right <= stage.right + 1 && player.top >= stage.top && player.bottom <= stage.bottom + 1 }; });
 }
 
+export async function waitForStableListeningStage(root, expectedView) {
+  await root.locator(".native-listening-activity-stage").waitFor({ state: "visible" });
+  await root.locator(".native-listening-player-anchor").waitFor({ state: "visible" });
+  await waitForStableGeometry(root, {
+    selectors: [".native-listening-activity-stage", ".native-listening-player-anchor"],
+    expectedAttributes: { "data-view": expectedView },
+    label: `Listening ${expectedView} stage`,
+  });
+  return measureListeningStage(root);
+}
+
 export function assertStableListeningStages(before, after) {
   assert.ok(Math.abs(before.ratio - 1024 / 582) < .02 && Math.abs(after.ratio - 1024 / 582) < .02, JSON.stringify({ before, after }));
   assert.ok(Math.abs(before.stage.width - after.stage.width) <= 1 && Math.abs(before.stage.height - after.stage.height) <= 1, JSON.stringify({ before, after }));
@@ -93,6 +106,6 @@ export async function exercisePersistedVisualRefinements(page, { completeSentenc
   await listening.locator(".native-listening-hotspot-dot").first().click(); await exerciseListeningSelectedGeometry(listening);
   await page.getByRole("tab", { name: "Audio & Transcript" }).click(); const transcriptExpected = await exerciseListeningTranscriptGeometry(listening);
   await page.getByRole("button", { name: "Save Draft" }).click(); await page.getByText("Draft saved.", { exact: true }).waitFor(); await page.reload({ waitUntil: "domcontentloaded" }); await openActivity(page, listeningId); await page.getByRole("tab", { name: "Audio & Transcript" }).click(); assert.deepEqual(await Promise.all(["X", "Y", "Width", "Height"].map((label) => number(listening.getByRole("group", { name: "Listening transcript region geometry" }), label))), Object.values(transcriptExpected));
-  await page.getByRole("tab", { name: "Local Preview" }).click(); await page.getByRole("button", { name: "Student Preview" }).click(); const preview = page.locator(".native-or-preview .native-listening"); const before = await measureListeningStage(preview); await preview.getByRole("button", { name: "Play Listening audio" }).click(); await preview.locator(".native-listening-transcript").waitFor(); const after = await measureListeningStage(preview); assertStableListeningStages(before, after); await preview.getByRole("button", { name: "Pause Listening audio" }).click(); assert.equal(await preview.getAttribute("data-view"), "transcript"); await preview.getByRole("button", { name: "Play Listening audio" }).click(); assert.equal(await preview.getAttribute("data-view"), "transcript"); await preview.getByRole("button", { name: "Stop Listening audio" }).click(); assert.equal(await preview.getAttribute("data-view"), "questions");
+  await page.getByRole("tab", { name: "Local Preview" }).click(); await page.getByRole("button", { name: "Student Preview" }).click(); await page.locator('.b2-hosted-activity-layout[data-navigation-expanded="false"]').waitFor(); const preview = page.locator(".native-or-preview .native-listening"); const before = await waitForStableListeningStage(preview, "questions"); await preview.getByRole("button", { name: "Play Listening audio" }).click(); await preview.locator(".native-listening-transcript").waitFor({ state: "visible" }); const after = await waitForStableListeningStage(preview, "transcript"); assertStableListeningStages(before, after); await preview.getByRole("button", { name: "Pause Listening audio" }).click(); assert.equal(await preview.getAttribute("data-view"), "transcript"); await preview.getByRole("button", { name: "Play Listening audio" }).click(); assert.equal(await preview.getAttribute("data-view"), "transcript"); await preview.getByRole("button", { name: "Stop Listening audio" }).click(); assert.equal(await preview.getAttribute("data-view"), "questions");
   return { completeExpected, transcriptExpected };
 }
