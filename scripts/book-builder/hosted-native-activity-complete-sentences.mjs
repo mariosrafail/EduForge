@@ -136,3 +136,134 @@ export async function exerciseCompleteSentencesAuthoring({ page, nativeDocuments
   await page.getByRole("button", { name: "Add Activity" }).click(); await page.getByRole("radio", { name: /Complete the Sentences/ }).check(); await page.getByLabel(/Initial title/).fill("Second browser complete sentences"); await page.getByRole("button", { name: "Create activity" }).click(); await page.getByRole("heading", { name: "Second browser complete sentences" }).first().waitFor(); const secondCompleteSentencesId = [...nativeDocuments].find(([, pair]) => pair.publicDocument.metadata.title === "Second browser complete sentences")[0]; await page.getByRole("button", { name: "Add Sentence" }).click(); await page.getByLabel("Full sentence with one marked answer").fill("They *carried on* despite the rain."); await page.getByRole("tab", { name: "Visual" }).click(); await page.locator('.studio-inspector input[accept*="image/png"]').setInputFiles({ name: "second-complete-background.png", mimeType: "image/png", buffer: landscapeChoicePng }); const secondCompleteCanvas = page.locator(".native-single-choice-hotspot-canvas"); await secondCompleteCanvas.locator("img").waitFor(); await page.getByLabel("Sentence to map").selectOption({ index: 1 }); await page.getByRole("button", { name: "New hotspot" }).click(); await secondCompleteCanvas.locator(".native-single-choice-authoring-hotspot").waitFor(); const reusableFontSelect = page.locator(".studio-inspector select").filter({ has: page.locator("option", { hasText: "Ahem" }) }); assert.equal(await reusableFontSelect.count(), 1); assert.equal(await reusableFontSelect.locator("option", { hasText: "Ahem" }).count(), 1); await reusableFontSelect.selectOption({ label: "Ahem" }); assert.equal(nativeFonts.size, 1); await page.getByRole("button", { name: "Save Draft", exact: true }).click(); await page.getByText("Draft saved.", { exact: true }).waitFor(); assert.equal(nativeDocuments.get(secondCompleteSentencesId).publicDocument.assets.filter((asset) => asset.role === "activity_font").length, 1);
   return completeSentencesId;
 }
+
+export async function exerciseCompleteSentencesBulkHotspotImport({ page, nativeDocuments, firstPanelPng, secondPanelPng }) {
+  await page.getByRole("button", { name: "Add Activity" }).click();
+  await page.getByRole("radio", { name: /Complete the Sentences/ }).check();
+  await page.getByLabel(/Initial title/).fill("Bulk hotspot import complete sentences");
+  await page.getByRole("button", { name: "Create activity" }).click();
+  await page.getByRole("heading", { name: "Bulk hotspot import complete sentences" }).first().waitFor();
+  const activityId = [...nativeDocuments].find(([, pair]) => pair.publicDocument.metadata.title === "Bulk hotspot import complete sentences")?.[0];
+  assert.ok(activityId, "Complete the Sentences bulk hotspot acceptance activity must be created");
+
+  await page.getByText("Bulk generate from text", { exact: true }).click();
+  const semanticSource = "1. She *arrived* before noon.\n2. They *turned down* the offer.\n3. We *set off* at dawn.\n4. He *looked after* the dog.\n5. I *caught up* yesterday.";
+  await page.getByLabel("Paste numbered Complete the Sentences content").fill(semanticSource);
+  await page.getByRole("button", { name: "Generate content" }).click();
+  await page.getByText("5 items generated", { exact: true }).waitFor();
+  await page.getByRole("tab", { name: "Visual" }).click();
+  await page.locator('.native-single-choice-visual-authoring .studio-upload-action input[accept*="image/png"]').setInputFiles({ name: "choice-complete-bulk-panel-one.png", mimeType: "image/png", buffer: firstPanelPng });
+  await page.locator(".native-single-choice-hotspot-canvas img").waitFor();
+  await page.getByRole("button", { name: "Add Panel", exact: true }).click();
+  await page.locator('.native-single-choice-visual-authoring .studio-upload-action input[accept*="image/png"]').setInputFiles({ name: "choice-complete-bulk-panel-two.png", mimeType: "image/png", buffer: secondPanelPng });
+  await page.locator(".native-single-choice-hotspot-canvas img").waitFor();
+  await page.getByRole("button", { name: "Save Draft", exact: true }).click();
+  await page.getByText("Draft saved.", { exact: true }).waitFor();
+
+  const semanticPair = structuredClone(nativeDocuments.get(activityId));
+  const teacherBeforeImport = structuredClone(semanticPair.teacherDocument);
+  await page.getByText("Bulk import hotspots from text", { exact: true }).click();
+  const geometrySource = "SOURCE 1024x582\n\nPANEL 1\nITEM 1 x=100 y=100 width=200 height=50\nITEM 2 x=400 y=100 width=200 height=50\n\nPANEL 2\nITEM 3 x=100 y=200 width=200 height=80\nITEM 4 x=400 y=200 width=200 height=80";
+  const sourceInput = page.getByLabel("Paste hotspot geometry");
+  await sourceInput.fill(geometrySource);
+  await page.getByRole("button", { name: "Import hotspots" }).click();
+  await page.getByText("4 hotspots imported", { exact: true }).waitFor();
+  assert.equal(await sourceInput.inputValue(), geometrySource, "Successful import keeps source text only in local component state");
+  assert.equal(await page.locator(".native-hotspot-bulk-importer__warning").count(), 2);
+  await page.getByText(/1 item still need hotspots/).waitFor();
+  assert.equal(await page.getByRole("group", { name: "Hotspot selected" }).count(), 1);
+  assert.deepEqual(nativeDocuments.get(activityId), semanticPair, "Local geometry import must not save either document");
+  assert.deepEqual(nativeDocuments.get(activityId).teacherDocument, teacherBeforeImport);
+  assert.equal(JSON.stringify(nativeDocuments.get(activityId)).includes(geometrySource), false);
+  assert.equal(Number(await page.getByLabel("Quick X", { exact: true }).inputValue()), 100);
+  assert.equal(Number(await page.getByLabel("Quick Y", { exact: true }).inputValue()), 50);
+  await page.getByLabel("Quick X", { exact: true }).fill("110");
+  await page.getByRole("button", { name: "Save Draft", exact: true }).click();
+  await page.getByText("Draft saved.", { exact: true }).waitFor();
+
+  const partialPair = nativeDocuments.get(activityId);
+  const partialPanels = partialPair.publicDocument.parts[0].interaction.presentation.panels;
+  const semanticItemIds = semanticPair.publicDocument.parts[0].interaction.items.map((item) => item.id);
+  assert.deepEqual(partialPanels.map(({ sourceWidth, sourceHeight }) => [sourceWidth, sourceHeight]), [[1024, 291], [700, 1200]]);
+  assert.deepEqual(partialPanels.map((panel) => panel.hotspots.map((hotspot) => hotspot.itemId)), [semanticItemIds.slice(0, 2), semanticItemIds.slice(2, 4)]);
+  assert.deepEqual(partialPanels[0].hotspots.map(({ area }) => area), [{ x: 110, y: 50, width: 200, height: 25 }, { x: 400, y: 50, width: 200, height: 25 }]);
+  assert.deepEqual(partialPanels[1].hotspots.map(({ area }) => area), [{ x: 68, y: 412, width: 138, height: 166 }, { x: 273, y: 412, width: 138, height: 166 }]);
+  assert.deepEqual(partialPair.teacherDocument, teacherBeforeImport);
+  assert.doesNotMatch(JSON.stringify(partialPair.publicDocument), /arrived|turned down|set off|looked after|caught up|acceptedTexts|SOURCE 1024x582/);
+  const importedIds = partialPanels.map((panel) => panel.hotspots.map((hotspot) => hotspot.id));
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.getByPlaceholder("Search title, type, or ID").fill(activityId);
+  for (let depth = 0; depth < 3; depth += 1) {
+    await page.locator('.activity-tree-toggle[aria-expanded="false"]').evaluateAll((buttons) => buttons.forEach((button) => button.click()));
+    await page.waitForTimeout(20);
+  }
+  await page.getByRole("button", { name: new RegExp(activityId) }).click();
+  await page.getByRole("tab", { name: "Visual" }).click();
+  assert.deepEqual(nativeDocuments.get(activityId).publicDocument.parts[0].interaction.presentation.panels.map((panel) => panel.hotspots.map((hotspot) => hotspot.id)), importedIds);
+  await page.getByRole("tab", { name: "Local Preview" }).click();
+  await page.getByRole("button", { name: "Student Preview" }).click();
+  const preview = page.getByRole("tabpanel", { name: "Local Preview" });
+  const studentPreview = preview.locator(".native-complete-sentences");
+  const firstBlank = studentPreview.locator(".native-complete-sentences-blank").first();
+  await firstBlank.waitFor();
+  const importedStyle = await firstBlank.evaluate((element) => ({ left: Number.parseFloat(element.style.left), top: Number.parseFloat(element.style.top), width: Number.parseFloat(element.style.width), height: Number.parseFloat(element.style.height) }));
+  assert.ok(Math.abs(importedStyle.left - 110 / 1024 * 100) < .002 && Math.abs(importedStyle.top - 50 / 291 * 100) < .002, JSON.stringify(importedStyle));
+  await firstBlank.locator("input").fill("student response");
+  await page.getByRole("button", { name: "Teacher Preview" }).click();
+  const teacherPreview = preview.locator(".native-complete-sentences");
+  const firstTeacherTarget = teacherPreview.getByRole("button", { name: "Reveal answer for sentence 1" });
+  await firstTeacherTarget.click();
+  await teacherPreview.getByText("arrived", { exact: true }).waitFor();
+
+  await page.getByRole("tab", { name: "Visual" }).click();
+  await page.locator(".studio-layer-list").getByRole("button", { name: /Panel 2/ }).click();
+  await page.getByLabel("Sentence to map").selectOption({ index: 5 });
+  await page.getByRole("button", { name: "New hotspot", exact: true }).click();
+  await page.locator(".native-single-choice-hotspot-canvas .native-single-choice-authoring-hotspot").nth(2).waitFor();
+  await page.getByRole("button", { name: "Delete Hotspot", exact: true }).click();
+  await page.getByLabel("Sentence to map").selectOption({ index: 5 });
+  await page.getByRole("button", { name: "Draw custom hotspot", exact: true }).click();
+  const canvas = page.locator(".native-single-choice-hotspot-canvas");
+  const canvasBox = await canvas.boundingBox(); assert.ok(canvasBox);
+  await canvas.hover({ position: { x: canvasBox.width * .15, y: canvasBox.height * .2 } }); await page.mouse.down();
+  await canvas.hover({ position: { x: canvasBox.width * .35, y: canvasBox.height * .3 } }); await page.mouse.up();
+  await canvas.locator(".native-single-choice-authoring-hotspot").nth(2).waitFor();
+  await page.getByRole("button", { name: "Save Draft", exact: true }).click();
+  await page.getByText("Draft saved.", { exact: true }).waitFor();
+  const fullyMappedPair = nativeDocuments.get(activityId);
+  const unlistedPanelBeforeReplacement = structuredClone(fullyMappedPair.publicDocument.parts[0].interaction.presentation.panels[1]);
+
+  await page.locator(".studio-layer-list").getByRole("button", { name: /Panel 1/ }).click();
+  await canvas.locator(".native-single-choice-authoring-hotspot").first().click();
+  await page.getByLabel("Lock hotspot position").check();
+  await page.getByText("Bulk import hotspots from text", { exact: true }).click();
+  const replacementSource = "SOURCE 1024x582\nPANEL 1\nITEM 2 x=420 y=120 width=180 height=40\nITEM 1 x=120 y=120 width=180 height=40";
+  await page.getByLabel("Paste hotspot geometry").fill(replacementSource);
+  await page.getByRole("button", { name: "Import hotspots" }).click();
+  await page.getByRole("alert").getByText("Panel 1 already contains hotspots. Confirm replacement before importing.", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Save Draft", exact: true }).isDisabled(), true, "Failed import must not dirty a saved editor");
+  await page.getByRole("checkbox", { name: /Replace existing hotspots on listed panels/ }).check();
+  await page.getByRole("button", { name: "Import hotspots" }).click();
+  await page.getByText("2 hotspots imported", { exact: true }).waitFor();
+  await page.getByText("2 existing IDs preserved; 0 new IDs created", { exact: true }).waitFor();
+  assert.equal(await page.getByLabel("Lock hotspot position").isChecked(), true, "A preserved selected hotspot keeps its local lock state");
+  const replacementGeometry = await Promise.all(["X", "Y", "Width", "Height"].map((name) => page.getByLabel(`Quick ${name}`, { exact: true }).inputValue()));
+  assert.deepEqual(replacementGeometry.map(Number), [120, 60, 180, 20]);
+  await page.getByLabel("Paste hotspot geometry").fill("SOURCE 1024x582\nPANEL 1\nITEM 1 x=1020 y=0 width=10 height=10");
+  await page.getByRole("button", { name: "Import hotspots" }).click();
+  await page.getByRole("alert").getByText("Line 3: rectangle exceeds SOURCE 1024x582.", { exact: true }).waitFor();
+  assert.deepEqual((await Promise.all(["X", "Y", "Width", "Height"].map((name) => page.getByLabel(`Quick ${name}`, { exact: true }).inputValue()))).map(Number), [120, 60, 180, 20]);
+  await page.getByRole("button", { name: "Clear source" }).click();
+  assert.equal(await page.getByLabel("Paste hotspot geometry").inputValue(), "");
+  await page.getByRole("button", { name: "Save Draft", exact: true }).click();
+  await page.getByText("Draft saved.", { exact: true }).waitFor();
+  const replacedPair = nativeDocuments.get(activityId);
+  const replacedPanels = replacedPair.publicDocument.parts[0].interaction.presentation.panels;
+  assert.deepEqual(replacedPanels[1], unlistedPanelBeforeReplacement);
+  assert.deepEqual(replacedPanels[0].hotspots.map((hotspot) => hotspot.id), importedIds[0]);
+  assert.deepEqual(replacedPanels[0].hotspots.map(({ area }) => area), [{ x: 120, y: 60, width: 180, height: 20 }, { x: 420, y: 60, width: 180, height: 20 }]);
+  assert.deepEqual(replacedPair.teacherDocument, teacherBeforeImport);
+  assert.doesNotMatch(JSON.stringify(replacedPair.publicDocument), /acceptedTexts|SOURCE 1024x582/);
+  return activityId;
+}

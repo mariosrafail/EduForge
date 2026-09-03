@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { Eye, ImagePlus, KeyRound, LayoutPanelTop, Plus, Trash2, Upload } from "lucide-react";
-
 import { StudioButton, StudioCanvasToolbar, StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
 import { QuickNumber, StageGeometryControls } from "../../../components/builder-studio/StageGeometryControls.jsx";
 import { NativeCompleteSentencesHotspotCanvas } from "../../../components/native-complete-sentences/NativeCompleteSentencesHotspotCanvas.jsx";
@@ -10,18 +9,18 @@ import { generateNativeBulkCandidate } from "../../../data/native-activities/nat
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { assessNativeCompleteSentencesReadiness, assessNativeCompleteSentencesSaveability, nativeCompleteSentencesAcceptedTexts, NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE, NATIVE_COMPLETE_SENTENCES_LIMITS, normalizeNativeCompleteSentencesInteraction } from "../../../data/native-activities/nativeCompleteSentences.js";
 import { addNativeCompleteSentencesItem, addNextNativeCompleteSentencesHotspot, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesPanel, findNextUnusedNativeCompleteSentencesItemId, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../../../data/native-activities/nativeCompleteSentencesAuthoring.js";
+import { generateNativeCompleteSentencesHotspotImportCandidate } from "../../../data/native-activities/nativeCompleteSentencesHotspotBulkAuthoring.js";
 import { getBuilderContent } from "./builderContentApi.js";
 import { getBuilderFontLibrary, nativeFontPreviewUrl, saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
+import { NativeCompleteSentencesHotspotBulkImporter } from "./NativeCompleteSentencesHotspotBulkImporter.jsx";
 import { NATIVE_COMPLETE_SENTENCES_TABS, NativeCompleteSentencesEditorHeader, NativeCompleteSentencesItemNavigation } from "./NativeCompleteSentencesEditorControls.jsx";
 import { NativeCompleteSentencesFontControls } from "./NativeCompleteSentencesFontControls.jsx";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
 import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
 import { NativeBulkGenerator } from "./NativeBulkGenerator.jsx";
-
 const clone = (value) => structuredClone(value);
 const previewRoot = (bookSlug, componentSlug, activityId, assetId) => `/builder/api/native-activities/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/activities/${encodeURIComponent(activityId)}/assets/${encodeURIComponent(assetId)}/preview`;
-
 export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {}, onSaved = () => {} }) {
   const [state, setState] = useState({
     kind: "loading",
@@ -46,7 +45,6 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   const [zoom, setZoom] = useState(1);
   const [readableIncomplete, setReadableIncomplete] = useState(false);
   const [videoIncomplete, setVideoIncomplete] = useState(false);
-
   useEffect(() => {
     const controller = new AbortController();
     setTab("content");
@@ -149,7 +147,6 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   const assetUrl = (assetId) => previewRoot(bookSlug, componentSlug, activityId, assetId);
   const previewAssetUrl = (assetId) => publicDraft?.assets.find((asset) => asset.assetId === assetId)?.role === "activity_font" ? nativeFontPreviewUrl(bookSlug, componentSlug, assetId) : assetUrl(assetId);
   const backgroundReference = publicDraft?.assets.find((asset) => asset.slot === selectedPanel?.backgroundAssetSlot);
-
   const generateBulk = (source, options) => {
     const result = generateNativeBulkCandidate({ kind: "complete-sentences", source, publicDocument: publicDraft, teacherDocument: teacherDraft, ...options });
     setPublicDraft(result.publicDocument); setTeacherDraft(result.teacherDocument);
@@ -158,13 +155,20 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
     setSelectedItemId(result.publicDocument.parts[0].interaction.items[0]?.id || null); setSelectedHotspotId(null); changed();
     return result;
   };
+  const importHotspots = (source, options) => {
+    const result = generateNativeCompleteSentencesHotspotImportCandidate({ source, publicDocument: publicDraft, ...options });
+    const retainedIds = new Set(result.publicDocument.parts[0].interaction.presentation.panels.flatMap((panel) => panel.hotspots.map((hotspot) => hotspot.id)));
+    setPublicDraft(result.publicDocument); setSelectedPanelId(result.selection.panelId); setSelectedHotspotId(result.selection.hotspotId); setDrawing(false);
+    setLockedHotspotIds((current) => new Set([...current].filter((id) => retainedIds.has(id))));
+    changed();
+    return result;
+  };
   useEffect(() => {
     const next = nextDrawItemId || "";
     if (drawItemId === next) return;
     setDrawItemId(next);
     setDrawing(false);
   }, [drawItemId, nextDrawItemId]);
-
   const addItem = () => {
     let id;
     mutatePair((nextPublic, nextTeacher) => {
@@ -354,7 +358,6 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
       }));
     }
   };
-
   if (state.kind === "loading")
     return (
       <section className="native-activity-foundation" role="status">
@@ -440,6 +443,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                   <p>Managed background with one source-pixel hotspot per sentence.</p>
                 </div>
               </header>
+              <NativeCompleteSentencesHotspotBulkImporter hasExistingHotspots={panels.some((panel) => panel.hotspots.length)} onImport={importHotspots} />
               <div className="studio-visual-workspace">
                 <aside className="studio-navigator">
                   <header><div><LayoutPanelTop aria-hidden="true" /><div><h3>Panels</h3><p>Visual pages inside part-1.</p></div></div><span className="studio-count">{panels.length}</span></header>

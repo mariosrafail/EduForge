@@ -19,7 +19,7 @@ import { findStudentsBookImplementation } from "../../src/data/ultimate-b2/stude
 import repositoryHotspots from "../../src/data/ultimate-b2/authoring/studentsBookHotspots.json" with { type: "json" };
 import { localPlaywrightLaunchOptions } from "../android-teacher/playwright-launch-options.mjs";
 import { assertAhemRendering, createVideoCompanionUploader, logicalFontSize, uploadReadableText, verifyReadableTextStartsOffAndBlocksIncompleteSave } from "./hosted-native-activity-authoring-helpers.mjs";
-import { exerciseCompleteSentencesAuthoring, handleCompleteSentencesFontRequest } from "./hosted-native-activity-complete-sentences.mjs";
+import { exerciseCompleteSentencesAuthoring, exerciseCompleteSentencesBulkHotspotImport, handleCompleteSentencesFontRequest } from "./hosted-native-activity-complete-sentences.mjs";
 import { exerciseDragDropPanelTransitionGuard, exerciseDragDropProxy, exerciseDragDropResetGuard, exerciseValidatedDragDrop, measureDragDrop } from "./hosted-native-activity-drag-drop.mjs";
 import { measureEditorDock } from "./hosted-native-activity-geometry.mjs";
 import { halfHeightChoicePng, hotspotMp3, landscapeChoicePng, oldschoolSrt, onePixelPng, portraitChoicePng, replacementTallReadablePng, replacementWorksheetPdf, secondPixelPng, smallFourThreeChoicePng, tallReadablePng, worksheetPdf } from "./hosted-native-activity-media-fixtures.mjs";
@@ -805,7 +805,7 @@ try {
 
   const completeSentencesId = await exerciseCompleteSentencesAuthoring({
     page, nativeDocuments, nativeFonts, getNativeIndex: () => nativeIndex, screenshotRoot, uploadReadableText, assertContentTabActive,
-  });
+  }); await exerciseCompleteSentencesBulkHotspotImport({ page, nativeDocuments, firstPanelPng: halfHeightChoicePng, secondPanelPng: portraitChoicePng });
   const openResponseFontSearch = page.getByPlaceholder("Search title, type, or ID"); await openResponseFontSearch.fill(openResponseId); for (let depth = 0; depth < 3; depth += 1) { await page.locator('.activity-tree-toggle[aria-expanded="false"]').evaluateAll((buttons) => buttons.forEach((button) => button.click())); await page.waitForTimeout(20); } await page.getByRole("button", { name: new RegExp(openResponseId) }).click(); await page.getByRole("tab", { name: "Layout" }).click(); await page.getByRole("button", { name: "Response for question 1" }).click();
   const fontResponseControls = page.getByRole("group", { name: "Response region quick controls" }); const sharedAnswerFont = fontResponseControls.getByLabel("Answer font"); await sharedAnswerFont.selectOption({ label: "Ahem" }); assert.equal(nativeFonts.size, 1, "Open Response must reuse the font uploaded through Complete the Sentences");
   await fontResponseControls.getByLabel("Quick Line count").fill("1"); await fontResponseControls.getByLabel("Quick Line spacing").fill("40"); await fontResponseControls.getByLabel("Requested answer size").fill("16"); await fontResponseControls.getByLabel("Requested answer size").press("Enter"); await fontResponseControls.getByLabel("Answer text color").fill("#2468ac");
