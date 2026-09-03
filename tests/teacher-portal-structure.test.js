@@ -34,7 +34,8 @@ test("teacher domain modules retain navigation and workflow contracts", async ()
   assert.match(sources.TeacherBooks, /buildTeacherPresentationHash/);
   assert.match(sources.TeacherClasses, /createTeacherClass/);
   assert.match(sources.TeacherClasses, /listClassStudents/);
-  assert.match(sources.TeacherStudents, /listTeacherStudents/);
+  assert.match(sources.TeacherStudents, /useTeacherGradeAnalytics/);
+  assert.match(sources.TeacherStudents, /TeacherPerformancePanel/);
   assert.match(sources.TeacherAssignments, /listTeacherAssignments/);
   assert.match(sources.TeacherAssignments, /HomeworkCreator/);
   assert.match(sources.TeacherAssignments, /listTeacherHomeworks/);

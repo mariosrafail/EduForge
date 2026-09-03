@@ -4,6 +4,8 @@ import { downloadAssignmentResultsCsv, getAssignmentResults, reviewSubmission } 
 import { buildTeacherSectionHash } from "../../../../utils/hashRoutes.js";
 import { Card, Tag } from "../../Shared.jsx";
 import { filterAssignmentResultRows, teacherReviewFilters, teacherScorePolicy } from "../assignmentReviewPresentation.js";
+import { TeacherPerformancePanel } from "../analytics/TeacherPerformancePanel.jsx";
+import { useTeacherGradeAnalytics } from "../analytics/useTeacherGradeAnalytics.js";
 
 function scoreLabel(score) {
   return score === null || score === undefined ? "No score" : `${Math.round(Number(score))}%`;
@@ -15,6 +17,7 @@ function statusTone(row) {
 }
 
 export function TeacherAssignmentReviewWorkspace({ assignmentId, currentUser, navigateTo }) {
+  const analytics = useTeacherGradeAnalytics({ assignmentId });
   const [results, setResults] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -81,6 +84,7 @@ export function TeacherAssignmentReviewWorkspace({ assignmentId, currentUser, na
       await reviewSubmission(payload);
       setSaveMessage("Review saved.");
       await load();
+      analytics.refresh();
     } catch (saveError) {
       setSaveMessage(saveError.message || "Review could not be saved.");
     } finally {
@@ -108,6 +112,7 @@ export function TeacherAssignmentReviewWorkspace({ assignmentId, currentUser, na
             <Card><strong>{summary.missingCount || 0}</strong><span>Not submitted</span></Card>
             <Card><strong>{summary.averageScore == null ? "Unscored" : `${summary.averageScore}%`}</strong><span>Scored average</span></Card>
           </section>
+          <TeacherPerformancePanel filters={analytics.filters} updateFilter={analytics.updateFilter} state={analytics.state} hideFilters />
           <div className="teacher-review-filter-row" role="tablist" aria-label="Filter submissions">
             {teacherReviewFilters.map((item) => <button key={item.id} type="button" className={filter === item.id ? "selected" : ""} onClick={() => setFilter(item.id)}>{item.label}</button>)}
           </div>

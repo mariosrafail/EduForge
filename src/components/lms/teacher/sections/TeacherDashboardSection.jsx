@@ -23,6 +23,7 @@ import { ClassInviteLink } from "../ClassInviteLink.jsx";
 import { classBookOptions, classLevelOptions, teacherSections } from "../teacherPortalConfig.js";
 import { dueDateLabel, dueDateTone } from "../teacherPortalUtils.js";
 import { teacherSectionMetric } from "../../shared/portalDashboardPresentation.js";
+import { TeacherPerformanceSnapshot } from "../analytics/TeacherPerformanceSnapshot.jsx";
 
 
 export function TeacherDashboard({ goToSection, metricsState = { loading: true, error: "", data: null } }) {
@@ -39,6 +40,7 @@ export function TeacherDashboard({ goToSection, metricsState = { loading: true, 
           Live dashboard metrics are unavailable. You can still use the teaching tools below.
         </div>
       )}
+      <TeacherPerformanceSnapshot onOpen={() => goToSection("students")} />
       <section className="teacher-dashboard-grid" aria-label="Teacher dashboard sections">
         {teacherSections.map((section) => {
           const Icon = section.icon;
