@@ -4,11 +4,13 @@ import { createHomework, createHomeworkRequestKey } from "../../../../services/a
 import { Card } from "../../Shared.jsx";
 import {
   addSelectedHomeworkActivity,
+  compatibleHomeworkActivityOptions,
+  homeworkPackageCompatibilityIssue,
   homeworkItemRequest,
   removeSelectedHomeworkActivity,
 } from "../homeworkUiModel.js";
 
-export function HomeworkCreator({ currentUser, classes = [], activityOptions = [], onCreated, onError }) {
+export function HomeworkCreator({ currentUser, classes = [], activityOptions = [], catalogLoading = false, catalogUnavailable = false, onCreated, onError }) {
   const [title, setTitle] = useState("");
   const [teacherNotes, setTeacherNotes] = useState("");
   const [worksheetLinks, setWorksheetLinks] = useState("");
@@ -19,8 +21,18 @@ export function HomeworkCreator({ currentUser, classes = [], activityOptions = [
   const [requestKey, setRequestKey] = useState(createHomeworkRequestKey);
   const [saving, setSaving] = useState(false);
 
-  const assignableOptions = useMemo(() => activityOptions.filter((item) => item.assignable !== false), [activityOptions]);
-  useEffect(() => setPickerId((current) => current || assignableOptions[0]?.id || ""), [assignableOptions]);
+  const compatibleOptions = useMemo(
+    () => compatibleHomeworkActivityOptions(activityOptions, classes, selectedClassIds),
+    [activityOptions, classes, selectedClassIds],
+  );
+  const assignableOptions = compatibleOptions.options;
+  const packageIssue = useMemo(
+    () => homeworkPackageCompatibilityIssue(classes, selectedClassIds, selectedActivities),
+    [classes, selectedActivities, selectedClassIds],
+  );
+  useEffect(() => setPickerId((current) => (
+    assignableOptions.some((item) => item.id === current) ? current : assignableOptions[0]?.id || ""
+  )), [assignableOptions]);
   useEffect(() => {
     setSelectedClassIds((current) => {
       const available = new Set(classes.map((item) => item.id));
@@ -55,8 +67,10 @@ export function HomeworkCreator({ currentUser, classes = [], activityOptions = [
     onError?.("");
     if (!currentUser?.id) return onError?.("Sign in as a teacher before creating Homework.");
     if (!title.trim()) return onError?.("Enter a Homework title.");
-    if (selectedActivities.length < 2) return onError?.("Select at least two activities for this Homework.");
     if (!selectedClassIds.length) return onError?.("Choose at least one class.");
+    if (catalogUnavailable) return onError?.("Assignable activities are temporarily unavailable.");
+    if (packageIssue.conflict) return onError?.(packageIssue.message);
+    if (selectedActivities.length < 2) return onError?.("Select at least two activities for this Homework.");
     setSaving(true);
     try {
       const homework = await createHomework({
@@ -92,7 +106,7 @@ export function HomeworkCreator({ currentUser, classes = [], activityOptions = [
             <h2>One Homework, multiple activities</h2>
             <p>Select at least two eligible legacy or published-native activities. Selection order becomes the student order.</p>
           </div>
-          <button className="primary-action" type="submit" disabled={saving}>{saving ? "Creating..." : "Create Homework"}</button>
+          <button className="primary-action" type="submit" disabled={saving || catalogUnavailable || Boolean(packageIssue.conflict)}>{saving ? "Creating..." : "Create Homework"}</button>
         </div>
 
         <div className="teacher-book-assign-grid">
@@ -107,12 +121,12 @@ export function HomeworkCreator({ currentUser, classes = [], activityOptions = [
           <div className="homework-activity-picker">
             <label htmlFor="homework-activity-select">Activity</label>
             <div>
-              <select id="homework-activity-select" value={pickerId} onChange={(event) => setPickerId(event.target.value)}>
+              <select id="homework-activity-select" value={pickerId} disabled={catalogUnavailable || catalogLoading || Boolean(compatibleOptions.conflict)} onChange={(event) => setPickerId(event.target.value)}>
                 {assignableOptions.length
                   ? assignableOptions.map((activity) => <option key={activity.id} value={activity.id}>{activity.label}</option>)
-                  : <option value="">Loading activities...</option>}
+                  : <option value="">{catalogLoading ? "Loading activities..." : compatibleOptions.message || "No assignable activities for these classes"}</option>}
               </select>
-              <button className="secondary-action" type="button" onClick={addActivity} disabled={!pickerId || selectedActivities.some((item) => item.id === pickerId)}>
+              <button className="secondary-action" type="button" onClick={addActivity} disabled={catalogUnavailable || catalogLoading || !pickerId || selectedActivities.some((item) => item.id === pickerId)}>
                 <Plus size={16} /> Add
               </button>
             </div>
@@ -137,13 +151,15 @@ export function HomeworkCreator({ currentUser, classes = [], activityOptions = [
           </label>
         </div>
 
+        {packageIssue.conflict && <div className="inline-status warning">{packageIssue.message}</div>}
+
         <div className="homework-selected-activities" aria-live="polite">
           <strong>Selected activities ({selectedActivities.length})</strong>
           {selectedActivities.length === 0 && <p>No activities selected yet.</p>}
           <ol>
             {selectedActivities.map((activity) => (
               <li key={activity.id}>
-                <span><b>{activity.title}</b><small>{activity.component} · {activity.targetKind === "published_native" ? "Published native" : "Book activity"}</small></span>
+                <span><b>{activity.title}</b><small>{activity.packageTitle} / {activity.component} · {activity.targetKind === "published_native" ? "Published native" : "Book activity"}</small></span>
                 <button type="button" className="danger-action compact-action" onClick={() => removeActivity(activity.id)} aria-label={`Remove ${activity.title}`}>
                   <Trash2 size={15} /> Remove
                 </button>

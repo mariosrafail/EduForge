@@ -1,4 +1,5 @@
 export const initialTeacherBooksState = {
+  ownerId: null,
   packages: [],
   loading: true,
   error: "",
@@ -6,9 +7,12 @@ export const initialTeacherBooksState = {
 };
 
 export function teacherBooksReducer(state, action) {
-  if (action.type === "loading") return { ...state, loading: true, error: "" };
+  if (action.type === "loading") return action.reset
+    ? { ...initialTeacherBooksState, ownerId: action.ownerId || null }
+    : { ...state, loading: true, error: "" };
   if (action.type === "loaded") {
     return {
+      ownerId: action.ownerId ?? state.ownerId,
       packages: Array.isArray(action.packages) ? action.packages : [],
       loading: false,
       error: "",

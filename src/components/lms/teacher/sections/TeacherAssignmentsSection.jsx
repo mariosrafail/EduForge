@@ -1,6 +1,5 @@
 import { ListChecks, LockKeyhole, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { getBookPackageTreeWithFallback } from "../../../../services/bookContentApi.js";
+import { useEffect, useMemo, useState } from "react";
 import {
   closeAssignment as closeLiveAssignment,
   deleteAssignment as deleteLiveAssignment,
@@ -14,17 +13,27 @@ import { buildTeacherAssignmentReviewHash } from "../../../../utils/hashRoutes.j
 import Modal from "../../../ui/Modal.jsx";
 import { Card, SectionTitle, Tag } from "../../Shared.jsx";
 import { assignmentReviewAction } from "../assignmentReviewPresentation.js";
-import { buildHomeworkActivityOptions } from "../homeworkUiModel.js";
+import { buildAssignmentCatalogState } from "../homeworkUiModel.js";
 import { HomeworkCreator } from "../components/HomeworkCreator.jsx";
 import { HomeworkEditor } from "../components/HomeworkEditor.jsx";
 import { TeacherAssignmentReviewWorkspace } from "../components/TeacherAssignmentReviewWorkspace.jsx";
 import { TeacherHomeworkList } from "../components/TeacherHomeworkList.jsx";
 import { dueDateLabel, dueDateTone } from "../teacherPortalUtils.js";
 
-export function TeacherAssignments({ currentUser = null, classes = [], selectedAssignmentId = null, routeAction = null, navigateTo }) {
+export function TeacherAssignments({
+  currentUser = null,
+  classes = [],
+  bookPackages = [],
+  loadingBooks = false,
+  booksLoaded = false,
+  bookLoadError = "",
+  selectedAssignmentId = null,
+  routeAction = null,
+  navigateTo,
+}) {
   const [homeworks, setHomeworks] = useState([]);
   const [assignments, setAssignments] = useState([]);
-  const [activityOptions, setActivityOptions] = useState([]);
+  const [nativeCatalog, setNativeCatalog] = useState({ ownerId: null, targets: [], loading: true, loaded: false, error: "" });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
@@ -55,17 +64,37 @@ export function TeacherAssignments({ currentUser = null, classes = [], selectedA
   useEffect(() => { loadWork(); }, [currentUser?.id]);
   useEffect(() => {
     let mounted = true;
-    Promise.all([getBookPackageTreeWithFallback("ultimate-b2"), listAssignmentTargets()])
-      .then(([packageTree, nativeTargets]) => {
-        if (mounted) setActivityOptions(buildHomeworkActivityOptions(packageTree, nativeTargets));
+    const ownerId = currentUser?.id || null;
+    setNativeCatalog({ ownerId, targets: [], loading: true, loaded: false, error: "" });
+    listAssignmentTargets()
+      .then((targets) => {
+        if (mounted) setNativeCatalog({ ownerId, targets, loading: false, loaded: true, error: "" });
       })
       .catch((loadError) => {
         if (!mounted) return;
-        setActivityOptions([]);
-        setError(loadError.message || "Assignable activities could not be loaded.");
+        setNativeCatalog({
+          ownerId,
+          targets: [],
+          loading: false,
+          loaded: false,
+          error: loadError.message || "Published activities could not be loaded.",
+        });
       });
     return () => { mounted = false; };
-  }, []);
+  }, [currentUser?.id]);
+
+  const nativeCatalogIsCurrent = nativeCatalog.ownerId === (currentUser?.id || null);
+  const catalog = useMemo(() => buildAssignmentCatalogState({
+    packageTrees: bookPackages,
+    packageLoading: loadingBooks,
+    packageLoaded: booksLoaded,
+    packageError: bookLoadError,
+    nativeTargets: nativeCatalogIsCurrent ? nativeCatalog.targets : [],
+    nativeLoading: !nativeCatalogIsCurrent || nativeCatalog.loading,
+    nativeLoaded: nativeCatalogIsCurrent && nativeCatalog.loaded,
+    nativeError: nativeCatalogIsCurrent ? nativeCatalog.error : "",
+  }), [bookLoadError, bookPackages, booksLoaded, loadingBooks, nativeCatalog, nativeCatalogIsCurrent]);
+  const activityOptions = catalog.options;
 
   const standaloneAssignments = assignments.filter((assignment) => !assignment.homeworkId);
   const openResults = (assignment) => navigateTo?.(buildTeacherAssignmentReviewHash(assignment.id));
@@ -130,6 +159,7 @@ export function TeacherAssignments({ currentUser = null, classes = [], selectedA
     <section className="teacher-section-stack">
       <SectionTitle eyebrow="Homework" title="Multi-activity Homework" text="Create one class Homework containing ordered book and published-native activities, then review each activity with the existing results workspace." />
       {error && <div className="inline-status error">{error}</div>}
+      {catalog.warning && <div className={`inline-status ${catalog.unavailable ? "error" : "warning"}`}>{catalog.warning}</div>}
       {status && <div className="inline-status success">{status}</div>}
 
       <TeacherHomeworkList homeworks={homeworks} loading={loading} onOpenResults={openResults} onExportResults={exportResults} onEdit={openHomeworkEditor} />
@@ -140,6 +170,8 @@ export function TeacherAssignments({ currentUser = null, classes = [], selectedA
           homework={editingHomework}
           classes={classes}
           activityOptions={activityOptions}
+          catalogLoading={catalog.loading}
+          catalogUnavailable={catalog.unavailable}
           onSaved={saved}
           onCancel={() => { setEditingHomework(null); setError(""); }}
           onError={setError}
@@ -168,7 +200,15 @@ export function TeacherAssignments({ currentUser = null, classes = [], selectedA
         </div>
       </Card>
 
-      <HomeworkCreator currentUser={currentUser} classes={classes} activityOptions={activityOptions} onCreated={created} onError={setError} />
+      <HomeworkCreator
+        currentUser={currentUser}
+        classes={classes}
+        activityOptions={activityOptions}
+        catalogLoading={catalog.loading}
+        catalogUnavailable={catalog.unavailable}
+        onCreated={created}
+        onError={setError}
+      />
 
       <Modal
         open={Boolean(lifecycleAction)}

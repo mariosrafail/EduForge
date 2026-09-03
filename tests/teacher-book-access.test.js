@@ -149,6 +149,10 @@ test("teacher book state preserves valid data after a later API failure and dist
   const failed = teacherBooksReducer(loaded, { type: "failed", error: "Network unavailable" });
   assert.deepEqual(failed.packages, loaded.packages);
   assert.equal(teacherBooksPresentation(failed), "ready");
+  const switchedUser = teacherBooksReducer(failed, { type: "loading", reset: true, ownerId: "teacher-b" });
+  assert.deepEqual(switchedUser.packages, []);
+  assert.equal(switchedUser.ownerId, "teacher-b");
+  assert.equal(teacherBooksPresentation(switchedUser), "loading");
   assert.equal(teacherBooksPresentation({ packages: [], loading: false, error: "", loaded: true }), "empty");
   assert.equal(teacherBooksPresentation({ packages: [], loading: false, error: "Forbidden", loaded: false }), "error");
 });

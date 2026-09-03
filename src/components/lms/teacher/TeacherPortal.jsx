@@ -20,7 +20,9 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
   const [selectedPageNumber, setSelectedPageNumber] = useState(editorProps.initialSelectedPageNumber || null);
   const [teacherBooksState, dispatchTeacherBooks] = useReducer(teacherBooksReducer, initialTeacherBooksState);
   const [metricsState, setMetricsState] = useState({ loading: true, error: "", data: null });
-  const bookPackages = teacherBooksState.packages;
+  const currentTeacherId = currentUser?.id || null;
+  const bookStateIsCurrent = teacherBooksState.ownerId === currentTeacherId;
+  const bookPackages = bookStateIsCurrent ? teacherBooksState.packages : [];
   const {
     classes: teacherClasses,
     classOptions,
@@ -45,10 +47,11 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
 
   useEffect(() => {
     let mounted = true;
-    dispatchTeacherBooks({ type: "loading" });
+    const ownerId = currentUser?.id || null;
+    dispatchTeacherBooks({ type: "loading", reset: true, ownerId });
     listAuthorizedBookPackageTrees().then((packageTrees) => {
       if (!mounted) return;
-      dispatchTeacherBooks({ type: "loaded", packages: dedupeBookPackages(packageTrees) });
+      dispatchTeacherBooks({ type: "loaded", ownerId, packages: dedupeBookPackages(packageTrees) });
     }).catch((error) => {
       if (!mounted) return;
       dispatchTeacherBooks({ type: "failed", error: error.message });
@@ -56,7 +59,7 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -156,10 +159,10 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
             selectedPackageSlug={selectedPackageSlug}
             selectedBookSubview={selectedBookSubview}
             onSelectPackage={selectPackage}
-            bookSourceMessage={teacherBooksState.error || (teacherBooksState.loaded ? "Loaded from book content database." : "")}
-            loadingBooks={teacherBooksState.loading}
-            bookLoadError={teacherBooksState.error}
-            booksLoaded={teacherBooksState.loaded}
+            bookSourceMessage={bookStateIsCurrent ? teacherBooksState.error || (teacherBooksState.loaded ? "Loaded from book content database." : "") : ""}
+            loadingBooks={!bookStateIsCurrent || teacherBooksState.loading}
+            bookLoadError={bookStateIsCurrent ? teacherBooksState.error : ""}
+            booksLoaded={bookStateIsCurrent && teacherBooksState.loaded}
             selectedBookId={selectedBookId}
             selectedPageUnitId={selectedPageUnitId}
             selectedPageId={selectedPageId}
@@ -193,6 +196,10 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
             currentUser={currentUser}
             classes={teacherClasses}
             classOptions={classOptions}
+            bookPackages={bookPackages}
+            loadingBooks={!bookStateIsCurrent || teacherBooksState.loading}
+            booksLoaded={bookStateIsCurrent && teacherBooksState.loaded}
+            bookLoadError={bookStateIsCurrent ? teacherBooksState.error : ""}
             selectedAssignmentId={editorProps.initialSelectedAssignmentId}
             routeAction={editorProps.routeAction}
             navigateTo={navigateTo}

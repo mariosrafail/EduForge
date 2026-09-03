@@ -359,9 +359,30 @@ test("authorized active catalog exposes capability metadata but never Teacher do
   assert.equal(choice.assignable, true);
   assert.equal(choice.submittable, true);
   assert.equal(choice.reviewMode, "auto-scored");
+  assert.equal(open.packageId, release.book_package_id);
+  assert.equal(open.packageSlug, release.package_slug);
+  assert.equal(open.componentId, release.book_component_id);
+  assert.equal(open.componentSlug, release.component_slug);
   assert.doesNotMatch(JSON.stringify(targets), new RegExp(publicationV2Fixture.teacherSentinel));
   assert.match(sql.calls[1].text, /book_component_publication_heads/);
   assert.match(sql.calls[1].text, /book_component_publication_events/);
+});
+
+test("published-native catalog returns no release targets when the teacher has no authorized packages", async () => {
+  const release = immutableReleaseRow();
+  const calls = [];
+  const sql = async (strings, ...values) => {
+    const text = strings.join("?");
+    calls.push({ text, values });
+    if (text.includes("from book_packages bp")) return [];
+    if (text.includes("from book_component_publication_heads head")) return [release];
+    throw new Error("unexpected query");
+  };
+  const targets = await listPublishedNativeAssignmentTargets(sql, {
+    id: "teacher", school_id: "other-school", role: "teacher",
+  });
+  assert.deepEqual(targets, []);
+  assert.equal(calls.length, 2);
 });
 
 test("immutable release verification diagnoses every document and aggregate hash mismatch after variant resolution", async (t) => {
@@ -684,6 +705,7 @@ test("Teacher creation persists the canonical active release target and rejects 
     if (text.includes("from book_component_releases release")) return [release];
     if (text.includes("from book_packages bp")) return [{ id: release.book_package_id }];
     if (text.includes("from classes c")) return [{ id: classId, teacher_id: teacher.id, school_id: teacher.school_id }];
+    if (/from classes\s+where/.test(text)) return [{ id: classId, status: "active", book_package_id: release.book_package_id, school_id: teacher.school_id }];
     if (text.includes("insert into activity_assignments")) return [{
       id: "10000000-0000-4000-8000-000000000098",
       target_kind: "published_native",

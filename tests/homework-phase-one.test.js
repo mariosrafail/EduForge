@@ -116,9 +116,10 @@ test("student aggregation deduplicates multi-class candidates, prefers submitted
 });
 
 test("teacher activity selection supports both target kinds, deterministic selection order, removal, and duplicate prevention", () => {
-  const options = buildHomeworkActivityOptions({ components: [{ title: "Students Book", units: [{ title: "Unit 1", lessons: [{ exercises: [{ title: "Legacy", assignmentActivityId: activityA }] }] }] }] }, [{
+  const packageId = "99999999-9999-4999-8999-999999999999";
+  const options = buildHomeworkActivityOptions({ id: packageId, slug: "ultimate-b2", packageTitle: "Ultimate B2", components: [{ id: "students-book", slug: "students-book", title: "Students Book", units: [{ title: "Unit 1", lessons: [{ exercises: [{ title: "Legacy", assignmentActivityId: activityA }] }] }] }] }, [{
     target: { kind: "published_native", releaseId, nativeActivityId: "native-open-response" },
-    title: "Native", packageTitle: "Ultimate B2", componentTitle: "Students Book", nativeKind: "open-response", assignable: true,
+    title: "Native", packageId, packageSlug: "ultimate-b2", packageTitle: "Ultimate B2", componentId: "students-book", componentTitle: "Students Book", nativeKind: "open-response", assignable: true,
   }]);
   assert.deepEqual(options.map((item) => item.targetKind), ["legacy_activity", "published_native"]);
   let selected = addSelectedHomeworkActivity([], options[1]);

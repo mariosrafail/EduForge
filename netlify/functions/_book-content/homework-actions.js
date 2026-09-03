@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { listTeacherAssignments, normalizeLinks } from "./assignment-actions.js";
 import { assembleStudentHomeworks, assembleTeacherHomeworks } from "./homework-presentation.js";
+import { classTargetPackageConflictResponse } from "./assignment-package-compatibility.js";
 import {
   NATIVE_ASSIGNMENT_TARGET_KIND,
   containsClientTeacherMaterial,
@@ -180,9 +181,14 @@ async function resolveHomeworkTargets(sql, currentUser, items) {
     const item = items[index];
     if (item.kind === LEGACY_TARGET_KIND) {
       const rows = await sql`
-        select id, title, is_assignable, content_json
-        from activities
-        where id = ${item.activityId}
+        select activity.id, activity.title, activity.is_assignable, activity.content_json,
+               package.id as book_package_id
+        from activities activity
+        join lessons lesson on lesson.id = activity.lesson_id
+        join units unit_record on unit_record.id = lesson.unit_id
+        join book_components component on component.id = unit_record.book_component_id
+        join book_packages package on package.id = component.book_package_id and package.status = 'active'
+        where activity.id = ${item.activityId}
         limit 1
       `;
       const activity = rows[0];
@@ -200,6 +206,7 @@ async function resolveHomeworkTargets(sql, currentUser, items) {
         activity_id: item.activityId,
         native_release_id: null,
         native_activity_id: null,
+        book_package_id: activity.book_package_id,
         title: activity.title,
       });
       continue;
@@ -217,6 +224,7 @@ async function resolveHomeworkTargets(sql, currentUser, items) {
       activity_id: null,
       native_release_id: target.row.id,
       native_activity_id: target.nativeActivityId,
+      book_package_id: target.row.book_package_id,
       title: target.publicEntry.document?.metadata?.title || target.nativeActivityId,
     });
   }
@@ -254,7 +262,7 @@ export async function createHomework(sql, body, currentUser) {
     if (accessError) return accessError;
   }
   const classRows = await sql`
-    select id, status
+    select id, teacher_id, school_id, status, book_package_id
     from classes
     where id = any(${input.classIds}::uuid[])
       and school_id = ${currentUser.school_id}
@@ -264,6 +272,11 @@ export async function createHomework(sql, body, currentUser) {
   }
   const targets = await resolveHomeworkTargets(sql, currentUser, input.items);
   if (targets.error) return targets.error;
+  const packageConflict = classTargetPackageConflictResponse(
+    classRows,
+    targets.items.map((item) => item.book_package_id),
+  );
+  if (packageConflict) return packageConflict;
 
   const rows = await sql`
     with item_input as materialized (
@@ -371,10 +384,17 @@ export async function updateHomework(sql, body, currentUser) {
     }
 
     const currentItems = await transactionSql`
-      select id, position, target_kind, activity_id, native_release_id, native_activity_id
-      from homework_items
-      where homework_id = ${input.homeworkId}
-      order by position
+      select item.id, item.position, item.target_kind, item.activity_id,
+             item.native_release_id, item.native_activity_id,
+             coalesce(component.book_package_id, release.book_package_id) as book_package_id
+      from homework_items item
+      left join activities activity on activity.id = item.activity_id
+      left join lessons lesson on lesson.id = activity.lesson_id
+      left join units unit_record on unit_record.id = lesson.unit_id
+      left join book_components component on component.id = unit_record.book_component_id
+      left join book_component_releases release on release.id = item.native_release_id
+      where item.homework_id = ${input.homeworkId}
+      order by item.position
     `;
     const currentAssignments = await transactionSql`
       select id, homework_item_id, class_id, idempotency_key
@@ -411,22 +431,6 @@ export async function updateHomework(sql, body, currentUser) {
       );
     }
 
-    if (structureChanged) {
-      for (const classId of input.classIds) {
-        const accessError = await verifyClassAccess(transactionSql, currentUser, classId);
-        if (accessError) return accessError;
-      }
-      const classRows = await transactionSql`
-        select id, status
-        from classes
-        where id = any(${input.classIds}::uuid[])
-          and school_id = ${currentHomework.school_id}
-      `;
-      if (classRows.length !== input.classIds.length || classRows.some((row) => row.status !== "active")) {
-        return forbidden("Homework can only target active permitted classes");
-      }
-    }
-
     const existingByIdentity = new Map(currentItems.map((item) => [storedTargetIdentity(item), item]));
     const newRequestedItems = input.items.filter((item) => !existingByIdentity.has(targetIdentity(item)));
     const resolvedNewTargets = newRequestedItems.length
@@ -437,6 +441,30 @@ export async function updateHomework(sql, body, currentUser) {
       targetIdentity(item),
       resolvedNewTargets.items[index],
     ]));
+
+    if (structureChanged) {
+      for (const classId of input.classIds) {
+        const accessError = await verifyClassAccess(transactionSql, currentUser, classId);
+        if (accessError) return accessError;
+      }
+      const classRows = await transactionSql`
+        select id, teacher_id, school_id, status, book_package_id
+        from classes
+        where id = any(${input.classIds}::uuid[])
+          and school_id = ${currentHomework.school_id}
+      `;
+      if (classRows.length !== input.classIds.length || classRows.some((row) => row.status !== "active")) {
+        return forbidden("Homework can only target active permitted classes");
+      }
+      const requestedTargetPackages = input.items.map((item) => (
+        existingByIdentity.get(targetIdentity(item))?.book_package_id
+        || resolvedNewByIdentity.get(targetIdentity(item))?.book_package_id
+        || null
+      ));
+      const packageConflict = classTargetPackageConflictResponse(classRows, requestedTargetPackages);
+      if (packageConflict) return packageConflict;
+    }
+
     const finalItems = input.items.map((item, index) => {
       const identity = targetIdentity(item);
       const existing = existingByIdentity.get(identity);
@@ -577,6 +605,10 @@ async function teacherHomeworkRows(sql, teacherId, currentUser) {
              activity.slug as activity_slug,
              coalesce(activity.activity_type, native_public.value->>'kind') as activity_type,
              coalesce(component.title, native_component.title) as component_title,
+             coalesce(component.id, native_component.id) as component_id,
+             coalesce(component.slug, native_component.slug) as component_slug,
+             coalesce(package.id, native_package.id) as package_id,
+             coalesce(package.slug, native_package.slug) as package_slug,
              coalesce(package.title, native_package.title) as package_title
       from homework_items item
       left join activities activity on activity.id = item.activity_id
@@ -697,6 +729,10 @@ export async function listStudentHomeworks(sql, studentId, currentUser) {
            class_record.name as class_name,
            coalesce(activity.title, native_public.value->'document'->'metadata'->>'title', item.native_activity_id) as activity_title,
            coalesce(component.title, native_component.title) as component_title,
+           coalesce(component.id, native_component.id) as component_id,
+           coalesce(component.slug, native_component.slug) as component_slug,
+           coalesce(package.id, native_package.id) as package_id,
+           coalesce(package.slug, native_package.slug) as package_slug,
            coalesce(package.title, native_package.title) as package_title,
            latest.id as submission_id, latest.status as submission_status,
            latest.submitted_at, latest.score_percent

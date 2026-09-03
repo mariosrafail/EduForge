@@ -159,6 +159,20 @@ test("published native assignment remains release-pinned through submit, review,
   assert.equal(assignment.targetKind, "published_native");
   assert.equal(assignment.nativeReleaseId, releaseA.releaseId);
 
+  const b1Package = (await pool.query("select id from book_packages where slug='ultimate-b1'")).rows[0];
+  const b1Class = (await pool.query(`
+    insert into classes(school_id,name,slug,teacher_id,book_package_id,status,invite_code)
+    values($1,'B1 native mismatch',$2,$3,$4,'active',$5) returning id
+  `, [teacher.school_id, `native-mismatch-${randomUUID()}`, teacher.id, b1Package.id, randomBytes(5).toString("hex")])).rows[0];
+  const nativeMismatch = await createAssignment(sql, {
+    idempotencyKey: "native-cross-package-reject",
+    classIds: [b1Class.id],
+    target: { kind: "published_native", releaseId: releaseA.releaseId, nativeActivityId: publicationV2Fixture.openResponseId },
+  }, teacherUser);
+  assert.equal(nativeMismatch.statusCode, 409);
+  assert.equal(JSON.parse(nativeMismatch.body).conflict, "class-package-mismatch");
+  assert.equal(Number((await pool.query("select count(*) from activity_assignments where idempotency_key='native-cross-package-reject'")).rows[0].count), 0);
+
   const duplicateCreate = await createAssignment(sql, {
     idempotencyKey: "native-integration-create",
     classIds: [classRow.id],

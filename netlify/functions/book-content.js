@@ -13,7 +13,7 @@ import {
 } from "./_book-content/shared.js";
 import {
   assignmentRowToUi, createAssignment, listTeacherAssignments, listAssignmentsForStudent,
-  listUserBookAccess, deleteAssignment, closeAssignment, listAssignmentTargets
+  listUserBookAccess, deleteAssignment, closeAssignment, listAssignmentTargets, assignmentTargetsFailureResponse
 } from "./_book-content/assignment-actions.js";
 import {
   createHomework, getTeacherHomework, listStudentHomeworks, listTeacherHomeworks, updateHomework,
@@ -375,6 +375,10 @@ export async function handler(event) {
         : query.action === "teacher-activity-solutions"
         ? withTeacherSolutionHeaders(response)
         : response;
+    }
+    if (query.action === "assignment-targets") {
+      const integrityResponse = assignmentTargetsFailureResponse(error);
+      if (integrityResponse) return integrityResponse;
     }
     const response = safeServerError(error, "Book content API failed");
     return ["dashboard-metrics", "teacher-grade-analytics"].includes(query.action)

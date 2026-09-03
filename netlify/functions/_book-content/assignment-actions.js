@@ -6,6 +6,10 @@ import {
   nativeTargetToStudent,
   resolveNativeAssignmentTarget,
 } from "./native-assignment-runtime.js";
+import {
+  classTargetPackageConflictResponse,
+  verifyDirectStudentTargetEntitlements,
+} from "./assignment-package-compatibility.js";
 
 export async function listUserBookAccess(sql, userId) {
   if (!userId) return [];
@@ -263,9 +267,14 @@ export async function createAssignment(sql, body, currentUser = null) {
     if (!nativeTarget.capability?.assignable) return forbidden("This published native activity is not assignable");
   } else {
     const activityRows = await sql`
-      select id, title, is_assignable, content_json
-      from activities
-      where id = ${activityId}
+      select activity.id, activity.title, activity.is_assignable, activity.content_json,
+             package.id as book_package_id
+      from activities activity
+      join lessons lesson on lesson.id = activity.lesson_id
+      join units unit_record on unit_record.id = lesson.unit_id
+      join book_components component on component.id = unit_record.book_component_id
+      join book_packages package on package.id = component.book_package_id and package.status = 'active'
+      where activity.id = ${activityId}
       limit 1
     `;
     activity = activityRows[0];
@@ -278,6 +287,28 @@ export async function createAssignment(sql, body, currentUser = null) {
     const packageError = await verifyPackageAccess(sql, currentUser, { activityId });
     if (packageError) return packageError;
   }
+
+  const targetPackageId = nativeTarget?.row.book_package_id || activity?.book_package_id || null;
+  if (classIds.length) {
+    const classRows = await sql`
+      select id, teacher_id, school_id, status, book_package_id
+      from classes
+      where id = any(${classIds}::uuid[])
+        and school_id = ${currentUser.school_id}
+    `;
+    if (classRows.length !== classIds.length || classRows.some((row) => row.status !== "active")) {
+      return forbidden("Assignments can only target active permitted classes");
+    }
+    const packageConflict = classTargetPackageConflictResponse(classRows, [targetPackageId]);
+    if (packageConflict) return packageConflict;
+  }
+  const entitlementError = await verifyDirectStudentTargetEntitlements(
+    sql,
+    studentIds,
+    targetPackageId,
+    currentUser.school_id,
+  );
+  if (entitlementError) return entitlementError;
 
   const targetKind = nativeTarget ? NATIVE_ASSIGNMENT_TARGET_KIND : "legacy_activity";
   const nativeReleaseId = nativeTarget?.row.id || null;
@@ -564,4 +595,16 @@ export async function listAssignmentsForStudent(sql, studentId, currentUser) {
 
 export async function listAssignmentTargets(sql, currentUser) {
   return listPublishedNativeAssignmentTargets(sql, currentUser);
+}
+
+export function assignmentTargetsFailureResponse(error) {
+  const verifierFailure = error?.code === "release_integrity_failed"
+    || error?.message === "release_integrity_failed"
+    || error?.message === "publication_compiler_mismatch";
+  return verifierFailure
+    ? json(503, {
+        error: "Published assignment activities are temporarily unavailable",
+        code: "published-assignment-integrity-unavailable",
+      })
+    : null;
 }

@@ -4,14 +4,16 @@ import { updateHomework } from "../../../../services/assignmentsApi.js";
 import { Card } from "../../Shared.jsx";
 import {
   addSelectedHomeworkActivity,
+  compatibleHomeworkActivityOptions,
   homeworkDueDateInputValue,
   homeworkItemRequest,
   homeworkItemSelection,
+  homeworkPackageCompatibilityIssue,
   moveSelectedHomeworkActivity,
   removeSelectedHomeworkActivity,
 } from "../homeworkUiModel.js";
 
-export function HomeworkEditor({ homework, classes = [], activityOptions = [], onSaved, onCancel, onError }) {
+export function HomeworkEditor({ homework, classes = [], activityOptions = [], catalogLoading = false, catalogUnavailable = false, onSaved, onCancel, onError }) {
   const structureLocked = Boolean(homework.structureLocked);
   const [title, setTitle] = useState(homework.title || "");
   const [teacherNotes, setTeacherNotes] = useState(homework.teacherNotes || "");
@@ -21,10 +23,28 @@ export function HomeworkEditor({ homework, classes = [], activityOptions = [], o
   const [selectedActivities, setSelectedActivities] = useState(() => (
     (homework.items || []).map((item) => homeworkItemSelection(item, activityOptions))
   ));
-  const assignableOptions = useMemo(() => activityOptions.filter((item) => item.assignable !== false), [activityOptions]);
+  const compatibleOptions = useMemo(
+    () => compatibleHomeworkActivityOptions(activityOptions, classes, selectedClassIds),
+    [activityOptions, classes, selectedClassIds],
+  );
+  const assignableOptions = compatibleOptions.options;
+  const packageIssue = useMemo(
+    () => homeworkPackageCompatibilityIssue(classes, selectedClassIds, selectedActivities),
+    [classes, selectedActivities, selectedClassIds],
+  );
+  const structureChanged = useMemo(() => {
+    const originalClasses = (homework.classes || []).map((item) => String(item.id)).sort().join("\0");
+    const selectedClasses = [...selectedClassIds].map(String).sort().join("\0");
+    const originalItems = (homework.items || []).map((item) => item.targetKind === "published_native"
+      ? `published_native:${item.nativeReleaseId}:${item.nativeActivityId}`
+      : `legacy_activity:${item.activityId}`).join("\0");
+    return originalClasses !== selectedClasses || originalItems !== selectedActivities.map((item) => item.id).join("\0");
+  }, [homework.classes, homework.items, selectedActivities, selectedClassIds]);
   const [pickerId, setPickerId] = useState(assignableOptions[0]?.id || "");
   const [saving, setSaving] = useState(false);
-  useEffect(() => setPickerId((current) => current || assignableOptions[0]?.id || ""), [assignableOptions]);
+  useEffect(() => setPickerId((current) => (
+    assignableOptions.some((item) => item.id === current) ? current : assignableOptions[0]?.id || ""
+  )), [assignableOptions]);
 
   const toggleClass = (classId) => setSelectedClassIds((current) => current.includes(classId)
     ? current.filter((id) => id !== classId)
@@ -38,8 +58,10 @@ export function HomeworkEditor({ homework, classes = [], activityOptions = [], o
     event.preventDefault();
     onError?.("");
     if (!title.trim()) return onError?.("Enter a Homework title.");
-    if (selectedActivities.length < 2) return onError?.("Select at least two activities for this Homework.");
     if (!selectedClassIds.length) return onError?.("Choose at least one class.");
+    if (!structureLocked && structureChanged && packageIssue.conflict) return onError?.(packageIssue.message);
+    if (!structureLocked && structureChanged && catalogUnavailable) return onError?.("Assignable activities are temporarily unavailable.");
+    if (selectedActivities.length < 2) return onError?.("Select at least two activities for this Homework.");
     setSaving(true);
     try {
       const updated = await updateHomework({
@@ -77,7 +99,7 @@ export function HomeworkEditor({ homework, classes = [], activityOptions = [], o
           </div>
           <div className="homework-editor-actions">
             <button className="secondary-action" type="button" disabled={saving} onClick={onCancel}>Cancel</button>
-            <button className="primary-action" type="submit" disabled={saving}>{saving ? "Saving..." : "Save changes"}</button>
+            <button className="primary-action" type="submit" disabled={saving || (!structureLocked && structureChanged && (catalogUnavailable || Boolean(packageIssue.conflict)))}>{saving ? "Saving..." : "Save changes"}</button>
           </div>
         </div>
 
@@ -89,10 +111,12 @@ export function HomeworkEditor({ homework, classes = [], activityOptions = [], o
           <div className="homework-activity-picker">
             <label htmlFor={`homework-edit-activity-${homework.id}`}>Activity</label>
             <div>
-              <select id={`homework-edit-activity-${homework.id}`} value={pickerId} disabled={structureLocked} onChange={(event) => setPickerId(event.target.value)}>
-                {assignableOptions.map((activity) => <option key={activity.id} value={activity.id}>{activity.label}</option>)}
+              <select id={`homework-edit-activity-${homework.id}`} value={pickerId} disabled={structureLocked || catalogUnavailable || catalogLoading || Boolean(compatibleOptions.conflict)} onChange={(event) => setPickerId(event.target.value)}>
+                {assignableOptions.length
+                  ? assignableOptions.map((activity) => <option key={activity.id} value={activity.id}>{activity.label}</option>)
+                  : <option value="">{catalogLoading ? "Loading activities..." : compatibleOptions.message || "No assignable activities for these classes"}</option>}
               </select>
-              <button className="secondary-action" type="button" onClick={addActivity} disabled={structureLocked || !pickerId || selectedActivities.some((item) => item.id === pickerId)}><Plus size={16} /> Add</button>
+              <button className="secondary-action" type="button" onClick={addActivity} disabled={structureLocked || catalogUnavailable || catalogLoading || !pickerId || selectedActivities.some((item) => item.id === pickerId)}><Plus size={16} /> Add</button>
             </div>
           </div>
           <div className="teacher-checkbox-panel">
@@ -108,12 +132,14 @@ export function HomeworkEditor({ homework, classes = [], activityOptions = [], o
           <label>Worksheet/link URLs<textarea value={worksheetLinks} rows={4} onChange={(event) => setWorksheetLinks(event.target.value)} /></label>
         </div>
 
+        {!structureLocked && structureChanged && packageIssue.conflict && <div className="inline-status warning">{packageIssue.message}</div>}
+
         <div className="homework-selected-activities" aria-live="polite">
           <strong>Selected activities ({selectedActivities.length})</strong>
           <ol>
             {selectedActivities.map((activity, index) => (
               <li key={activity.id}>
-                <span><b>{activity.title}</b><small>{activity.component} · {activity.targetKind === "published_native" ? "Published native" : "Book activity"}</small></span>
+                <span><b>{activity.title}</b><small>{activity.packageTitle} / {activity.component} · {activity.targetKind === "published_native" ? "Published native" : "Book activity"}</small></span>
                 <span className="homework-editor-actions">
                   <button type="button" className="secondary-action compact-action" disabled={structureLocked || index === 0} onClick={() => setSelectedActivities((current) => moveSelectedHomeworkActivity(current, index, -1))}><ArrowUp size={15} /> Up</button>
                   <button type="button" className="secondary-action compact-action" disabled={structureLocked || index === selectedActivities.length - 1} onClick={() => setSelectedActivities((current) => moveSelectedHomeworkActivity(current, index, 1))}><ArrowDown size={15} /> Down</button>
