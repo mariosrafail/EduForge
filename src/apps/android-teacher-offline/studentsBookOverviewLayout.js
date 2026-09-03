@@ -1,4 +1,14 @@
-import { buildGenericOverviewEntries, overviewEntryWeight } from "./unitOverviewLayout.js";
+import { buildGenericOverviewEntries, buildManagedOverviewEntries, overviewEntryWeight } from "./unitOverviewLayout.js";
+
+const ULTIMATE_B2_STUDENTS_BOOK_IDENTITY = Object.freeze({
+  bookSlug: "ultimate-b2",
+  componentSlug: "ultimate-b2-students-book",
+});
+
+export function isUltimateB2StudentsBookIdentity(identity) {
+  return identity?.bookSlug === ULTIMATE_B2_STUDENTS_BOOK_IDENTITY.bookSlug
+    && identity?.componentSlug === ULTIMATE_B2_STUDENTS_BOOK_IDENTITY.componentSlug;
+}
 
 export const studentsBookOverviewLayout = Object.freeze({
   1: [
@@ -49,4 +59,11 @@ export function buildStudentsBookOverviewEntries(unit) {
     };
     return { ...result, physicalWeight: overviewEntryWeight(result) };
   });
+}
+
+export function buildTeacherUnitOverviewEntries({ unit, selectedBookId, componentIdentity }) {
+  if (selectedBookId !== "students-book") return buildManagedOverviewEntries(unit);
+  return isUltimateB2StudentsBookIdentity(componentIdentity)
+    ? buildStudentsBookOverviewEntries(unit)
+    : buildGenericOverviewEntries(unit);
 }

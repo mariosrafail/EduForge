@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import studentsBookRuntime from "../src/data/ultimate-b2/generated/students-book.runtime.json" with { type: "json" };
-import { buildStudentsBookOverviewEntries } from "../src/apps/android-teacher-offline/studentsBookOverviewLayout.js";
+import {
+  buildStudentsBookOverviewEntries,
+  buildTeacherUnitOverviewEntries,
+  isUltimateB2StudentsBookIdentity,
+} from "../src/apps/android-teacher-offline/studentsBookOverviewLayout.js";
 import {
   allocateOverviewColumns,
   buildManagedOverviewEntries,
@@ -34,6 +38,23 @@ const managedPages = (...weights) => weights.map((weight, index) => ({
 }));
 const rowLabels = (sourceEntries, row) => sourceEntries.filter((entry) => entry.row === row).map((entry) => entry.pageLabel);
 const rowWeight = (sourceEntries, row) => sourceEntries.filter((entry) => entry.row === row).reduce((sum, entry) => sum + entry.physicalWeight, 0);
+const managedStudentUnit = (bookSlug, number, count = 4) => ({
+  number,
+  pages: Array.from({ length: count }, (_, index) => ({
+    id: `${bookSlug}-students-book-unit-${number}-managed-page-${index + 1}`,
+    title: `Unit ${number} managed page ${index + 1}`,
+    spreadNumber: `Page ${index + 1}`,
+    pageNumbers: [],
+    imageWidth: index % 2 ? 1180 : 581,
+    imageHeight: 794,
+    images: [`/${bookSlug}/unit-${number}/page-${index + 1}.png`],
+  })),
+});
+
+const componentIdentity = (bookSlug, suffix = "students-book") => ({
+  bookSlug,
+  componentSlug: `${bookSlug}-${suffix}`,
+});
 
 test("Teacher overview page weighting prioritizes canonical numbers and strictly parses printed labels", () => {
   assert.deepEqual(printedPageNumbers({ pageNumbers: [6, 7, 7, Number.NaN, Infinity, -1], spreadNumber: "99" }), [6, 7]);
@@ -80,6 +101,72 @@ test("Student Units 1 and 2 retain their canonical grouping and physical 7/7 and
   assert.deepEqual(grammarSpread.pageIds, ["grammar-24-25"]);
   assert.equal(Object.hasOwn(practice, "navigationTargets"), false);
   assert.equal(Object.hasOwn(progress, "navigationTargets"), false);
+});
+
+test("bespoke Student overview routing is scoped to the exact Ultimate B2 component", () => {
+  const b2Identity = componentIdentity("ultimate-b2");
+  assert.equal(isUltimateB2StudentsBookIdentity(b2Identity), true);
+  for (const identity of [
+    componentIdentity("ultimate-b1"),
+    componentIdentity("ultimate-b1-plus"),
+    componentIdentity("ultimate-b2", "workbook"),
+    { bookSlug: "ultimate-b1", componentSlug: "ultimate-b2-students-book" },
+    { bookSlug: "ultimate-b2", componentSlug: "ultimate-b1-students-book" },
+    null,
+  ]) assert.equal(isUltimateB2StudentsBookIdentity(identity), false);
+
+  for (const number of [1, 2]) {
+    const unit = studentsBookRuntime.units.find((candidate) => candidate.number === number);
+    assert.deepEqual(
+      buildTeacherUnitOverviewEntries({ unit, selectedBookId: "students-book", componentIdentity: b2Identity }),
+      buildStudentsBookOverviewEntries(unit),
+    );
+    assert.throws(
+      () => buildTeacherUnitOverviewEntries({
+        unit: { ...unit, pages: unit.pages.slice(1) },
+        selectedBookId: "students-book",
+        componentIdentity: b2Identity,
+      }),
+      new RegExp(`Invalid Unit ${number} overview layout`),
+    );
+  }
+});
+
+test("Ultimate B1 and B1+ managed Student Units 1 and 2 use the generic overview", () => {
+  for (const bookSlug of ["ultimate-b1", "ultimate-b1-plus"]) {
+    for (const number of [1, 2]) {
+      const unit = managedStudentUnit(bookSlug, number);
+      const result = buildTeacherUnitOverviewEntries({
+        unit,
+        selectedBookId: "students-book",
+        componentIdentity: componentIdentity(bookSlug),
+      });
+      assert.deepEqual(result.flatMap((entry) => entry.pageIds), unit.pages.map((page) => page.id));
+      assert.ok(result.every((entry) => entry.id.startsWith(`unit-${number}-overview-`)));
+      assert.ok(result.every((entry) => entry.pages.length === 1));
+    }
+  }
+});
+
+test("managed Student Unit 3+ and non-Student overview routing remain unchanged", () => {
+  for (const bookSlug of ["ultimate-b1", "ultimate-b1-plus"]) {
+    const unit = managedStudentUnit(bookSlug, 3);
+    assert.deepEqual(
+      buildTeacherUnitOverviewEntries({ unit, selectedBookId: "students-book", componentIdentity: componentIdentity(bookSlug) }),
+      buildStudentsBookOverviewEntries(unit),
+    );
+  }
+
+  const managedUnit = { number: 2, pages: managedPages(1, 2, 1, 2) };
+  for (const [selectedBookId, identity] of [
+    ["workbook", componentIdentity("ultimate-b2", "workbook")],
+    ["grammar-book", componentIdentity("ultimate-b1-plus", "grammar-book")],
+  ]) {
+    assert.deepEqual(
+      buildTeacherUnitOverviewEntries({ unit: managedUnit, selectedBookId, componentIdentity: identity }),
+      buildManagedOverviewEntries(managedUnit),
+    );
+  }
 });
 
 test("Student Units 3-10 keep every atomic page once and derive rows from physical pages", () => {

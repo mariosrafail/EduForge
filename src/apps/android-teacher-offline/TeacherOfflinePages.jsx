@@ -410,6 +410,7 @@ export default function TeacherOfflinePages({
       selectedBookId={selectedBookId}
       onBookSwitch={onBookSwitch}
       unavailableBookIds={unavailableBookIds}
+      componentIdentity={componentIdentity}
     />
   );
 

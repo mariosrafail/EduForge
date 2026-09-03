@@ -2,11 +2,10 @@ import ClassroomStageTransform from "./ClassroomStageTransform.jsx";
 import ClassroomToolOverlay from "./ClassroomToolOverlay.jsx";
 import ClassroomToolbar from "./UltimateB2ClassroomToolbar.jsx";
 import TeacherBookNavigation from "./TeacherBookNavigation.jsx";
-import { buildStudentsBookOverviewEntries } from "./studentsBookOverviewLayout.js";
-import { buildManagedOverviewEntries } from "./unitOverviewLayout.js";
+import { buildTeacherUnitOverviewEntries } from "./studentsBookOverviewLayout.js";
 
-export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onBackToLibrary, selectedBookId = "students-book", onBookSwitch, unavailableBookIds }) {
-  const entries = selectedBookId === "students-book" ? buildStudentsBookOverviewEntries(unit) : buildManagedOverviewEntries(unit);
+export default function TeacherOfflineUnitOverview({ unit, onSelectPage, onBackToLibrary, selectedBookId = "students-book", onBookSwitch, unavailableBookIds, componentIdentity }) {
+  const entries = buildTeacherUnitOverviewEntries({ unit, selectedBookId, componentIdentity });
   const unitNumber = Number(unit.number);
   const surfaceKey = `${selectedBookId}:overview:unit-${unitNumber}`;
 
