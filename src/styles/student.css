@@ -721,6 +721,10 @@
 .student-runtime-stage { min-width: 0; }
 .student-runtime-stage > .ultimate-activity-runner > .section-title { display: none; }
 .student-runtime-stage .ultimate-activity-runner { margin: 0; }
+.student-runtime-stage .ultimate-b2-legacy-unit-opener {
+  height: auto;
+  aspect-ratio: var(--publisher-surface-width, 1024) / var(--publisher-surface-height, 582);
+}
 .student-runtime-submit-bar { position: sticky; right: 0; bottom: 0; z-index: 5; justify-content: flex-end; padding: 12px; border-top: 1px solid #d8e2f1; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px); }
 .student-runtime-submit-bar span { margin-right: auto; color: #667085; font-size: 13px; }
 

@@ -51,4 +51,5 @@ test("books, assignment workspace, and native student surfaces retain one safe r
   assert.match(shell, /requestFullscreen/);
   assert.match(shell, /document\.exitFullscreen/);
   assert.match(styles, /prefers-reduced-motion: reduce/);
+  assert.match(styles, /\.student-runtime-stage \.ultimate-b2-legacy-unit-opener\s*\{[^}]*height: auto;[^}]*aspect-ratio:/s);
 });
