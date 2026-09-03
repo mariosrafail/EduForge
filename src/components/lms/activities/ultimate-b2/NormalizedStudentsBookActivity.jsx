@@ -286,6 +286,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
         implementationMode: activity.implementationMode,
         status: activity.implementationMode === "teacher-reviewed" ? "awaiting_review" : "submitted",
       });
+      if (result === false) return false;
       setServerResult(result || null);
       setSubmitted(true);
       return true;
@@ -467,7 +468,7 @@ export function NormalizedStudentsBookActivity({ activityId, mode = "student", o
         actions={(legacyPilotObjectOne && capabilities.isPresentation) || teacherOfflineListening || teacherOfflineMultipleChoice ? null : activityActions}
         listeningPresentation={listeningPresentation}
         activityPresentation={activityPresentation}
-        studentSubmission={{ answers, frozen, submitting, submitted, serverResult, submitError, replaceAnswers, onSubmit: submit }}
+        studentSubmission={{ answers, frozen, submitting, submitted, serverResult, submitError, replaceAnswers, onSubmit: submit, confirmBeforeSubmit: mode !== "student" }}
       />
     );
   }

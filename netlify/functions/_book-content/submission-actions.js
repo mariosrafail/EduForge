@@ -83,6 +83,11 @@ async function submitNativeAssignment(sql, body, currentUser, assignment) {
 
 export async function submitActivity(sql, body, currentUser = null) {
   if (!body.assignmentId) return badRequest("assignmentId is required");
+  if (containsClientTeacherMaterial(body)) return badRequest("Teacher/model-answer material is not accepted from clients");
+  const scoreFields = ["score", "scorePercent", "correctCount", "totalCount"];
+  if (scoreFields.some((key) => Object.hasOwn(body, key) || (body.result && Object.hasOwn(body.result, key)))) {
+    return badRequest("Client-supplied score fields are not accepted");
+  }
   if (body.activityId && !isValidUuid(body.activityId)) return invalidUuidResponse("activityId");
   if (body.assignmentId && !isValidUuid(body.assignmentId)) return invalidUuidResponse("assignmentId");
   if (!isStudent(currentUser)) return forbidden("Only student accounts can submit assignments");

@@ -21,6 +21,7 @@ export function UltimateB2CompleteSentencesStudentActivity({
   submitted = false,
   serverResult = null,
   submitError = "",
+  confirmBeforeSubmit = true,
   replaceAnswers,
   onSubmit,
 }) {
@@ -147,7 +148,7 @@ export function UltimateB2CompleteSentencesStudentActivity({
       </div>
 
       <footer className="complete-sentences-student-actions">
-        {!submitted && <button className="primary-action" type="button" disabled={!progress.complete || submitting || frozen} onClick={() => setConfirmOpen(true)}>{submitting ? "Submitting…" : "Done"}</button>}
+        {!submitted && <button className="primary-action" type="button" disabled={!progress.complete || submitting || frozen} onClick={() => confirmBeforeSubmit ? setConfirmOpen(true) : onSubmit?.()}>{submitting ? "Submitting…" : "Done"}</button>}
         {!progress.complete && !submitted && <span>Place all {progress.total} answers before submitting.</span>}
         {submitted && <div className="complete-sentences-score" role="status"><strong>{Number.isFinite(serverResult?.correctCount) ? `Score: ${serverResult.correctCount}/${serverResult.totalCount}` : "Submitted"}</strong>{Number.isFinite(serverResult?.scorePercent) && <span>{serverResult.scorePercent}%</span>}</div>}
         {submitError && <div className="inline-status error" role="alert">{submitError}</div>}

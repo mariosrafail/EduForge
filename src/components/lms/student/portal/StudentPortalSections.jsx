@@ -8,6 +8,9 @@ import { deriveStudentAssignmentPresentation } from "./studentAssignmentPresenta
 import { UltimateB2ActivityRunner } from "../../activities/UltimateB2ActivityRunner.jsx";
 import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from "../../books/BookPackageBrowser.jsx";
 import { Card, SectionTitle, Tag } from "../../Shared.jsx";
+import { StudentInteractiveRuntimeShell } from "../runtime/StudentInteractiveRuntimeShell.jsx";
+import { activityModeForStudentRuntime, STUDENT_RUNTIME_MODES } from "../runtime/studentRuntimeMode.js";
+import { buildLegacyFinalSubmission } from "../runtime/studentSubmissionContract.js";
 import {
   studentGradeSummary,
 } from "../../shared/portalDashboardPresentation.js";
@@ -398,7 +401,9 @@ export function StudentActivitySection({ activeExercise, setActiveExercise, comp
   const exercise = activeExercise || { title: "Unit 2 Reading: Exercise 3", demoActivityKey: "reading-ex3" };
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState("");
+  const [submitting, setSubmitting] = useState(false);
   const exerciseContext = findUltimateB2Exercise(exercise.demoActivityKey || exercise.id);
+  const runtimeMode = exercise.assignmentId ? STUDENT_RUNTIME_MODES.ASSIGNED : STUDENT_RUNTIME_MODES.PRACTICE;
   const backToPrevious = () => {
     if (previousSection === "books" && navigateTo) {
       const packageSlug = selectedPackageSlug || "ultimate-b2";
@@ -415,44 +420,53 @@ export function StudentActivitySection({ activeExercise, setActiveExercise, comp
 
   return (
     <section className="student-section-stack">
-      <UltimateB2ActivityRunner
-        activityKey={exercise.demoActivityKey}
-        exerciseId={exercise.id}
-        activity={exercise.dbActivity || exercise}
-        mode="student"
-        onBack={backToPrevious}
-        onSubmit={async (result) => {
+      <StudentInteractiveRuntimeShell
+        mode={runtimeMode}
+        title={exercise.title || "Book activity"}
+        context={[exerciseContext?.component?.title || selectedBookId, exerciseContext?.unit?.title]}
+        statusLabel={runtimeMode === STUDENT_RUNTIME_MODES.PRACTICE ? "Practice" : "Assigned"}
+        statusTone={runtimeMode === STUDENT_RUNTIME_MODES.PRACTICE ? "blue" : "gold"}
+        submittable={Boolean(exercise.assignmentId)}
+        pending={submitting}
+        success={submitSuccess}
+        error={submitError}
+        showSubmitAction={false}
+        onConfirmSubmit={async (result) => {
           setCompletedActivities((current) => ({ ...current, [result.activityKey]: result }));
-          if (!exercise.assignmentId || !exercise.activityId || !currentUser?.id) return;
+          if (!exercise.assignmentId || !exercise.activityId || !currentUser?.id) return false;
           setSubmitError("");
           setSubmitSuccess("");
+          setSubmitting(true);
           try {
-            const submission = await submitStudentAssignment({
-              assignmentId: exercise.assignmentId,
-              activityId: exercise.activityId,
-              score: result.score,
-              result,
-            });
+            const submission = await submitStudentAssignment(buildLegacyFinalSubmission({ assignmentId: exercise.assignmentId, activityId: exercise.activityId, result }));
             setSubmitSuccess("Assignment submission saved.");
             onAssignmentSubmitted?.();
             return submission;
           } catch (error) {
             setSubmitError(error.message || "Assignment submission could not be saved.");
             throw error;
+          } finally {
+            setSubmitting(false);
           }
         }}
-        navigateTo={navigateTo}
-        onNextActivity={(activityKey) => {
-          const next = findUltimateB2Exercise(activityKey);
-          if (next?.exercise) {
-            setActiveExercise(next.exercise);
-            goToSection("activity");
-          }
-        }}
-      />
-      {submitSuccess && <div className="inline-status success">{submitSuccess}</div>}
-      {submitError && <div className="inline-status error">{submitError}</div>}
+      >
+        {({ requestFinalSubmit }) => <UltimateB2ActivityRunner
+          activityKey={exercise.demoActivityKey}
+          exerciseId={exercise.id}
+          activity={exercise.dbActivity || exercise}
+          mode={activityModeForStudentRuntime(runtimeMode)}
+          onBack={backToPrevious}
+          onSubmit={runtimeMode === STUDENT_RUNTIME_MODES.ASSIGNED ? requestFinalSubmit : undefined}
+          navigateTo={navigateTo}
+          onNextActivity={(activityKey) => {
+            const next = findUltimateB2Exercise(activityKey);
+            if (next?.exercise) {
+              setActiveExercise(next.exercise);
+              goToSection("activity");
+            }
+          }}
+        />}
+      </StudentInteractiveRuntimeShell>
     </section>
   );
 }
-

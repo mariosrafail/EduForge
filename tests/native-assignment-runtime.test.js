@@ -272,12 +272,16 @@ test("generic endpoint layers delegate per-kind response behavior to the capabil
 });
 
 test("Student assignment workspace adapts Drag & Drop targets to the existing controlled response envelope", async () => {
-  const source = await readFile(new URL("../src/components/lms/student/portal/StudentAssignmentWorkspace.jsx", import.meta.url), "utf8");
-  assert.match(source, /nativeKind === "drag-drop"/);
-  assert.match(source, /flatMap\(\(panel\) => panel\.dropTargets/);
-  assert.match(source, /\["single-choice", "drag-drop"\]\.includes/);
+  const [source, contract] = await Promise.all([
+    readFile(new URL("../src/components/lms/student/portal/StudentAssignmentWorkspace.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/lms/student/runtime/studentSubmissionContract.js", import.meta.url), "utf8"),
+  ]);
+  assert.match(contract, /nativeKind === "drag-drop"/);
+  assert.match(contract, /flatMap\(\(panel\) => panel\.dropTargets/);
+  assert.match(contract, /\["single-choice", "drag-drop"\]\.includes/);
   assert.match(source, /responses=\{nativeResponses\}/);
   assert.match(source, /onResponsesChange=\{setNativeResponses\}/);
+  assert.match(source, /buildNativeFinalSubmission/);
 });
 
 function immutableReleaseRow({ id = "10000000-0000-4000-8000-000000000090", releaseNumber = 3, fixture = {} } = {}) {

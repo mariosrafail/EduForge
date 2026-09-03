@@ -690,10 +690,64 @@
 
 .student-assignment-unavailable { max-width: 720px; }
 
+.student-interactive-runtime {
+  --student-runtime-border: #d8e2f1;
+  --student-runtime-surface: #fff;
+  --student-runtime-soft: #f5f8ff;
+  position: relative;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+  padding: clamp(14px, 2.2vw, 24px);
+  overflow: auto;
+  border: 1px solid var(--student-runtime-border);
+  border-radius: 18px;
+  background: var(--student-runtime-surface);
+  box-shadow: 0 12px 32px rgba(27, 53, 87, 0.08);
+}
+
+.student-interactive-runtime.is-fullscreen { width: 100vw; height: 100vh; max-width: none; border: 0; border-radius: 0; background: #f8fafc; }
+.student-runtime-header,
+.student-runtime-header-actions,
+.student-runtime-submit-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.student-runtime-header h2 { margin: 4px 0 0; color: #101828; font-size: clamp(21px, 3vw, 30px); }
+.student-runtime-header nav { display: flex; flex-wrap: wrap; gap: 4px 14px; color: #667085; font-size: 13px; }
+.student-runtime-header nav span + span::before { content: "/"; margin-right: 14px; color: #98a2b3; }
+.student-runtime-header-actions { flex: 0 0 auto; }
+.student-runtime-header-actions .tag { display: inline-flex; align-items: center; gap: 5px; }
+.student-runtime-notice,
+.student-runtime-fallback { padding: 10px 13px; border-radius: 10px; background: var(--student-runtime-soft); color: #344054; font-size: 14px; }
+.student-runtime-notice.locked { display: flex; align-items: center; gap: 7px; background: #eef2f6; }
+.student-runtime-stage { min-width: 0; }
+.student-runtime-stage > .ultimate-activity-runner > .section-title { display: none; }
+.student-runtime-stage .ultimate-activity-runner { margin: 0; }
+.student-runtime-submit-bar { position: sticky; right: 0; bottom: 0; z-index: 5; justify-content: flex-end; padding: 12px; border-top: 1px solid #d8e2f1; background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px); }
+.student-runtime-submit-bar span { margin-right: auto; color: #667085; font-size: 13px; }
+
+.student-final-submit-backdrop { position: fixed; inset: 0; z-index: 1400; display: grid; place-items: center; padding: 20px; background: rgba(16, 24, 40, 0.58); }
+.student-final-submit-dialog { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 14px; width: min(100%, 520px); padding: 24px; border-radius: 18px; background: #fff; box-shadow: 0 28px 80px rgba(16, 24, 40, 0.3); }
+.student-final-submit-dialog h2 { margin: 0 0 7px; color: #101828; }
+.student-final-submit-dialog p { margin: 0; color: #475467; line-height: 1.55; }
+.student-final-submit-dialog footer { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+.student-final-submit-icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 50%; background: #fff4e5; color: #b54708; }
+
 @media (max-width: 720px) {
   .student-assignment-workspace-header { grid-template-columns: 1fr; }
   .student-assignment-workspace-header .tag { justify-self: start; }
   .student-assignment-panel-label { align-items: flex-start; flex-direction: column; }
+  .student-runtime-header { align-items: flex-start; flex-direction: column; }
+  .student-runtime-header-actions { width: 100%; justify-content: space-between; }
+  .student-runtime-header-actions button span { display: none; }
+  .student-runtime-submit-bar { align-items: stretch; flex-direction: column; }
+  .student-runtime-submit-bar .primary-action { width: 100%; justify-content: center; }
+  .student-final-submit-dialog { grid-template-columns: 1fr; padding: 20px; }
+  .student-final-submit-dialog footer { grid-column: 1; flex-direction: column-reverse; }
+  .student-final-submit-dialog footer button { width: 100%; justify-content: center; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .student-interactive-runtime *,
+  .student-final-submit-dialog * { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
 
 .student-homework-detail { display: grid; gap: 16px; }

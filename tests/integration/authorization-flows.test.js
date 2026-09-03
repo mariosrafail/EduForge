@@ -565,9 +565,15 @@ test("handler-level authorization flows preserve tenant and resource state", { s
     assert.equal(visibleAssignment.activity.questions[0].id, question.id);
     const escalated = await call(bookContentHandler, { method: "POST", cookie: studentCookie, query: { action: "create-assignment" }, body: { activityId: activity.id, classId: classA.id } });
     assert.equal(escalated.status, 403);
-    const submitted = await call(bookContentHandler, {
+    const rejectedClientScore = await call(bookContentHandler, {
       method: "POST", cookie: studentCookie, query: { action: "submit" },
       body: { activityId: activity.id, assignmentId, studentId: studentId, score: 0, result: { answers: { [question.id]: "affirmative" } } },
+    });
+    assert.equal(rejectedClientScore.status, 400);
+    assert.match(rejectedClientScore.body.error, /score fields/i);
+    const submitted = await call(bookContentHandler, {
+      method: "POST", cookie: studentCookie, query: { action: "submit" },
+      body: { activityId: activity.id, assignmentId, studentId: studentId, answers: { [question.id]: "affirmative" } },
     });
     assert.equal(submitted.status, 200);
     assert.equal(submitted.body.submission.scorePercent, 100);

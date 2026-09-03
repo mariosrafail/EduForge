@@ -1,5 +1,7 @@
 export const ACTIVITY_MODES = Object.freeze({
   STUDENT: "student",
+  STUDENT_PRACTICE: "student-practice",
+  STUDENT_REVIEW: "student-review",
   TEACHER_PREVIEW: "teacher-preview",
   TEACHER_PRESENTATION: "teacher-presentation",
   TEACHER_PRESENTATION_OFFLINE: "teacher-presentation-offline",
@@ -24,6 +26,19 @@ const studentCapabilities = Object.freeze({
 
 const capabilitiesByMode = Object.freeze({
   [ACTIVITY_MODES.STUDENT]: studentCapabilities,
+  [ACTIVITY_MODES.STUDENT_PRACTICE]: Object.freeze({
+    ...studentCapabilities,
+    canSubmitStudentWork: false,
+    persistAttempt: false,
+  }),
+  [ACTIVITY_MODES.STUDENT_REVIEW]: Object.freeze({
+    ...studentCapabilities,
+    canEditAnswers: false,
+    canSubmitStudentWork: false,
+    canResetActivity: false,
+    isReadOnly: true,
+    persistAttempt: false,
+  }),
   [ACTIVITY_MODES.OFFLINE_STUDENT]: Object.freeze({
     ...studentCapabilities,
     canSubmitStudentWork: false,

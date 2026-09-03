@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, BookOpenCheck, Copy, Maximize2, Minimize2, MousePointer2, Save, Scan, Trash2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Tag } from "../Shared.jsx";
 import { ReadingTextAudioScreen, StudentsBookMediaPlayer, UltimateB2ActivityRunner, Unit2VideoOnlyScreen } from "../activities/UltimateB2ActivityRunner.jsx";
+import { StudentInteractiveRuntimeShell } from "../student/runtime/StudentInteractiveRuntimeShell.jsx";
 import { BookPageImageLayer } from "./BookPageImagePanel.jsx";
 import { BookPageGrid } from "./BookPageGrid.jsx";
 import { copyHashLink } from "./bookBrowserUtils.js";
@@ -150,9 +151,8 @@ function preserveWindowScrollPosition(callback) {
   window.setTimeout(restore, 60);
   window.setTimeout(restore, 180);
 }
-
 export function BookPageActionExperience({ action, mode = "student", onBack, onAction }) {
-  const runnerMode = mode === "teacher" ? "teacher-preview" : "student";
+  const runnerMode = mode === "teacher" ? "teacher-preview" : "student-practice";
   const target = action?.target || action?.id;
 
   if (target === "video") {
@@ -192,7 +192,7 @@ export function BookPageActionExperience({ action, mode = "student", onBack, onA
       <div className="student-book-pages-shell">
         <div className="book-hotspot-screen">
           <BackToPagesButton onBack={onBack} label="Back to page spread" />
-          <UltimateB2ActivityRunner activityKey={activityKey} mode={runnerMode} onBack={onBack} hideBreadcrumb />
+          {mode === "teacher" ? <UltimateB2ActivityRunner activityKey={activityKey} mode={runnerMode} onBack={onBack} hideBreadcrumb /> : <StudentInteractiveRuntimeShell mode="practice" title={action?.label || "Book activity"} context={["Book practice"]} statusLabel="Practice" statusTone="blue"><UltimateB2ActivityRunner activityKey={activityKey} mode={runnerMode} onBack={onBack} hideBreadcrumb /></StudentInteractiveRuntimeShell>}
         </div>
       </div>
     );

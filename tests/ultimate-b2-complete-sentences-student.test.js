@@ -70,11 +70,13 @@ test("mode separation preserves Teacher reveal rendering and routes only learner
   assert.match(normalized, /persistedSubmissionResult\(submission\)/);
   assert.match(normalized, /submission\?\.submissionId \|\| submission\?\.submittedAt/);
   assert.doesNotMatch(normalized, /submission\?\.submissionId \|\| submission\?\.id/);
-  assert.match(workspace, /submitStudentAssignment\(\{ assignmentId: assignment\.assignmentId, activityId: assignment\.activityId, score: result\.score, result \}\)/);
+  assert.match(workspace, /buildLegacyFinalSubmission/);
+  assert.match(workspace, /StudentInteractiveRuntimeShell/);
   assert.match(workspace, /return savedSubmission/);
   assert.match(workspace, /submission=\{assignment\}/);
   assert.match(workspace, /key=\{assignment\.assignmentId\}/);
-  assert.match(workspace, /disableHighlightedActivityLaunch/);
+  assert.doesNotMatch(workspace, /BookPackageBrowser/);
+  assert.match(normalized, /confirmBeforeSubmit: mode !== "student"/);
   assert.match(submissionBackend, /validateSubmittedAnswers\(activity, body\.answers \|\| body\.result\?\.answers\)/);
   assert.match(submissionBackend, /scorePercent[\s\S]*correctCount[\s\S]*totalCount[\s\S]*status/);
   assert.match(teacherWorkspace, /selectedRow\.scorePercent|scorePolicy/);

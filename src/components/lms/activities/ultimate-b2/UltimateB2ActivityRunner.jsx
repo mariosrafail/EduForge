@@ -61,6 +61,7 @@ function getBookIdForActivity(activityKey, resolved) {
 }
 
 function getActivityRouteRole(mode) {
+  if (String(mode).startsWith("student")) return "student";
   const capabilities = getActivityModeCapabilities(mode);
   return capabilities.isReadOnly || capabilities.isPresentation ? "teacher" : "student";
 }
@@ -112,11 +113,11 @@ export function UltimateB2ActivityRunner({ activityKey, exerciseId, activity, mo
         </nav>
       )}
       <SectionTitle
-        eyebrow={capabilities.isPresentation ? "Teacher presentation" : capabilities.isReadOnly ? "Teacher preview" : "Students Book activity"}
+        eyebrow={capabilities.isPresentation ? "Teacher presentation" : mode === "teacher-preview" ? "Teacher preview" : capabilities.isReadOnly ? "Submitted activity" : "Students Book activity"}
         title={title}
         action={<div className="ultimate-runner-tags"><Tag tone="gold">Ultimate B2</Tag><Tag tone="blue">{resolved?.unit.title || `Unit ${normalized?.unitNumber || 2}`}</Tag><Tag tone="green">{capabilities.isPresentation ? "Presentation" : capabilities.isReadOnly ? "Preview" : "Student mode"}</Tag></div>}
       />
-      {capabilities.isReadOnly && <div className="inline-status">Teacher preview is read-only. Students can submit answers in student mode.</div>}
+      {mode === "teacher-preview" && <div className="inline-status">Teacher preview is read-only. Students can submit answers in student mode.</div>}
       <ActivityBody activityKey={key} activity={activity} mode={mode} onSubmit={onSubmit} onNextActivity={onNextActivity} submission={submission} publication={publication} />
     </div>
   );

@@ -4,10 +4,12 @@ import { listStudentAssignments, submitStudentAssignment } from "../../../../ser
 import { buildStudentSectionHash } from "../../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../../activities/UltimateB2ActivityRunner.jsx";
 import { PublishedNativeStudentActivityRunner as PublishedNativeActivityRunner } from "../../activities/ultimate-b2/PublishedNativeStudentActivityRunner.jsx";
-import { BookPackageBrowser } from "../../books/BookPackageBrowser.jsx";
 import { Card, Tag } from "../../Shared.jsx";
 import { resolveStudentAssignmentBookContext } from "./studentAssignmentBookContext.js";
 import { deriveStudentAssignmentPresentation } from "./studentAssignmentPresentation.js";
+import { StudentInteractiveRuntimeShell } from "../runtime/StudentInteractiveRuntimeShell.jsx";
+import { activityModeForStudentRuntime, STUDENT_RUNTIME_MODES } from "../runtime/studentRuntimeMode.js";
+import { buildLegacyFinalSubmission, buildNativeFinalSubmission, isDuplicateFinalSubmission } from "../runtime/studentSubmissionContract.js";
 
 function formatDate(value) {
   if (!value) return "No due date";
@@ -50,14 +52,14 @@ function ResultPanel({ assignment, presentation }) {
   );
 }
 
-export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPackages = [], navigateTo, onAssignmentSubmitted }) {
+export function StudentAssignmentWorkspace({ assignmentId, currentUser, navigateTo, onAssignmentSubmitted }) {
   const [assignment, setAssignment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [submitError, setSubmitError] = useState("");
   const [submitMessage, setSubmitMessage] = useState("");
-  const [selectedPage, setSelectedPage] = useState(null);
   const [nativeResponses, setNativeResponses] = useState({});
+  const [submitting, setSubmitting] = useState(false);
 
   const reload = async () => {
     setLoading(true);
@@ -88,8 +90,6 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPack
 
   const context = useMemo(() => assignment ? resolveStudentAssignmentBookContext(assignment) : null, [assignment]);
   const presentation = useMemo(() => assignment ? deriveStudentAssignmentPresentation(assignment) : null, [assignment]);
-  const bookPackage = bookPackages.find((item) => (item.slug || item.id) === context?.packageSlug) || null;
-  const activePage = selectedPage || context;
   const submitAssignedActivity = async (result) => {
     if (!presentation?.canSubmit) {
       throw new Error(assignment?.status === "closed"
@@ -100,15 +100,24 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPack
     }
     setSubmitError("");
     setSubmitMessage("");
+    setSubmitting(true);
     try {
-      const savedSubmission = await submitStudentAssignment({ assignmentId: assignment.assignmentId, activityId: assignment.activityId, score: result.score, result });
+      const savedSubmission = await submitStudentAssignment(buildLegacyFinalSubmission({ assignmentId: assignment.assignmentId, activityId: assignment.activityId, result }));
       setSubmitMessage("Assignment submission saved.");
       await reload();
       onAssignmentSubmitted?.();
       return savedSubmission;
     } catch (submitFailure) {
+      if (isDuplicateFinalSubmission(submitFailure)) {
+        await reload();
+        setSubmitMessage("Your existing final submission was loaded and locked.");
+        onAssignmentSubmitted?.();
+        return true;
+      }
       setSubmitError(submitFailure.message || "Assignment submission could not be saved.");
       throw submitFailure;
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -116,34 +125,26 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPack
     if (!presentation?.canSubmit) return;
     setSubmitError("");
     setSubmitMessage("");
+    setSubmitting(true);
     try {
-      const interaction = assignment.target?.entry?.document?.parts?.[0]?.interaction || {};
-      const questions = assignment.target.nativeKind === "drag-drop"
-        ? (interaction.panels || []).flatMap((panel) => panel.dropTargets || [])
-        : interaction.questions || interaction.items || [];
-      await submitStudentAssignment({
-        assignmentId: assignment.assignmentId,
-        target: {
-          kind: "published_native",
-          releaseId: assignment.target.releaseId,
-          nativeActivityId: assignment.target.nativeActivityId,
-        },
-        response: {
-          schemaVersion: assignment.target.capability.responseSchemaVersion,
-          items: questions
-            .filter((question) => !["single-choice", "drag-drop"].includes(assignment.target.nativeKind) || nativeResponses[question.id])
-            .map((question) => ({ id: question.id, value: nativeResponses[question.id] || "" })),
-        },
-      });
+      await submitStudentAssignment(buildNativeFinalSubmission({ assignmentId: assignment.assignmentId, target: assignment.target, responses: nativeResponses }));
       setSubmitMessage("Assignment submission saved.");
       await reload();
       onAssignmentSubmitted?.();
+      return true;
     } catch (submitFailure) {
+      if (isDuplicateFinalSubmission(submitFailure)) {
+        await reload();
+        setSubmitMessage("Your existing final submission was loaded and locked.");
+        onAssignmentSubmitted?.();
+        return true;
+      }
       setSubmitError(submitFailure.message || "Assignment submission could not be saved.");
+      throw submitFailure;
+    } finally {
+      setSubmitting(false);
     }
   };
-
-  useEffect(() => setSelectedPage(null), [assignmentId]);
 
   return (
     <section className="student-assignment-workspace">
@@ -168,67 +169,54 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, bookPack
             {assignment.teacherNotes && <div className="student-assignment-instructions"><strong>Teacher instructions</strong><p>{assignment.teacherNotes}</p></div>}
           </Card>
 
-          {bookPackage && context.pageId ? (
-            <div className="student-assignment-book-panel">
-              <div className="student-assignment-panel-label"><strong>Book page</strong><span>The assigned hotspot is highlighted. Other hotspots remain independent practice.</span></div>
-              <BookPackageBrowser
-                mode="student"
-                bookPackage={bookPackage}
-                selectedComponentId={context.componentId}
-                selectedSubview="pages"
-                selectedPageUnitId={activePage.unitId}
-                selectedPageId={activePage.pageId}
-                selectedPageNumber={activePage.pageNumber}
-                highlightedActivityKey={context.activityKey}
-                disableHighlightedActivityLaunch
-                onSelectBookPage={(_componentId, unitId, pageId, pageNumber) => setSelectedPage({ unitId, pageId, pageNumber })}
-                onSelectSubview={() => setSelectedPage(context)}
-              />
-            </div>
-          ) : <Card><p>The book page is unavailable, but the assigned activity remains accessible below.</p></Card>}
-
-          <Card className="student-assignment-activity-panel">
-            <div className="student-assignment-panel-label"><strong>Assigned activity</strong><span>Only this activity submits against this assignment.</span></div>
-            {!presentation.canSubmit && (
-              <div className="inline-status">
-                {assignment.status === "closed" && !assignment.submittedAt
-                  ? "This assignment has been closed and can no longer be submitted."
-                  : (assignment.submittedAt || assignment.submissionId)
-                  ? "Your saved submission is read-only. You can revisit the activity for practice without changing the result."
-                  : "The deadline has passed. You can view the activity for practice, but it cannot be submitted."}
-              </div>
-            )}
-            {assignment.targetKind === "published_native" && assignment.target && (assignment.status !== "closed" || assignment.submissionId) && (
+          <StudentInteractiveRuntimeShell
+            mode={presentation.canSubmit ? STUDENT_RUNTIME_MODES.ASSIGNED : STUDENT_RUNTIME_MODES.REVIEW}
+            title={assignment.activity?.title || context.catalog?.exercise?.title || assignment.title}
+            context={[assignment.packageTitle || context.packageSlug, assignment.componentTitle || context.catalog?.component?.title, assignment.unitTitle || context.catalog?.unit?.title, context.pageNumber ? `Page ${context.pageNumber}` : "Activity-only view"]}
+            statusLabel={presentation.label}
+            statusTone={presentation.tone}
+            submittable={assignment.targetKind === "published_native" ? Boolean(assignment.target?.capability?.submittable) : true}
+            targetLoaded={assignment.targetKind !== "published_native" || Boolean(assignment.target?.entry)}
+            supported={Boolean(context.activityKey || assignment.target?.entry)}
+            closed={assignment.status === "closed"}
+            expired={presentation.key === "overdue"}
+            submitted={Boolean(assignment.submissionId || assignment.submittedAt)}
+            lockedMessage={(assignment.submissionId || assignment.submittedAt) ? "Submitted and locked · This saved attempt is read-only." : assignment.status === "closed" ? "Closed and locked · This assignment can no longer be submitted." : "Deadline passed · This assignment is read-only."}
+            pending={submitting}
+            success={submitMessage}
+            error={submitError}
+            showSubmitAction={assignment.targetKind === "published_native"}
+            onConfirmSubmit={assignment.targetKind === "published_native" ? submitNativeActivity : submitAssignedActivity}
+          >
+            {({ capabilities, requestFinalSubmit }) => (
               <>
-                <PublishedNativeActivityRunner
-                  key={`${assignment.assignmentId}:${assignment.target.releaseId}`}
-                  entry={assignment.target.entry}
-                  publication={assignment.target.publication}
-                  responses={nativeResponses}
-                  onResponsesChange={setNativeResponses}
-                  readOnly={!presentation.canSubmit}
-                />
-                {assignment.target.capability.submittable && presentation.canSubmit && (
-                  <button className="primary-action" type="button" onClick={submitNativeActivity}>Submit assignment</button>
-                )}
-                {!assignment.target.capability.submittable && <div className="inline-status">This published activity is display-only and cannot be submitted.</div>}
+                {!context.pageId ? <div className="student-runtime-fallback">The assigned page mapping is unavailable. The server-pinned activity is shown directly.</div> : null}
+                {assignment.targetKind === "published_native" && assignment.target ? (
+                  <PublishedNativeActivityRunner
+                    key={`${assignment.assignmentId}:${assignment.target.releaseId}`}
+                    entry={assignment.target.entry}
+                    publication={assignment.target.publication}
+                    responses={nativeResponses}
+                    onResponsesChange={setNativeResponses}
+                    readOnly={!capabilities.canEditResponses}
+                  />
+                ) : null}
+                {assignment.targetKind !== "published_native" && (assignment.status !== "closed" || assignment.submissionId) ? (
+                  <UltimateB2ActivityRunner
+                    key={assignment.assignmentId}
+                    activityKey={context.activityKey}
+                    exerciseId={context.catalog?.exercise?.id || assignment.activityId}
+                    activity={assignment.dbActivity}
+                    mode={activityModeForStudentRuntime(presentation.canSubmit ? STUDENT_RUNTIME_MODES.ASSIGNED : STUDENT_RUNTIME_MODES.REVIEW)}
+                    hideBreadcrumb
+                    onSubmit={requestFinalSubmit}
+                    submission={assignment}
+                  />
+                ) : null}
+                {assignment.targetKind === "published_native" && !assignment.target?.capability?.submittable ? <div className="inline-status">This published activity is display-only and cannot be submitted.</div> : null}
               </>
             )}
-            {assignment.targetKind !== "published_native" && (assignment.status !== "closed" || assignment.submissionId) && (
-              <UltimateB2ActivityRunner
-                key={assignment.assignmentId}
-                activityKey={context.activityKey}
-                exerciseId={context.catalog?.exercise?.id || assignment.activityId}
-                activity={assignment.dbActivity}
-                mode="student"
-                hideBreadcrumb
-                onSubmit={submitAssignedActivity}
-                submission={assignment}
-              />
-            )}
-            {submitMessage && <div className="inline-status success">{submitMessage}</div>}
-            {submitError && <div className="inline-status error">{submitError}</div>}
-          </Card>
+          </StudentInteractiveRuntimeShell>
           <ResultPanel assignment={assignment} presentation={presentation} />
         </>
       )}
