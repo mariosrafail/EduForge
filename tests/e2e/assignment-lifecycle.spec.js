@@ -10,11 +10,13 @@ const teacher = athens.users.find((user) => user.role === "teacher");
 const targetClass = athens.classes.find((classItem) => classItem.teacherId === teacher.id && classItem.studentIds.length > 0);
 const student = athens.users.find((user) => user.id === targetClass.studentIds[0]);
 const unsubmittedStudent = athens.users.find((user) => user.id === targetClass.studentIds[1]);
-const autoTitle = "Assignment lifecycle auto score";
-const reviewTitle = "Assignment lifecycle teacher review";
-const deleteTitle = "Assignment lifecycle delete zero";
-const closeTitle = "Assignment lifecycle close submitted";
-const testTitles = [autoTitle, reviewTitle, deleteTitle, closeTitle];
+const otherSchool = MULTI_SCHOOL.find((school) => school.id !== athens.id);
+const otherSchoolStudent = otherSchool.users.find((user) => user.role === "student");
+const lifecycleTitle = "Assignment lifecycle Homework";
+const structureLockTitle = "Assignment lifecycle structure lock";
+const testTitles = [lifecycleTitle, structureLockTitle];
+const autoActivityPattern = /^Ultimate B2 Students Book \/ Unit 1 \/ Reading.*Exercise 3$/;
+const reviewActivityPattern = /^Ultimate B2 Students Book \/ Unit 1 \/ Unit opener.*Exercise 1$/;
 const lifecycleSubmissionIds = new Set();
 
 async function removeLifecycleRecords() {
@@ -47,41 +49,61 @@ async function signOut(page) {
   await expect(page).toHaveURL(/#\/?home/);
 }
 
-async function createVisibleAssignment(page, { activityLabel, activityPattern, title, dueDate, instructions }) {
-  const activitySelect = page.getByLabel("Exercise/activity");
-  if (activityPattern) {
-    const activityValue = await activitySelect.locator("option").filter({ hasText: activityPattern }).getAttribute("value");
-    await activitySelect.selectOption(activityValue);
-  } else {
-    await activitySelect.selectOption({ label: activityLabel });
+async function createVisibleHomework(page, { activityPatterns, title, dueDate, instructions }) {
+  const creator = page.locator(".homework-creator");
+  const activitySelect = creator.getByLabel("Activity", { exact: true });
+  const selectedActivities = [];
+  for (const activityPattern of activityPatterns) {
+    const option = activitySelect.locator("option").filter({ hasText: activityPattern });
+    await expect(option).toHaveCount(1);
+    const activityId = await option.getAttribute("value");
+    const activityLabel = await option.textContent();
+    expect(activityId).toBeTruthy();
+    await activitySelect.selectOption(activityId);
+    await creator.getByRole("button", { name: "Add", exact: true }).click();
+    selectedActivities.push({ activityId, activityLabel: activityLabel.trim() });
   }
-  await page.getByLabel("Assignment title").fill(title);
-  await page.getByLabel("Due date").fill(dueDate);
-  await page.getByLabel("Instructions / teacher notes").fill(instructions);
+  await expect(creator.getByText(`Selected activities (${activityPatterns.length})`, { exact: true })).toBeVisible();
+  await creator.getByLabel("Homework title", { exact: true }).fill(title);
+  await creator.getByLabel("Due date", { exact: true }).fill(dueDate);
+  await creator.getByLabel("Instructions / teacher notes", { exact: true }).fill(instructions);
 
-  const classCheckboxes = page.locator('.teacher-checkbox-panel input[type="checkbox"]');
+  const classCheckboxes = creator.locator('.teacher-checkbox-panel input[type="checkbox"]');
   for (let index = 0; index < await classCheckboxes.count(); index += 1) {
     if (await classCheckboxes.nth(index).isChecked()) await classCheckboxes.nth(index).uncheck();
   }
-  await page.getByLabel(targetClass.name, { exact: true }).check();
+  await creator.getByLabel(targetClass.name, { exact: true }).check();
 
   const createResponse = page.waitForResponse((response) => (
     response.request().method() === "POST"
-    && response.url().includes("/.netlify/functions/book-content?action=create-assignment")
+    && response.url().includes("/.netlify/functions/book-content?action=create-homework")
   ));
-  await page.getByRole("button", { name: "Assign selected exercise", exact: true }).click();
+  await creator.getByRole("button", { name: "Create Homework", exact: true }).click();
   const response = await createResponse;
   expect(response.ok()).toBeTruthy();
-  await expect(page.getByText(`Assignment created for ${targetClass.name}.`, { exact: true })).toBeVisible();
-  await expect(page.locator(".teacher-assignment-table article").filter({ hasText: title })).toBeVisible();
-  return response.json();
+  const payload = await response.json();
+  expect(payload.homework.itemCount).toBe(activityPatterns.length);
+  await expect(page.locator(".inline-status.success")).toContainText(title);
+  await expect(page.locator(".inline-status.success")).toContainText(`${activityPatterns.length} activities`);
+  await expect(page.locator(".teacher-homework-card").filter({ hasText: title })).toBeVisible();
+  return { homework: payload.homework, selectedActivities };
 }
 
-async function openStudentAssignment(page, title) {
+function homeworkAssignment(homework, activityId) {
+  const item = homework.items.find((candidate) => String(candidate.activityId) === String(activityId));
+  expect(item, `Homework item ${activityId} must exist`).toBeTruthy();
+  const assignment = item.assignments.find((candidate) => String(candidate.classId) === String(targetClass.id));
+  expect(assignment, `Homework assignment for ${targetClass.name} must exist`).toBeTruthy();
+  return { item, assignment };
+}
+
+async function openStudentHomeworkActivity(page, { title, item, assignment }) {
   await page.getByRole("button", { name: new RegExp(`^${title}`) }).click();
   await expect(page.locator(".student-assignment-detail").getByRole("heading", { name: title, exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "Start exercise", exact: true }).click();
-  await expect(page).toHaveURL(/#\/student\/assignments\//);
+  const homeworkItem = page.locator(".student-homework-items li").filter({ has: page.getByText(item.title, { exact: true }) });
+  await expect(homeworkItem).toHaveCount(1);
+  await homeworkItem.getByRole("button", { name: "Open activity", exact: true }).click();
+  await expect(page).toHaveURL(new RegExp(`#\/student\/assignments\/${assignment.id}$`));
   await expect(page.locator(".student-assignment-workspace-header").getByRole("heading", { name: title, exact: true })).toBeVisible();
   await expect(page.locator('.student-interactive-runtime[data-runtime-mode="assigned"]')).toBeVisible();
 }
@@ -89,10 +111,11 @@ async function openStudentAssignment(page, title) {
 test.beforeEach(removeLifecycleRecords);
 test.afterEach(removeLifecycleRecords);
 
-test("teacher creates assignments, student submits, and teacher results and review persist", async ({ page, context }, testInfo) => {
+test("teacher creates Homework, student submits both activities, and teacher results and review persist", async ({ page, context }, testInfo) => {
   test.setTimeout(240_000);
   test.skip(!marker, "Requires npm run demo:multi-school:setup");
-  const diagnostics = { consoleErrors: [], failedRequests: [], errorResponses: [] };
+  const diagnostics = { consoleErrors: [], failedRequests: [], errorResponses: [], solutionRequests: [] };
+  let learnerSession = false;
   page.on("console", (message) => {
     if (message.type() === "error") diagnostics.consoleErrors.push(message.text());
   });
@@ -109,69 +132,104 @@ test("teacher creates assignments, student submits, and teacher results and revi
       url: response.url(),
     });
   });
+  page.on("request", (request) => {
+    if (learnerSession
+      && /solution|teacher-project|answer-key/i.test(request.url())
+      && !request.url().endsWith("/src/apps/android-teacher-offline/noOfflineSolutions.js")) {
+      diagnostics.solutionRequests.push(request.url());
+    }
+  });
 
   try {
     const dueDate = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10);
     await signIn(page, "teacher", teacher.email);
     await page.goto("/#teacher-assignments", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("heading", { name: "Assigned digital book exercises." })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Multi-activity Homework", exact: true })).toBeVisible();
 
     const createRequests = [];
     page.on("request", (request) => {
-      if (request.method() === "POST" && request.url().includes("action=create-assignment")) createRequests.push(request.url());
+      if (request.method() === "POST" && request.url().includes("action=create-homework")) createRequests.push(request.url());
     });
-    const autoAssignment = await createVisibleAssignment(page, {
-      activityLabel: "Ultimate B2 Students Book / Unit 1 / Reading · Exercise 3",
-      title: autoTitle,
+    const created = await createVisibleHomework(page, {
+      activityPatterns: [autoActivityPattern, reviewActivityPattern],
+      title: lifecycleTitle,
       dueDate,
-      instructions: "Complete every reading item and submit your answers.",
+      instructions: "Complete the reading and written-response activities, then submit each final answer set.",
     });
-    const reviewAssignment = await createVisibleAssignment(page, {
-      activityLabel: "Ultimate B2 Students Book / Unit 1 / Unit opener · Exercise 1",
-      title: reviewTitle,
-      dueDate,
-      instructions: "Write a supported response for teacher feedback.",
-    });
-    expect(createRequests).toHaveLength(2);
-    expect(autoAssignment.assignment.id).toBeTruthy();
-    expect(reviewAssignment.assignment.id).toBeTruthy();
+    expect(createRequests).toHaveLength(1);
+    const autoTarget = homeworkAssignment(created.homework, created.selectedActivities[0].activityId);
+    const reviewTarget = homeworkAssignment(created.homework, created.selectedActivities[1].activityId);
+    expect(autoTarget.item.position).toBe(1);
+    expect(reviewTarget.item.position).toBe(2);
 
     await page.reload({ waitUntil: "domcontentloaded" });
-    await expect(page.locator(".teacher-assignment-table article").filter({ hasText: autoTitle })).toBeVisible();
-    await expect(page.locator(".teacher-assignment-table article").filter({ hasText: reviewTitle })).toBeVisible();
+    const createdHomeworkCard = page.locator(".teacher-homework-card").filter({ hasText: lifecycleTitle });
+    await expect(createdHomeworkCard).toContainText("2 activities");
+    await expect(createdHomeworkCard.getByText(autoTarget.item.title, { exact: true })).toBeVisible();
+    await expect(createdHomeworkCard.getByText(reviewTarget.item.title, { exact: true })).toBeVisible();
+    await signOut(page);
+    await context.clearCookies();
+
+    learnerSession = true;
+    await signIn(page, "student", otherSchoolStudent.email);
+    await page.goto("/#student-assignments", { waitUntil: "domcontentloaded" });
+    await expect(page.getByText(lifecycleTitle, { exact: true })).toHaveCount(0);
     await signOut(page);
     await context.clearCookies();
 
     await signIn(page, "student", student.email);
     await page.goto("/#student-assignments", { waitUntil: "domcontentloaded" });
-    await expect(page.getByText(autoTitle, { exact: true }).first()).toBeVisible();
-    await expect(page.getByText(reviewTitle, { exact: true }).first()).toBeVisible();
+    await expect(page.locator(".student-assignment-sidebar").getByText(lifecycleTitle, { exact: true })).toBeVisible();
 
-    await openStudentAssignment(page, reviewTitle);
+    await openStudentHomeworkActivity(page, { title: lifecycleTitle, ...reviewTarget });
     const reviewWorkspaceUrl = page.url();
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page).toHaveURL(reviewWorkspaceUrl);
-    await expect(page.locator(".student-assignment-workspace-header")).toContainText(reviewTitle);
+    await expect(page.locator(".student-assignment-workspace-header")).toContainText(lifecycleTitle);
     const reviewInputs = page.getByRole("textbox", { name: /Answer question/ });
     await expect(reviewInputs).toHaveCount(3);
-    for (let index = 0; index < await reviewInputs.count(); index += 1) {
-      await reviewInputs.nth(index).fill(`Supported review response ${index + 1}.`);
-    }
-    let reviewSubmitRequests = 0;
+    const reviewSubmit = page.getByRole("button", { name: "Submit", exact: true });
+    await expect(reviewSubmit).toBeDisabled();
+    const responseBoxes = await reviewInputs.evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().toJSON()));
+    expect(responseBoxes.every((box) => box.width > 100 && box.height > 40)).toBeTruthy();
+    await reviewInputs.nth(0).fill("Supported review response 1.");
+    await expect(reviewInputs.nth(0)).toHaveValue("Supported review response 1.");
+    await expect(reviewSubmit).toBeDisabled();
+    await reviewInputs.nth(1).fill("Supported review response 2.");
+    await expect(reviewSubmit).toBeDisabled();
+    await reviewInputs.nth(2).fill("   ");
+    await expect(reviewSubmit).toBeDisabled();
+    await reviewInputs.nth(2).fill("Supported review response 3.");
+    await expect(reviewSubmit).toBeEnabled();
+    await reviewInputs.nth(0).fill("");
+    await expect(reviewSubmit).toBeDisabled();
+    await reviewInputs.nth(0).fill("Supported review response 1.");
+    await expect(reviewSubmit).toBeEnabled();
+    const studentSubmitPayloads = [];
     page.on("request", (request) => {
-      if (request.method() === "POST" && request.url().includes("action=submit")) reviewSubmitRequests += 1;
+      if (request.method() !== "POST" || !request.url().includes("action=submit")) return;
+      studentSubmitPayloads.push(request.postDataJSON());
     });
-    await page.getByRole("button", { name: "Submit", exact: true }).click();
+    await reviewSubmit.click();
     await expect(page.getByRole("dialog", { name: "Submit this assignment?" })).toBeVisible();
     await page.getByRole("button", { name: "Cancel", exact: true }).click();
     await expect(page.getByRole("dialog", { name: "Submit this assignment?" })).toBeHidden();
-    expect(reviewSubmitRequests).toBe(0);
-    await page.getByRole("button", { name: "Submit", exact: true }).click();
+    expect(studentSubmitPayloads).toHaveLength(0);
+    await reviewSubmit.click();
     const reviewSubmitResponse = page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("action=submit"));
     await page.getByRole("button", { name: "Submit final answers", exact: true }).click();
     const reviewSubmissionResponse = await reviewSubmitResponse;
     expect(reviewSubmissionResponse.ok()).toBeTruthy();
-    expect(reviewSubmitRequests).toBe(1);
+    expect(studentSubmitPayloads).toHaveLength(1);
+    expect(studentSubmitPayloads[0].assignmentId).toBe(reviewTarget.assignment.id);
+    expect(studentSubmitPayloads[0].activityId).toBe(reviewTarget.item.activityId);
+    expect(studentSubmitPayloads[0].answers).toEqual({
+      1: "Supported review response 1.",
+      2: "Supported review response 2.",
+      3: "Supported review response 3.",
+    });
+    expect(studentSubmitPayloads[0]).not.toHaveProperty("scorePercent");
+    expect(studentSubmitPayloads[0]).not.toHaveProperty("correctAnswers");
     const reviewSubmission = (await reviewSubmissionResponse.json()).submission;
     lifecycleSubmissionIds.add(reviewSubmission.id);
     expect(reviewSubmission.status).toBe("awaiting_review");
@@ -180,8 +238,8 @@ test("teacher creates assignments, student submits, and teacher results and revi
     await expect(page.locator('.student-interactive-runtime[data-runtime-mode="review"]')).toContainText("Submitted and locked");
 
     await page.getByRole("button", { name: "Assignments", exact: true }).click();
-    await expect(page.getByText(autoTitle, { exact: true }).first()).toBeVisible();
-    await openStudentAssignment(page, autoTitle);
+    await expect(page.locator(".student-assignment-sidebar").getByText(lifecycleTitle, { exact: true })).toBeVisible();
+    await openStudentHomeworkActivity(page, { title: lifecycleTitle, ...autoTarget });
     const autoOptions = page.getByRole("radio");
     await expect(autoOptions).toHaveCount(24);
     for (let index = 0; index < 24; index += 4) {
@@ -193,6 +251,11 @@ test("teacher creates assignments, student submits, and teacher results and revi
     await page.getByRole("button", { name: "Submit final answers", exact: true }).click();
     const autoResponse = await autoSubmitResponse;
     expect(autoResponse.ok()).toBeTruthy();
+    expect(studentSubmitPayloads).toHaveLength(2);
+    expect(studentSubmitPayloads[1].assignmentId).toBe(autoTarget.assignment.id);
+    expect(studentSubmitPayloads[1].activityId).toBe(autoTarget.item.activityId);
+    expect(studentSubmitPayloads[1]).not.toHaveProperty("scorePercent");
+    expect(studentSubmitPayloads[1]).not.toHaveProperty("correctAnswers");
     const autoSubmission = (await autoResponse.json()).submission;
     lifecycleSubmissionIds.add(autoSubmission.id);
     expect(Number.isFinite(autoSubmission.scorePercent)).toBeTruthy();
@@ -202,11 +265,14 @@ test("teacher creates assignments, student submits, and teacher results and revi
 
     await page.goto("/#student-assignments", { waitUntil: "domcontentloaded" });
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.getByRole("button", { name: new RegExp(`^${autoTitle}`) }).click();
-    await expect(page.locator(".student-assignment-detail")).toContainText("Automatically graded");
-    await expect(page.locator(".student-assignment-detail")).toContainText(`${autoSubmission.scorePercent}%`);
+    await page.getByRole("button", { name: new RegExp(`^${lifecycleTitle}`) }).click();
+    const submittedAutoItem = page.locator(".student-homework-items li").filter({ has: page.getByText(autoTarget.item.title, { exact: true }) });
+    await expect(submittedAutoItem).toContainText("Automatically graded");
+    await submittedAutoItem.getByRole("button", { name: "View result", exact: true }).click();
+    await expect(page.locator(".student-assignment-result-panel")).toContainText(`${autoSubmission.scorePercent}%`);
     await signOut(page);
     await context.clearCookies();
+    learnerSession = false;
 
     await signIn(page, "teacher", teacher.email);
     const analyticsResponse = page.waitForResponse((response) => response.ok() && response.url().includes("action=teacher-grade-analytics"));
@@ -214,14 +280,15 @@ test("teacher creates assignments, student submits, and teacher results and revi
     await analyticsResponse;
     await expect(page.locator(".teacher-performance-panel")).toBeVisible();
     expect(await page.locator('.teacher-analytics-chart [role="img"]').count()).toBeGreaterThanOrEqual(3);
-    await expect(page.locator(".teacher-analytics-legend")).toContainText("Excellent");
+    await expect(page.locator(".teacher-analytics-legend").filter({ hasText: "Excellent" })).toContainText("Excellent");
     const classAnalyticsResponse = page.waitForResponse((response) => response.ok() && response.url().includes("action=teacher-grade-analytics") && response.url().includes(`classId=${targetClass.id}`));
     await page.locator(".teacher-analytics-filters").getByLabel("Class").selectOption(targetClass.id);
     await classAnalyticsResponse;
     await expect(page.locator(".teacher-analytics-kpis")).toContainText("Submitted");
     await page.goto("/#teacher-assignments", { waitUntil: "domcontentloaded" });
-    const autoRow = page.locator(".teacher-assignment-table article").filter({ hasText: autoTitle });
-    await autoRow.getByRole("button", { name: "View results", exact: true }).click();
+    let homeworkCard = page.locator(".teacher-homework-card").filter({ hasText: lifecycleTitle });
+    const autoRow = homeworkCard.locator(".teacher-homework-items li").filter({ has: page.getByText(autoTarget.item.title, { exact: true }) });
+    await autoRow.getByRole("button", { name: "Results", exact: true }).click();
     await expect(page.locator(".teacher-review-workspace")).toBeVisible();
     await expect(page.locator(".teacher-performance-panel")).toBeVisible();
     await expect(page.locator(".teacher-performance-panel").getByText("Score distribution", { exact: true })).toBeVisible();
@@ -229,8 +296,9 @@ test("teacher creates assignments, student submits, and teacher results and revi
     await expect(page.locator(".teacher-review-submission").getByLabel("Server score")).toHaveValue(String(autoSubmission.scorePercent));
     await page.getByRole("button", { name: "Back to assignments", exact: true }).click();
 
-    const reviewRow = page.locator(".teacher-assignment-table article").filter({ hasText: reviewTitle });
-    await reviewRow.getByRole("button", { name: "Review submissions", exact: true }).click();
+    homeworkCard = page.locator(".teacher-homework-card").filter({ hasText: lifecycleTitle });
+    const reviewRow = homeworkCard.locator(".teacher-homework-items li").filter({ has: page.getByText(reviewTarget.item.title, { exact: true }) });
+    await reviewRow.getByRole("button", { name: "Results", exact: true }).click();
     await page.locator(".teacher-review-queue").getByRole("button", { name: new RegExp(student.name) }).click();
     const reviewResultRow = page.locator(".teacher-review-submission");
     await expect(reviewResultRow).toContainText("Awaiting teacher review");
@@ -244,7 +312,8 @@ test("teacher creates assignments, student submits, and teacher results and revi
 
     await page.getByRole("button", { name: "Back to assignments", exact: true }).click();
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.locator(".teacher-assignment-table article").filter({ hasText: reviewTitle }).getByRole("button", { name: "View results", exact: true }).click();
+    homeworkCard = page.locator(".teacher-homework-card").filter({ hasText: lifecycleTitle });
+    await homeworkCard.locator(".teacher-homework-items li").filter({ has: page.getByText(reviewTarget.item.title, { exact: true }) }).getByRole("button", { name: "Results", exact: true }).click();
     await page.locator(".teacher-review-queue").getByRole("button", { name: new RegExp(student.name) }).click();
     const persistedReviewRow = page.locator(".teacher-review-submission");
     await expect(persistedReviewRow).toContainText("Reviewed");
@@ -255,9 +324,12 @@ test("teacher creates assignments, student submits, and teacher results and revi
     await context.clearCookies();
 
     await signIn(page, "student", student.email);
+    learnerSession = true;
     await page.goto("/#student-grades", { waitUntil: "domcontentloaded" });
     await page.reload({ waitUntil: "domcontentloaded" });
-    const reviewedGrade = page.locator(".student-grades-table article").filter({ hasText: reviewTitle });
+    const reviewedGrade = page.locator(".student-grades-table article")
+      .filter({ hasText: lifecycleTitle })
+      .filter({ has: page.getByText("reviewed", { exact: true }) });
     await expect(reviewedGrade).toContainText("84%");
     await reviewedGrade.getByRole("button", { name: "View feedback", exact: true }).click();
     await expect(page.locator(".student-grade-summary")).toContainText("Clear response with relevant support.");
@@ -267,10 +339,12 @@ test("teacher creates assignments, student submits, and teacher results and revi
     const unexpectedResponses = diagnostics.errorResponses.filter((response) => (
       response.status !== 401
       && !(response.status === 404 && response.url.endsWith("/.netlify/functions/course"))
+      && !(response.status === 404 && response.url.includes("action=active-component-release"))
     ));
     expect(unexpectedFailedRequests).toEqual([]);
     expect(unexpectedConsoleErrors).toEqual([]);
     expect(unexpectedResponses).toEqual([]);
+    expect(diagnostics.solutionRequests).toEqual([]);
   } finally {
     await testInfo.attach("assignment-lifecycle-diagnostics", {
       body: JSON.stringify(diagnostics, null, 2),
@@ -279,7 +353,7 @@ test("teacher creates assignments, student submits, and teacher results and revi
   }
 });
 
-test("zero-submission delete and submitted close use confirmations and preserve Student history", async ({ page, context }) => {
+test("Homework structure locks after real learner work while results and other recipients remain available", async ({ page, context }) => {
   test.setTimeout(240_000);
   test.skip(!marker, "Requires npm run demo:multi-school:setup");
   test.skip(!unsubmittedStudent, "Requires a second Student in the isolated target class");
@@ -287,84 +361,71 @@ test("zero-submission delete and submitted close use confirmations and preserve 
   const dueDate = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10);
   await signIn(page, "teacher", teacher.email);
   await page.goto("/#teacher-assignments", { waitUntil: "domcontentloaded" });
-
-  await createVisibleAssignment(page, {
-    activityPattern: /^Ultimate B2 Students Book \/ Unit 1 \/ Reading.*Exercise 3$/,
-    title: deleteTitle,
+  const created = await createVisibleHomework(page, {
+    activityPatterns: [autoActivityPattern, reviewActivityPattern],
+    title: structureLockTitle,
     dueDate,
-    instructions: "Temporary assignment used to verify safe deletion.",
+    instructions: "Verify the current Homework structure lifecycle with real learner work.",
   });
-  const deleteRow = page.locator(".teacher-assignment-table article").filter({ hasText: deleteTitle });
-  await deleteRow.getByRole("button", { name: "Delete assignment", exact: true }).click();
-  await expect(page.getByRole("dialog")).toContainText("Delete assignment?");
-  await expect(page.getByRole("dialog")).toContainText("This assignment has no submissions and will be permanently deleted. This cannot be undone.");
-  await page.getByRole("dialog").getByRole("button", { name: "Delete assignment", exact: true }).click();
-  await expect(page.getByText("Assignment deleted.", { exact: true })).toBeVisible();
-  await expect(deleteRow).toHaveCount(0);
-
-  const closeAssignment = await createVisibleAssignment(page, {
-    activityPattern: /^Ultimate B2 Students Book \/ Unit 1 \/ Reading.*Exercise 3$/,
-    title: closeTitle,
-    dueDate,
-    instructions: "Submit this assignment before its lifecycle is closed.",
-  });
+  const autoTarget = homeworkAssignment(created.homework, created.selectedActivities[0].activityId);
+  let homeworkCard = page.locator(".teacher-homework-card").filter({ hasText: structureLockTitle });
+  await expect(homeworkCard).toContainText("Activities, order, classes, and Homework details can be edited until learner work exists.");
+  await homeworkCard.getByRole("button", { name: "Edit", exact: true }).click();
+  let editor = page.locator(".homework-editor");
+  await expect(editor.getByLabel("Activity", { exact: true })).toBeEnabled();
+  await expect(editor.getByLabel(targetClass.name, { exact: true })).toBeEnabled();
+  for (const removeButton of await editor.getByRole("button", { name: /Remove/ }).all()) await expect(removeButton).toBeEnabled();
+  await editor.getByRole("button", { name: "Cancel", exact: true }).click();
   await signOut(page);
   await context.clearCookies();
 
   await signIn(page, "student", student.email);
   await page.goto("/#student-assignments", { waitUntil: "domcontentloaded" });
-  const submitted = await page.evaluate(async ({ activityId, assignmentId }) => {
-    const assignmentsResponse = await fetch("/.netlify/functions/book-content?action=assignments");
-    const assignmentsPayload = await assignmentsResponse.json();
-    const assignment = assignmentsPayload.assignments.find((item) => item.assignmentId === assignmentId);
-    const answers = Object.fromEntries(assignment.activity.questions.map((question) => {
-      const firstOption = question.options?.[0];
-      const value = typeof firstOption === "object"
-        ? firstOption.value ?? firstOption.label ?? firstOption.text
-        : firstOption;
-      return [question.id, value ?? "E2E response"];
-    }));
-    const response = await fetch("/.netlify/functions/book-content?action=submit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ activityId, assignmentId, answers }),
-    });
-    return { ok: response.ok, body: await response.json() };
-  }, { activityId: closeAssignment.assignment.activityId, assignmentId: closeAssignment.assignment.id });
-  expect(submitted.ok, JSON.stringify(submitted.body)).toBeTruthy();
-  const submission = submitted.body.submission;
+  await openStudentHomeworkActivity(page, { title: structureLockTitle, ...autoTarget });
+  const autoOptions = page.getByRole("radio");
+  await expect(autoOptions).toHaveCount(24);
+  for (let index = 0; index < 24; index += 4) await autoOptions.nth(index).check();
+  let submitRequests = 0;
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().includes("action=submit")) submitRequests += 1;
+  });
+  await page.getByRole("button", { name: "Submit", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Submit this assignment?" })).toBeVisible();
+  const submitResponse = page.waitForResponse((response) => response.request().method() === "POST" && response.url().includes("action=submit"));
+  await page.getByRole("button", { name: "Submit final answers", exact: true }).click();
+  const submittedResponse = await submitResponse;
+  expect(submittedResponse.ok()).toBeTruthy();
+  expect(submitRequests).toBe(1);
+  const submission = (await submittedResponse.json()).submission;
   lifecycleSubmissionIds.add(submission.id);
+  await expect(page.locator('.student-interactive-runtime[data-runtime-mode="review"]')).toContainText("Submitted and locked");
   await signOut(page);
   await context.clearCookies();
 
   await signIn(page, "teacher", teacher.email);
   await page.goto("/#teacher-assignments", { waitUntil: "domcontentloaded" });
-  const closeRow = page.locator(".teacher-assignment-table article").filter({ hasText: closeTitle });
-  await expect(closeRow.getByRole("button", { name: "Delete assignment", exact: true })).toHaveCount(0);
-  await closeRow.getByRole("button", { name: "Close assignment", exact: true }).click();
-  await expect(page.getByRole("dialog")).toContainText("Close assignment?");
-  await expect(page.getByRole("dialog")).toContainText("Students who have not submitted will no longer be able to submit. Existing submissions, scores and feedback will be preserved.");
-  await page.getByRole("dialog").getByRole("button", { name: "Close assignment", exact: true }).click();
-  await expect(page.getByText("Assignment closed. Existing results were preserved.", { exact: true })).toBeVisible();
-  await expect(closeRow).toContainText("Closed");
-  await expect(closeRow.getByRole("button", { name: "View results", exact: true })).toBeVisible();
+  homeworkCard = page.locator(".teacher-homework-card").filter({ hasText: structureLockTitle });
+  await expect(homeworkCard).toContainText("Learner work exists; activity order and classes are locked");
+  const resultItem = homeworkCard.locator(".teacher-homework-items li").filter({ has: page.getByText(autoTarget.item.title, { exact: true }) });
+  await resultItem.getByRole("button", { name: "Results", exact: true }).click();
+  await page.locator(".teacher-review-queue").getByRole("button", { name: new RegExp(student.name) }).click();
+  await expect(page.locator(".teacher-review-submission").getByLabel("Server score")).toHaveValue(String(submission.scorePercent));
+  await page.getByRole("button", { name: "Back to assignments", exact: true }).click();
+
+  homeworkCard = page.locator(".teacher-homework-card").filter({ hasText: structureLockTitle });
+  await homeworkCard.getByRole("button", { name: "Edit", exact: true }).click();
+  editor = page.locator(".homework-editor");
+  await expect(editor).toContainText("Learner work already exists. Exercises, activity order, and classes are read-only");
+  await expect(editor.getByLabel("Activity", { exact: true })).toBeDisabled();
+  await expect(editor.getByLabel(targetClass.name, { exact: true })).toBeDisabled();
+  await expect(editor.getByLabel("Homework title", { exact: true })).toBeEnabled();
+  for (const removeButton of await editor.getByRole("button", { name: /Remove/ }).all()) await expect(removeButton).toBeDisabled();
+  await editor.getByRole("button", { name: "Cancel", exact: true }).click();
   await signOut(page);
   await context.clearCookies();
 
   await signIn(page, "student", unsubmittedStudent.email);
   await page.goto("/#student-assignments", { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: new RegExp(`^${closeTitle}`) }).click();
-  const closedDetail = page.locator(".student-assignment-detail");
-  await expect(closedDetail).toContainText("Closed");
-  await expect(closedDetail).toContainText("This assignment has been closed and is no longer available for submission.");
-  await expect(closedDetail.getByRole("button", { name: "Start exercise", exact: true })).toHaveCount(0);
-  await signOut(page);
-  await context.clearCookies();
-
-  await signIn(page, "student", student.email);
-  await page.goto("/#student-assignments", { waitUntil: "domcontentloaded" });
-  await page.getByRole("button", { name: new RegExp(`^${closeTitle}`) }).click();
-  await expect(page.locator(".student-assignment-detail")).toContainText(`${submission.scorePercent}%`);
-  await expect(page.locator(".student-assignment-detail").getByRole("button", { name: "View results", exact: true })).toBeVisible();
-  expect(closeAssignment.assignment.id).toBeTruthy();
+  await openStudentHomeworkActivity(page, { title: structureLockTitle, ...autoTarget });
+  await expect(page.locator('.student-interactive-runtime[data-runtime-mode="assigned"]')).toBeVisible();
 });

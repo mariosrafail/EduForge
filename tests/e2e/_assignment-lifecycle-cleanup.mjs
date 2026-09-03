@@ -22,16 +22,21 @@ export async function removeAssignmentLifecycleRecords(pool, {
       "delete from activity_assignments where teacher_id=$1 and title=any($2::text[]) returning id",
       [teacherId, titles],
     );
+    const deletedHomeworks = await client.query(
+      "delete from homeworks where teacher_id=$1 and title=any($2::text[]) returning id",
+      [teacherId, titles],
+    );
     const remaining = (await client.query(`
       select
         (select count(*)::int from activity_submissions where id=any($3::uuid[])) submissions,
-        (select count(*)::int from activity_assignments where teacher_id=$1 and title=any($2::text[])) assignments
+        (select count(*)::int from activity_assignments where teacher_id=$1 and title=any($2::text[])) assignments,
+        (select count(*)::int from homeworks where teacher_id=$1 and title=any($2::text[])) homeworks
     `, [teacherId, titles, ownedSubmissionIds])).rows[0];
-    if (Number(remaining.submissions) || Number(remaining.assignments)) {
+    if (Number(remaining.submissions) || Number(remaining.assignments) || Number(remaining.homeworks)) {
       throw new Error("Assignment lifecycle cleanup left owned records behind");
     }
     await client.query("commit");
-    return { submissions: deletedSubmissions.rowCount, assignments: deletedAssignments.rowCount };
+    return { submissions: deletedSubmissions.rowCount, assignments: deletedAssignments.rowCount, homeworks: deletedHomeworks.rowCount };
   } catch (error) {
     await client.query("rollback").catch(() => {});
     throw error;

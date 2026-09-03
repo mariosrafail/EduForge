@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { removeAssignmentLifecycleRecords } from "./e2e/_assignment-lifecycle-cleanup.mjs";
 
-function fakePool({ remaining = { submissions: 0, assignments: 0 } } = {}) {
+function fakePool({ remaining = { submissions: 0, assignments: 0, homeworks: 0 } } = {}) {
   const calls = [];
   const client = {
     async query(text, parameters) {
@@ -17,7 +17,7 @@ function fakePool({ remaining = { submissions: 0, assignments: 0 } } = {}) {
   return { calls, pool: { async connect() { return client; } } };
 }
 
-test("assignment lifecycle cleanup deletes only records owned by its teacher, titles, and submission IDs", async () => {
+test("assignment lifecycle cleanup deletes only Homework records owned by its teacher, titles, and submission IDs", async () => {
   const { calls, pool } = fakePool();
   const teacherId = "d1700000-0010-4000-8000-000000000066";
   const titles = ["Assignment lifecycle auto score", "Assignment lifecycle teacher review"];
@@ -29,6 +29,7 @@ test("assignment lifecycle cleanup deletes only records owned by its teacher, ti
     "begin",
     "delete from activity_submissions",
     "delete from activity_assignments",
+    "delete from homeworks",
     "select (select count(*)::int",
     "commit",
     "release",
@@ -37,10 +38,11 @@ test("assignment lifecycle cleanup deletes only records owned by its teacher, ti
   assert.match(calls[1].text, /teacher_id=\$1 and title=any\(\$2::text\[\]\)/);
   assert.deepEqual(calls[1].parameters, [teacherId, titles, submissionIds]);
   assert.deepEqual(calls[2].parameters, [teacherId, titles]);
+  assert.deepEqual(calls[3].parameters, [teacherId, titles]);
 });
 
 test("assignment lifecycle cleanup rolls back if owned records remain", async () => {
-  const { calls, pool } = fakePool({ remaining: { submissions: 1, assignments: 0 } });
+  const { calls, pool } = fakePool({ remaining: { submissions: 1, assignments: 0, homeworks: 0 } });
   await assert.rejects(
     removeAssignmentLifecycleRecords(pool, {
       teacherId: "d1700000-0010-4000-8000-000000000066",
