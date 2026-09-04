@@ -17,6 +17,7 @@ import "./nativeDragDrop.css";
 const DRAG_MOVEMENT_THRESHOLD = 5;
 const DRAG_RETURN_MS = 160;
 const FITTED_CONTENT_MIN_FONT_PX = 8;
+const FITTED_CONTENT_TOLERANCE_PX = 1;
 
 function PanelArtwork({ document, panel, assetUrl, textMode, children }) {
   const assets = new Map(document.assets.map((asset) => [asset.slot, asset]));
@@ -68,13 +69,23 @@ function previewComputedStyle(element) {
 
 const responseIds = (value) => Array.isArray(value) ? value : value ? [value] : [];
 
-function fitContainedContent(element, { property, sampleSelector = null }) {
+function containedContentMeasurement(element, { containChildren = false, tolerance = FITTED_CONTENT_TOLERANCE_PX } = {}) {
+  const bounds = element.getBoundingClientRect();
+  const scrollFits = element.scrollWidth <= element.clientWidth && element.scrollHeight <= element.clientHeight;
+  const childrenContained = !containChildren || [...element.children].every((child) => {
+    const box = child.getBoundingClientRect();
+    return box.left >= bounds.left - tolerance && box.right <= bounds.right + tolerance && box.top >= bounds.top - tolerance && box.bottom <= bounds.bottom + tolerance;
+  });
+  return { fits: scrollFits && childrenContained, scrollFits, childrenContained };
+}
+
+function fitContainedContent(element, { property, sampleSelector = null, containChildren = false }) {
   if (!element || element.clientWidth < 1 || element.clientHeight < 1) return;
   element.style.setProperty(property, "1");
   const sample = sampleSelector ? element.querySelector(sampleSelector) : element;
   const baseFontSize = Number.parseFloat(globalThis.getComputedStyle?.(sample || element)?.fontSize || "0");
   const minimumScale = baseFontSize > FITTED_CONTENT_MIN_FONT_PX ? FITTED_CONTENT_MIN_FONT_PX / baseFontSize : 1;
-  const fits = () => element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1;
+  const fits = () => containedContentMeasurement(element, { containChildren }).fits;
   let scale = 1;
   if (!fits()) {
     scale = minimumScale;
@@ -91,19 +102,22 @@ function fitContainedContent(element, { property, sampleSelector = null }) {
       scale = lower;
     }
   }
-  element.style.setProperty(property, scale.toFixed(4));
-  element.dataset.fitScale = scale.toFixed(4);
+  const committedScale = Math.max(minimumScale, Math.floor(scale * 10_000) / 10_000);
+  element.style.setProperty(property, String(committedScale));
+  element.dataset.fitScale = committedScale.toFixed(4);
+  element.dataset.fitStatus = fits() ? "fit" : "overflow";
 }
 
-function useContainedContentFit(ref, { enabled, property, sampleSelector = null, dependency }) {
+function useContainedContentFit(ref, { enabled, property, sampleSelector = null, containChildren = false, dependency }) {
   useLayoutEffect(() => {
     const element = ref.current;
     if (!enabled || !element) return undefined;
     let frame = null;
     const fit = () => {
       if (frame !== null) globalThis.cancelAnimationFrame?.(frame);
-      frame = globalThis.requestAnimationFrame?.(() => { frame = null; fitContainedContent(element, { property, sampleSelector }); }) ?? null;
-      if (frame === null) fitContainedContent(element, { property, sampleSelector });
+      element.dataset.fitStatus = "pending";
+      frame = globalThis.requestAnimationFrame?.(() => { frame = null; fitContainedContent(element, { property, sampleSelector, containChildren }); }) ?? null;
+      if (frame === null) fitContainedContent(element, { property, sampleSelector, containChildren });
     };
     fit();
     const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(fit);
@@ -117,7 +131,7 @@ function useContainedContentFit(ref, { enabled, property, sampleSelector = null,
       globalThis.document?.fonts?.removeEventListener?.("loadingdone", fit);
       globalThis.removeEventListener?.("resize", fit);
     };
-  }, [dependency, enabled, property, ref, sampleSelector]);
+  }, [containChildren, dependency, enabled, property, ref, sampleSelector]);
 }
 
 function TargetItems({ children, textMode, fontState, style, dependency }) {
@@ -167,7 +181,8 @@ export function NativeDragDropStudentSurface({
     enabled: textMode,
     property: "--native-drag-drop-bank-fit-scale",
     sampleSelector: ".native-drag-drop-word",
-    dependency: `${panelIndex}|${visibleWordIds.join("\0")}|${bankFontState.status}|${bankWordStyle.fontSize}|${interaction.answerBankHeightPx || "default"}`,
+    containChildren: true,
+    dependency: `${panelIndex}|${visibleWords.map((word) => `${word.id}\0${word.shortLabel}\0${word.text}`).join("\1")}|${bankFontState.status}|${bankWordStyle.fontSize}|${interaction.answerBankHeightPx || "default"}`,
   });
   const clearFeedback = () => setIncorrectTargetId(null);
   const clearReturnTimer = () => { if (returnTimer.current) globalThis.clearTimeout(returnTimer.current); returnTimer.current = null; };

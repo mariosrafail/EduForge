@@ -3,6 +3,58 @@ import { expect } from "@playwright/test";
 
 import { assertPixelIdenticalDragPreview } from "./hosted-native-activity-drag-drop.mjs";
 
+async function measureTextBank(textPreview) {
+  return textPreview.evaluate((surface) => {
+    const box = (element) => {
+      const rect = element.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom, width: rect.width, height: rect.height };
+    };
+    const numeric = (value) => Number.parseFloat(value) || 0;
+    const bank = surface.querySelector(".native-drag-drop-bank");
+    const bankItems = surface.querySelector(".native-drag-drop-bank-items");
+    const stage = surface.querySelector(".native-drag-drop-stage");
+    const itemsRect = box(bankItems);
+    const itemStyle = getComputedStyle(bankItems);
+    const phrases = [...bankItems.children].map((phrase) => {
+      const style = getComputedStyle(phrase);
+      const label = phrase.querySelector(".native-drag-drop-short-label");
+      const labelStyle = getComputedStyle(label);
+      return {
+        text: phrase.textContent.trim(), rect: box(phrase), fontFamily: style.fontFamily,
+        fontSize: numeric(style.fontSize), lineHeight: style.lineHeight,
+        padding: [style.paddingTop, style.paddingRight, style.paddingBottom, style.paddingLeft],
+        borders: [style.borderTopWidth, style.borderRightWidth, style.borderBottomWidth, style.borderLeftWidth],
+        label: {
+          rect: box(label), minWidth: labelStyle.minWidth, minHeight: labelStyle.minHeight,
+          padding: [labelStyle.paddingTop, labelStyle.paddingRight, labelStyle.paddingBottom, labelStyle.paddingLeft],
+          borders: [labelStyle.borderTopWidth, labelStyle.borderRightWidth, labelStyle.borderBottomWidth, labelStyle.borderLeftWidth],
+        },
+      };
+    });
+    const tolerance = 1;
+    const scrollFits = bankItems.scrollWidth <= bankItems.clientWidth && bankItems.scrollHeight <= bankItems.clientHeight;
+    const childrenContained = phrases.every(({ rect }) => rect.left >= itemsRect.left - tolerance && rect.right <= itemsRect.right + tolerance && rect.top >= itemsRect.top - tolerance && rect.bottom <= itemsRect.bottom + tolerance);
+    const fitScale = numeric(bankItems.dataset.fitScale);
+    const fitStatus = bankItems.dataset.fitStatus || null;
+    const renderedFontSize = Math.min(...phrases.map(({ fontSize }) => fontSize));
+    const baseFontSize = fitScale > 0 ? renderedFontSize / fitScale : renderedFontSize;
+    return {
+      fits: fitStatus === "fit" && scrollFits && childrenContained, scrollFits, childrenContained,
+      bank: { clientWidth: bank.clientWidth, clientHeight: bank.clientHeight, scrollWidth: bank.scrollWidth, scrollHeight: bank.scrollHeight, rect: box(bank) },
+      bankItems: {
+        clientWidth: bankItems.clientWidth, clientHeight: bankItems.clientHeight,
+        scrollWidth: bankItems.scrollWidth, scrollHeight: bankItems.scrollHeight,
+        rect: itemsRect, overflowX: itemStyle.overflowX, overflowY: itemStyle.overflowY,
+        gap: itemStyle.gap, fitScale: bankItems.dataset.fitScale || null,
+        fitStatus, chromeScale: null,
+      },
+      phrases, rows: [...new Set(phrases.map(({ rect }) => Math.round(rect.top)))],
+      fonts: { status: document.fonts.status, renderedFontSize, baseFontSize, minimumScale: baseFontSize > 8 ? 8 / baseFontSize : 1, family: phrases[0]?.fontFamily || null },
+      container: { surface: box(surface), stage: box(stage), stageClientWidth: stage.clientWidth, stageClientHeight: stage.clientHeight, stageType: getComputedStyle(stage).containerType },
+    };
+  });
+}
+
 export async function exerciseDragDropExtensions(page, { dragDropId, savedDragDrop }) {
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.getByPlaceholder("Search title, type, or ID").fill(dragDropId);
@@ -113,13 +165,16 @@ export async function exerciseDragDropExtensions(page, { dragDropId, savedDragDr
   const textPreview = page.locator(".studio-preview-panel .native-drag-drop");
   const textBankWord = textPreview.locator(`[data-drag-drop-word-id="${reusableWordId}"]`);
   assert.match(await textBankWord.textContent(), /B\. repeated/);
-  await page.waitForFunction((surface) => surface.querySelector(".native-drag-drop-bank-items")?.dataset.fitScale, await textPreview.elementHandle());
-  await page.waitForFunction((surface) => {
-    const bankItems = surface.querySelector(".native-drag-drop-bank-items");
-    if (!bankItems || bankItems.scrollHeight > bankItems.clientHeight + 1 || bankItems.scrollWidth > bankItems.clientWidth + 1) return false;
-    const itemsRect = bankItems.getBoundingClientRect();
-    return [...bankItems.children].every((entry) => { const box = entry.getBoundingClientRect(); return box.left >= itemsRect.left - 1 && box.right <= itemsRect.right + 1 && box.top >= itemsRect.top - 1 && box.bottom <= itemsRect.bottom + 1; });
-  }, await textPreview.elementHandle());
+  await page.waitForFunction((surface) => surface.querySelector(".native-drag-drop-bank-items")?.dataset.fitStatus, await textPreview.elementHandle());
+  let latestTextBankMeasurement = null;
+  try {
+    await expect.poll(async () => {
+      latestTextBankMeasurement = await measureTextBank(textPreview);
+      return latestTextBankMeasurement.fits;
+    }, { timeout: 2_000, intervals: [50, 100, 250] }).toBe(true);
+  } catch {
+    assert.fail(`Text Drag & Drop bank did not fit: ${JSON.stringify(latestTextBankMeasurement)}`);
+  }
   const textModeLayout = await textPreview.evaluate((surface) => {
     const bank = surface.querySelector(".native-drag-drop-bank");
     const bankItems = surface.querySelector(".native-drag-drop-bank-items");
