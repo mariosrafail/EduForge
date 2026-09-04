@@ -1,6 +1,6 @@
 import repositoryHotspots from "../../../src/data/ultimate-b2/authoring/studentsBookHotspots.json" with { type: "json" };
 import { nativeAudioTextAssetRequirements } from "../../../src/data/native-activities/nativeAudioTextHotspots.js";
-import { createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, nativeVideoAssetRequirements, NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION, NATIVE_ACTIVITY_SCHEMA_VERSION } from "../../../src/data/native-activities/nativeActivityPublic.js";
+import { createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, nativeSupplementalAudioAssetRequirements, nativeVideoAssetRequirements, NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION, NATIVE_ACTIVITY_SCHEMA_VERSION } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { nativeSingleChoicePresentationAssetRequirements } from "../../../src/data/native-activities/nativeSingleChoice.js";
 import { nativeCompleteSentencesAssetRequirements } from "../../../src/data/native-activities/nativeCompleteSentences.js";
 import { nativeListeningAssetRequirements } from "../../../src/data/native-activities/nativeListening.js";
@@ -27,17 +27,17 @@ import {
 import { validateAndNormalizeUltimateB2HotspotManifest } from "../../../scripts/ultimate-b2/hotspot-manifest.js";
 import { builderDocumentSha256, stableBuilderJson } from "./_builder-content-security.js";
 import { resolveNativeActivityKind } from "./_native-activity-registry.js";
-import { compileUltimateB2ComponentRelease, ultimateB2PublicationCanonicalSeeds, ultimateB2PublicationCompatibility } from "./_builder-publication-compiler.js";
+import { compileUltimateB2ComponentRelease, ultimateB2PublicationCanonicalSeeds, ultimateB2PublicationCompatibility, ultimateB2PublicationCompatibilityBeforeVideoWorksheetBinding } from "./_builder-publication-compiler.js";
 import { canonicalStudentsBookPages } from "./_builder-page-catalog.js";
 
 const extensionByMediaType = Object.freeze({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "audio/mpeg": "mp3", "video/mp4": "mp4", "application/pdf": "pdf", "font/ttf": "ttf" });
 const V2_PUBLISHABLE_NATIVE_KINDS = new Set(ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS);
 
-function publicationV2CompatibilityDescriptor(nativeKinds, { unitExtras = false, pageLifecycle = false } = {}) {
+function publicationV2CompatibilityDescriptor(nativeKinds, { unitExtras = false, pageLifecycle = false, legacyRuntimeCompatibility = ultimateB2PublicationCompatibility() } = {}) {
   return Object.freeze({
     compilerId: ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPILER_ID,
     releaseSchemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
-    legacyRuntimeCompatibility: ultimateB2PublicationCompatibility(),
+    legacyRuntimeCompatibility,
     hotspotSchemaVersion: repositoryHotspots.schemaVersion,
     nativeActivitySchemaVersion: NATIVE_ACTIVITY_SCHEMA_VERSION,
     nativeIndexSchemaVersion: NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION,
@@ -48,15 +48,18 @@ function publicationV2CompatibilityDescriptor(nativeKinds, { unitExtras = false,
   });
 }
 
+const previousLegacyRuntimeCompatibility = ultimateB2PublicationCompatibilityBeforeVideoWorksheetBinding();
+const previousDescriptorOptions = Object.freeze({ legacyRuntimeCompatibility: previousLegacyRuntimeCompatibility });
 const V2_COMPATIBILITY_IDENTITIES = Object.freeze({
   initialImageOpenResponse: "ab4b8255596ce01a0e7132d37c33b62683e384f2f178eed313bfeef62091027e",
   singleChoiceExpanded: "f1fca746955e58c0c4153c97a717a2f5e024cb5d12eb9263ad8c6b2a7caf9316",
   completeSentencesExpanded: "bc5b6c72383a155d51b4dabadbc717a442df2878d57245882cba91f27bf74985",
   listeningExpanded: "705a2e4a5dbe5db38d17720e80d811496b8816a8778df89ddf616ad9617a857c",
-  dragDropExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS)),
-  unitExtrasExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, { unitExtras: true })),
-  pageLifecycleExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, { unitExtras: true, pageLifecycle: true })),
-  oldschoolListeningExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS, { unitExtras: true, pageLifecycle: true })),
+  dragDropExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, previousDescriptorOptions)),
+  unitExtrasExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, { ...previousDescriptorOptions, unitExtras: true })),
+  pageLifecycleExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS, { ...previousDescriptorOptions, unitExtras: true, pageLifecycle: true })),
+  oldschoolListeningExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS, { ...previousDescriptorOptions, unitExtras: true, pageLifecycle: true })),
+  nativeMediaExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS, { unitExtras: true, pageLifecycle: true })),
 });
 
 export const ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS = Object.freeze([
@@ -64,33 +67,39 @@ export const ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS = Object.freeze([
     name: "initial-image-open-response",
     compatibility: V2_COMPATIBILITY_IDENTITIES.initialImageOpenResponse,
     nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_INITIAL_NATIVE_KINDS,
+    legacyRuntimeCompatibility: previousLegacyRuntimeCompatibility,
   }),
   Object.freeze({
     name: "single-choice-expanded",
     compatibility: V2_COMPATIBILITY_IDENTITIES.singleChoiceExpanded,
     nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS,
+    legacyRuntimeCompatibility: previousLegacyRuntimeCompatibility,
   }),
   Object.freeze({
     name: "complete-sentences-expanded",
     compatibility: V2_COMPATIBILITY_IDENTITIES.completeSentencesExpanded,
     nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPLETE_SENTENCES_NATIVE_KINDS,
+    legacyRuntimeCompatibility: previousLegacyRuntimeCompatibility,
   }),
   Object.freeze({
     name: "listening-expanded",
     compatibility: V2_COMPATIBILITY_IDENTITIES.listeningExpanded,
     nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_LISTENING_NATIVE_KINDS,
+    legacyRuntimeCompatibility: previousLegacyRuntimeCompatibility,
   }),
   Object.freeze({
     name: "drag-drop-expanded",
     compatibility: V2_COMPATIBILITY_IDENTITIES.dragDropExpanded,
     nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS,
     unitExtras: false,
+    legacyRuntimeCompatibility: previousLegacyRuntimeCompatibility,
   }),
   Object.freeze({
     name: "unit-extras-expanded",
     compatibility: V2_COMPATIBILITY_IDENTITIES.unitExtrasExpanded,
     nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS,
     unitExtras: true,
+    legacyRuntimeCompatibility: previousLegacyRuntimeCompatibility,
   }),
   Object.freeze({
     name: "page-lifecycle-expanded",
@@ -98,10 +107,19 @@ export const ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS = Object.freeze([
     nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS,
     unitExtras: true,
     pageLifecycle: true,
+    legacyRuntimeCompatibility: previousLegacyRuntimeCompatibility,
   }),
   Object.freeze({
     name: "oldschool-listening-expanded",
     compatibility: V2_COMPATIBILITY_IDENTITIES.oldschoolListeningExpanded,
+    nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS,
+    unitExtras: true,
+    pageLifecycle: true,
+    legacyRuntimeCompatibility: previousLegacyRuntimeCompatibility,
+  }),
+  Object.freeze({
+    name: "native-media-expanded",
+    compatibility: V2_COMPATIBILITY_IDENTITIES.nativeMediaExpanded,
     nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS,
     unitExtras: true,
     pageLifecycle: true,
@@ -135,7 +153,7 @@ export function resolveUltimateB2PublicationV2CompatibilityVariant(compatibility
 }
 
 export function ultimateB2PublicationV2Compatibility() {
-  return V2_COMPATIBILITY_IDENTITIES.oldschoolListeningExpanded;
+  return V2_COMPATIBILITY_IDENTITIES.nativeMediaExpanded;
 }
 
 export function isUltimateB2PublicationV2NativeKind(kind) {
@@ -189,6 +207,7 @@ export function validateNativePublicationAssetRows(nativeEntries, assetRows) {
     {
       const requirements = [
         ...nativeReadableTextAssetRequirements(entry.publicDocument),
+        ...nativeSupplementalAudioAssetRequirements(entry.publicDocument),
         ...nativeVideoAssetRequirements(entry.publicDocument),
         ...nativeAudioTextAssetRequirements(entry.publicDocument),
         ...(entry.publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(entry.publicDocument) : []),

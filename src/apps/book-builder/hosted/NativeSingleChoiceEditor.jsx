@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { BookOpenText, Eye, FileText, Film, KeyRound, LayoutPanelTop } from "lucide-react";
+import { BookOpenText, Eye, FileText, Film, KeyRound, LayoutPanelTop, Music } from "lucide-react";
 
 import { StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
 import { NativeSingleChoiceStudentSurface } from "../../../components/native-single-choice/NativeSingleChoiceStudentSurface.jsx";
 import { NativeSingleChoiceTeacherSurface } from "../../../components/native-single-choice/NativeSingleChoiceTeacherSurface.jsx";
+import { NativeReadableTextPresentation } from "../../../components/native-readable-text/NativeReadableTextPresentation.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { generateNativeBulkCandidate } from "../../../data/native-activities/nativeBulkAuthoring.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
@@ -26,6 +27,7 @@ import { getBuilderContent } from "./builderContentApi.js";
 import { saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
+import { NativeSupplementalAudioEditor } from "./NativeSupplementalAudioEditor.jsx";
 import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
 import { NativeSingleChoiceQuestionAuthoring } from "./NativeSingleChoiceQuestionAuthoring.jsx";
 import { NativeSingleChoiceVisualAuthoring } from "./NativeSingleChoiceVisualAuthoring.jsx";
@@ -38,6 +40,7 @@ const tabs = [
   { id: "answer-key", label: "Answer Key", icon: KeyRound },
   { id: "readable-text", label: "Readable Text", icon: BookOpenText },
   { id: "video", label: "Video", icon: Film },
+  { id: "supplemental-audio", label: "Supplemental MP3", icon: Music },
   { id: "preview", label: "Local Preview", icon: Eye },
 ];
 const previewRoot = (bookSlug, componentSlug, activityId, assetId) => `/builder/api/native-activities/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/activities/${encodeURIComponent(activityId)}/assets/${encodeURIComponent(assetId)}/preview`;
@@ -56,6 +59,7 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
   const [uploading, setUploading] = useState(false);
   const [readableTextIncomplete, setReadableTextIncomplete] = useState(false);
   const [videoIncomplete, setVideoIncomplete] = useState(false);
+  const [supplementalAudioIncomplete, setSupplementalAudioIncomplete] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [dirty, setDirty] = useState(false);
 
@@ -254,8 +258,8 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
 
   const mappedBindings = new Set(panels.flatMap((panel) => panel.hotspots.map((hotspot) => bindingValue(hotspot.questionId, hotspot.optionId))));
   const nextHotspotBinding = findNextUnusedNativeSingleChoiceBinding(questions, panels, hotspotBinding);
-  const readinessIssues = [...readiness.issues, readableTextIncomplete ? "Upload a readable-text image." : "", videoIncomplete ? "Upload one MP4 and one valid SRT subtitle file." : ""].filter(Boolean);
-  const readyToSave = readiness.ready && !readableTextIncomplete && !videoIncomplete;
+  const readinessIssues = [...readiness.issues, readableTextIncomplete ? "Upload a readable-text image." : "", videoIncomplete ? "Upload one MP4 and one valid SRT subtitle file." : "", supplementalAudioIncomplete ? "Complete the Supplemental MP3 setup." : ""].filter(Boolean);
+  const readyToSave = readiness.ready && !readableTextIncomplete && !videoIncomplete && !supplementalAudioIncomplete;
   return <section className="native-activity-foundation native-single-choice-editor studio-editor">
     <header className="studio-editor-header"><div><span className="studio-eyebrow">{placementLabel} · Multiple Choice</span><h2>{publicDraft.metadata.title}</h2><p>{readiness.ready ? "Content complete" : `${readiness.issues.length} item${readiness.issues.length === 1 ? "" : "s"} need attention`}</p></div><details className="builder-technical-details"><summary>Technical details</summary><dl><div><dt>Stable ID</dt><dd><code>{activityId}</code></dd></div><div><dt>Revisions</dt><dd>Public {state.publicRevision} · Teacher {state.teacherRevision}</dd></div></dl></details></header>
     <StudioTabWorkspace id="native-single-choice-tabs" value={mode} onChange={setMode} tabs={tabs} label="Multiple Choice authoring modes">
@@ -266,12 +270,13 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
 
       {mode === "visual" ? <NativeSingleChoiceVisualAuthoring {...{ presentation, panels, selectedPanel, selectedPanelId, setSelectedPanelId, selectedHotspot, selectedHotspotId, setSelectedHotspotId, questions, zoom, setZoom, uploading, hotspotBinding, setHotspotBinding, mappedBindings, nextHotspotBinding, assetUrlForSlot, enableVisual, disableVisual, importHotspots, addPanel, movePanel, deletePanel, uploadBackground, createHotspot, updateHotspot, updateHotspotArea, updateHotspotGeometry, deleteHotspot }} /> : null}
       {mode === "preview" ?
-      <section className="native-or-preview"><div className="native-or-preview-toggle"><button type="button" aria-pressed={preview === "student"} onClick={() => setPreview("student")}>Student Preview</button><button type="button" aria-pressed={preview === "teacher"} onClick={() => setPreview("teacher")}>Teacher Preview</button></div><h3>{publicDraft.metadata.title}</h3>{preview === "student" ? <NativeSingleChoiceStudentSurface document={publicDraft} assetUrl={assetUrl} /> : <NativeSingleChoiceTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={assetUrl} />}</section>
+      <section className="native-or-preview"><div className="native-or-preview-toggle"><button type="button" aria-pressed={preview === "student"} onClick={() => setPreview("student")}>Student Preview</button><button type="button" aria-pressed={preview === "teacher"} onClick={() => setPreview("teacher")}>Teacher Preview</button></div><h3>{publicDraft.metadata.title}</h3><NativeReadableTextPresentation document={publicDraft} assetUrl={assetUrl}>{(presentation, audioHotspotPresentation) => preview === "student" ? <NativeSingleChoiceStudentSurface document={publicDraft} assetUrl={assetUrl} presentation={presentation} audioHotspotPresentation={audioHotspotPresentation} /> : <NativeSingleChoiceTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={assetUrl} presentation={presentation} audioHotspotPresentation={audioHotspotPresentation} />}</NativeReadableTextPresentation></section>
       : null}
     </div> : null}
 
     {mode === "readable-text" ? <NativeReadableTextEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={assetUrl} onIncompleteChange={setReadableTextIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
     {mode === "video" ? <NativeVideoEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} onIncompleteChange={setVideoIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
+    {mode === "supplemental-audio" ? <NativeSupplementalAudioEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={assetUrl} onIncompleteChange={setSupplementalAudioIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
     </StudioTabWorkspace>
     <StudioSaveBar dirty={dirty} saving={state.saving} message={state.message} ready={readyToSave} issues={readinessIssues} disabled={!dirty || state.saving || !readyToSave} reason={!dirty ? "No unsaved changes" : !readyToSave ? "Resolve all authoring issues before saving" : ""} onSave={save} />
   </section>;

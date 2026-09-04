@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { BookOpenText, Eye, FileText, Film, ImagePlus, Layers3, LayoutPanelTop, Plus, ShieldCheck, Trash2, Upload } from "lucide-react";
+import { BookOpenText, Eye, FileText, Film, ImagePlus, Layers3, LayoutPanelTop, Music, Plus, ShieldCheck, Trash2, Upload } from "lucide-react";
 
 import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
 import { normalizeStageGeometry } from "../../../components/builder-studio/stageGeometry.js";
@@ -22,6 +22,7 @@ import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthori
 import { NativeBulkGenerator } from "./NativeBulkGenerator.jsx";
 import { NativeOpenResponseResponseControls } from "./NativeOpenResponseResponseControls.jsx";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
+import { NativeSupplementalAudioEditor } from "./NativeSupplementalAudioEditor.jsx";
 import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
 import { NativeActivityFontControls } from "./NativeCompleteSentencesFontControls.jsx";
 
@@ -60,6 +61,7 @@ const tabs = [
   { id: "layout", label: "Layout", icon: LayoutPanelTop },
   { id: "readable-text", label: "Readable Text", icon: BookOpenText },
   { id: "video", label: "Video", icon: Film },
+  { id: "supplemental-audio", label: "Supplemental MP3", icon: Music },
   { id: "preview", label: "Local Preview", icon: Eye },
 ];
 
@@ -77,6 +79,7 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
   const [zoom, setZoom] = useState(1);
   const [readableTextIncomplete, setReadableTextIncomplete] = useState(false);
   const [videoIncomplete, setVideoIncomplete] = useState(false);
+  const [supplementalAudioIncomplete, setSupplementalAudioIncomplete] = useState(false);
   const [fonts, setFonts] = useState([]);
   const [panning, setPanning] = useState(false);
   const [fitViewportHeight, setFitViewportHeight] = useState(null);
@@ -360,8 +363,8 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
   const previewAsset = (assetId) => publicDraft.assets.find((asset) => asset.assetId === assetId)?.role === "activity_font"
     ? nativeFontPreviewUrl(bookSlug, componentSlug, assetId)
     : assetPreviewRoot(bookSlug, componentSlug, activityId, assetId);
-  const readinessIssues = [...readiness.issues, readableTextIncomplete ? "Upload a readable-text image." : "", videoIncomplete ? "Upload one MP4 and one valid SRT subtitle file." : ""].filter(Boolean);
-  const readyToSave = readiness.ready && !readableTextIncomplete && !videoIncomplete;
+  const readinessIssues = [...readiness.issues, readableTextIncomplete ? "Upload a readable-text image." : "", videoIncomplete ? "Upload one MP4 and one valid SRT subtitle file." : "", supplementalAudioIncomplete ? "Complete the Supplemental MP3 setup." : ""].filter(Boolean);
+  const readyToSave = readiness.ready && !readableTextIncomplete && !videoIncomplete && !supplementalAudioIncomplete;
 
   return <section className="native-activity-foundation native-or-editor studio-editor studio-open-response">
     <header className="studio-editor-header"><div><span className="studio-eyebrow">{placementLabel} · Open Response</span><h2>{publicDraft.metadata.title}</h2><p>{readiness.ready ? "Content complete" : "Content needs attention"}</p></div><details className="builder-technical-details"><summary>Technical details</summary><dl><div><dt>Stable ID</dt><dd><code>{activityId}</code></dd></div><div><dt>Revisions</dt><dd>Public {state.publicRevision} · Teacher {state.teacherRevision}</dd></div></dl></details></header>
@@ -382,8 +385,9 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
     {tab === "preview" ? <div className="native-or-preview"><p><strong>Local Preview</strong> may include unsaved editor changes. Use the shared Review button for the last saved deployed Viewer state.</p><div className="native-or-preview-toggle"><button type="button" aria-pressed={preview === "student"} onClick={() => setPreview("student")}>Student Preview</button><button type="button" aria-pressed={preview === "teacher"} onClick={() => setPreview("teacher")}>Teacher Preview</button></div><h3>{publicDraft.metadata.title}</h3><NativeReadableTextPresentation document={publicDraft} assetUrl={previewAsset}>{(presentation, audioHotspotPresentation) => <><div hidden={preview !== "student"}><NativeOpenResponseStudentSurface document={publicDraft} assetUrl={previewAsset} audioHotspotPresentation={audioHotspotPresentation} /></div>{preview === "teacher" ? <NativeOpenResponseTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={previewAsset} presentation={presentation} audioHotspotPresentation={audioHotspotPresentation} /> : null}</>}</NativeReadableTextPresentation></div> : null}
     {tab === "readable-text" ? <NativeReadableTextEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={previewAsset} onIncompleteChange={setReadableTextIncomplete} onIntentChange={markDirty} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
     {tab === "video" ? <NativeVideoEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} onIncompleteChange={setVideoIncomplete} onIntentChange={markDirty} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
+    {tab === "supplemental-audio" ? <NativeSupplementalAudioEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={previewAsset} onIncompleteChange={setSupplementalAudioIncomplete} onIntentChange={markDirty} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
     </StudioTabWorkspace>
-    <StudioSaveBar dirty={dirty} saving={state.saving} message={state.message} ready={readyToSave} issues={readinessIssues} disabled={!dirty || state.saving || !publicDraft.metadata.title.trim() || readableTextIncomplete || videoIncomplete} reason={!dirty ? "No unsaved changes" : readableTextIncomplete ? "Upload a readable-text image before saving" : videoIncomplete ? "Complete the Video setup before saving" : "Add an activity title before saving"} onSave={save} />
+    <StudioSaveBar dirty={dirty} saving={state.saving} message={state.message} ready={readyToSave} issues={readinessIssues} disabled={!dirty || state.saving || !publicDraft.metadata.title.trim() || readableTextIncomplete || videoIncomplete || supplementalAudioIncomplete} reason={!dirty ? "No unsaved changes" : readableTextIncomplete ? "Upload a readable-text image before saving" : videoIncomplete ? "Complete the Video setup before saving" : supplementalAudioIncomplete ? "Complete the Supplemental MP3 setup before saving" : "Add an activity title before saving"} onSave={save} />
   </section>;
 }
 

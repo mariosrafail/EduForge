@@ -21,7 +21,7 @@ const sourceAuthoredCanvases = Object.freeze({
   "ultimate-b2-sb-u1-p2-o5": Object.freeze({ width: 1024, height: 582 }),
 });
 
-export default function TeacherOfflineEmbeddedActivity({ activityId, title, videoOpen = false, onCloseVideo, listeningShowTextCommand = 0, onListeningStateChange, activityPresentationCommand = null, onActivityPresentationStateChange, runtimeContext, componentIdentity }) {
+export default function TeacherOfflineEmbeddedActivity({ activityId, title, videoOpen = false, onCloseVideo, listeningShowTextCommand = 0, onListeningStateChange, activityPresentationCommand = null, onActivityPresentationStateChange, onVideoWorksheetActionChange, runtimeContext, componentIdentity }) {
   const viewportRef = useRef(null);
   const contentRef = useRef(null);
   const [fit, setFit] = useState({ mode: "scale", scale: 1 });
@@ -125,7 +125,7 @@ export default function TeacherOfflineEmbeddedActivity({ activityId, title, vide
           ...(authoredCanvas ? { width: authoredCanvas.width, height: authoredCanvas.height } : {}),
         }}
       >
-        {publishedNative ? <PublishedNativeActivityRunner entry={publishedNative} publication={publication} teacherMode={teacherPreview} showMetadataHeader={false} presentation={{ command: activityPresentationCommand, onStateChange: onActivityPresentationStateChange }} /> : nativeDraftCandidate ? <HostedNativeDraftActivityRunner activityId={activityId} state={hostedNativeDraft} teacherMode={teacherPreview} showMetadataHeader={false} presentation={{ command: activityPresentationCommand, onStateChange: onActivityPresentationStateChange }} runtimeContext={effectiveRuntimeContext} identity={componentIdentity} /> : <NormalizedStudentsBookActivity
+        {publishedNative ? <PublishedNativeActivityRunner entry={publishedNative} publication={publication} teacherMode={teacherPreview} showMetadataHeader={false} presentation={{ command: activityPresentationCommand, onStateChange: onActivityPresentationStateChange, onWorksheetActionChange: onVideoWorksheetActionChange }} /> : nativeDraftCandidate ? <HostedNativeDraftActivityRunner activityId={activityId} state={hostedNativeDraft} teacherMode={teacherPreview} showMetadataHeader={false} presentation={{ command: activityPresentationCommand, onStateChange: onActivityPresentationStateChange, onWorksheetActionChange: onVideoWorksheetActionChange }} runtimeContext={effectiveRuntimeContext} identity={componentIdentity} /> : <NormalizedStudentsBookActivity
           key={activityId}
           activityId={activityId}
           activityPublicDraft={hostedOpenResponseDraft}

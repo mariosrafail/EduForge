@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Accessibility, BookOpenText, Copy, Eye, FileText, Film, ImagePlus, Layers3, LayoutPanelTop, LockKeyhole, Trash2, Upload } from "lucide-react";
+import { Accessibility, BookOpenText, Copy, Eye, FileText, Film, ImagePlus, Layers3, LayoutPanelTop, LockKeyhole, Music, Trash2, Upload } from "lucide-react";
 
 import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
 import { StudioButton, StudioCanvasToolbar, StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
 import { NativeImagePresentation, NativeImageSurface } from "../../../components/native-image/NativeImageSurface.jsx";
+import { NativeReadableTextPresentation } from "../../../components/native-readable-text/NativeReadableTextPresentation.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference } from "../../../data/native-activities/nativeActivityPublic.js";
 import { assessNativeImageReadiness, duplicateNativeImage, NATIVE_IMAGE_LIMITS, removeNativeImage } from "../../../data/native-activities/nativeImage.js";
@@ -11,6 +12,7 @@ import { getBuilderContent } from "./builderContentApi.js";
 import { saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
+import { NativeSupplementalAudioEditor } from "./NativeSupplementalAudioEditor.jsx";
 import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
 
 const clone = (value) => structuredClone(value);
@@ -20,6 +22,7 @@ const tabs = [
   { id: "layout", label: "Layout", icon: LayoutPanelTop },
   { id: "readable-text", label: "Readable Text", icon: BookOpenText },
   { id: "video", label: "Video", icon: Film },
+  { id: "supplemental-audio", label: "Supplemental MP3", icon: Music },
   { id: "preview", label: "Local Preview", icon: Eye },
 ];
 const previewRoot = (bookSlug, componentSlug, activityId, assetId) => `/builder/api/native-activities/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/activities/${encodeURIComponent(activityId)}/assets/${encodeURIComponent(assetId)}/preview`;
@@ -36,6 +39,7 @@ export function NativeImageEditor({ bookSlug, componentSlug, activityId, placeme
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [readableTextIncomplete, setReadableTextIncomplete] = useState(false);
   const [videoIncomplete, setVideoIncomplete] = useState(false);
+  const [supplementalAudioIncomplete, setSupplementalAudioIncomplete] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -139,8 +143,8 @@ export function NativeImageEditor({ bookSlug, componentSlug, activityId, placeme
   if (state.kind === "error" || !publicDraft || !teacherDraft) return <section className="native-activity-foundation studio-error" role="alert">{state.message || "Native draft is unavailable."}</section>;
 
   const assetUrl = (assetId) => previewRoot(bookSlug, componentSlug, activityId, assetId);
-  const readinessIssues = [...readiness.issues, readableTextIncomplete ? "Upload a readable-text image." : "", videoIncomplete ? "Upload one MP4 and one valid SRT subtitle file." : ""].filter(Boolean);
-  const readyToSave = readiness.ready && !readableTextIncomplete && !videoIncomplete;
+  const readinessIssues = [...readiness.issues, readableTextIncomplete ? "Upload a readable-text image." : "", videoIncomplete ? "Upload one MP4 and one valid SRT subtitle file." : "", supplementalAudioIncomplete ? "Complete the Supplemental MP3 setup." : ""].filter(Boolean);
+  const readyToSave = readiness.ready && !readableTextIncomplete && !videoIncomplete && !supplementalAudioIncomplete;
   return <section className="native-activity-foundation native-image-editor native-or-editor studio-editor">
     <header className="studio-editor-header">
       <div><span className="studio-eyebrow">{placementLabel} · Image</span><h2>{publicDraft.metadata.title}</h2><p>{readiness.ready ? "Content complete" : <><span>Content incomplete</span> · {readiness.issues.length} item{readiness.issues.length === 1 ? "" : "s"} need attention</>}</p></div>
@@ -199,10 +203,11 @@ export function NativeImageEditor({ bookSlug, componentSlug, activityId, placeme
       </aside>
     </div> : null}
 
-    {tab === "preview" ? <div className="studio-preview-panel"><header><Eye aria-hidden="true" /><div><h3>Local Preview</h3><p>Preview includes unsaved editor changes. Shared Review shows the last saved Viewer state.</p></div></header><h3>{publicDraft.metadata.title}</h3><NativeImagePresentation document={publicDraft} assetUrl={assetUrl} /></div> : null}
+    {tab === "preview" ? <div className="studio-preview-panel"><header><Eye aria-hidden="true" /><div><h3>Local Preview</h3><p>Preview includes unsaved editor changes. Shared Review shows the last saved Viewer state.</p></div></header><h3>{publicDraft.metadata.title}</h3><NativeReadableTextPresentation document={publicDraft} assetUrl={assetUrl}><NativeImagePresentation document={publicDraft} assetUrl={assetUrl} /></NativeReadableTextPresentation></div> : null}
     {tab === "readable-text" ? <NativeReadableTextEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutate} previewUrl={assetUrl} onIncompleteChange={setReadableTextIncomplete} onIntentChange={() => { setDirty(true); onDirtyChange(true); }} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
     {tab === "video" ? <NativeVideoEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutate} onIncompleteChange={setVideoIncomplete} onIntentChange={() => { setDirty(true); onDirtyChange(true); }} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
+    {tab === "supplemental-audio" ? <NativeSupplementalAudioEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutate} previewUrl={assetUrl} onIncompleteChange={setSupplementalAudioIncomplete} onIntentChange={() => { setDirty(true); onDirtyChange(true); }} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
     </StudioTabWorkspace>
-    <StudioSaveBar dirty={dirty} saving={state.saving} message={state.message} ready={readyToSave} issues={readinessIssues} disabled={!dirty || state.saving || !publicDraft.metadata.title.trim() || readableTextIncomplete || videoIncomplete} reason={!dirty ? "No unsaved changes" : readableTextIncomplete ? "Upload a readable-text image before saving" : videoIncomplete ? "Complete the Video setup before saving" : "Add an activity title before saving"} onSave={save} />
+    <StudioSaveBar dirty={dirty} saving={state.saving} message={state.message} ready={readyToSave} issues={readinessIssues} disabled={!dirty || state.saving || !publicDraft.metadata.title.trim() || readableTextIncomplete || videoIncomplete || supplementalAudioIncomplete} reason={!dirty ? "No unsaved changes" : readableTextIncomplete ? "Upload a readable-text image before saving" : videoIncomplete ? "Complete the Video setup before saving" : supplementalAudioIncomplete ? "Complete the Supplemental MP3 setup before saving" : "Add an activity title before saving"} onSave={save} />
   </section>;
 }

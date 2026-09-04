@@ -90,6 +90,28 @@ test("Drag & Drop blank pair and complete pair normalize strictly with Teacher-o
   assert.deepEqual(legacy.kind.normalizePublic(legacy.publicDocument).parts[0].interaction.presentation, NATIVE_DRAG_DROP_DEFAULT_PRESENTATION, "legacy documents receive deterministic shared typography defaults");
 });
 
+test("Drag & Drop accepts four bank words for three fully mapped targets and leaves one distractor unused", () => {
+  const current = pair();
+  const distractorId = id("word", 4);
+  const thirdTargetId = id("target", 33);
+  current.publicDocument.parts[0].interaction.words.push({ id: distractorId, text: "extra distractor" });
+  current.publicDocument.parts[0].interaction.panels[1].dropTargets.push({
+    id: thirdTargetId,
+    area: { x: 320, y: 120, width: 250, height: 90 },
+    accessibleLabel: "Third sentence blank",
+  });
+  current.teacherDocument.parts[0].solution.mappings.push({ targetId: thirdTargetId, wordId: wordIds[2] });
+
+  assert.equal(current.kind.validatePair(current.publicDocument, current.teacherDocument), true);
+  const normalizedPublic = current.kind.normalizePublic(current.publicDocument);
+  const normalizedTeacher = current.kind.normalizeTeacher(current.teacherDocument);
+  assert.deepEqual(assessNativeDragDropReadiness(normalizedPublic, normalizedTeacher), { ready: true, issues: [] });
+  const answers = new Map(current.teacherDocument.parts[0].solution.mappings.map((mapping) => [mapping.targetId, nativeDragDropMappingWordIds(mapping)]));
+  assert.equal(answers.size, 3);
+  assert.equal([...answers.values()].flat().includes(distractorId), false);
+  assert.equal(answers.get(thirdTargetId).includes(wordIds[2]), true, "Teacher scoring still resolves the third target by stable ID");
+});
+
 test("shared bank and placed-answer typography normalize independently and close managed font requirements", () => {
   const current = pair();
   const font = fontAsset;

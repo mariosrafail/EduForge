@@ -116,6 +116,7 @@ export default function TeacherOfflinePages({
   const [listeningShowTextCommand, setListeningShowTextCommand] = useState(0);
   const [activityPresentationState, setActivityPresentationState] = useState({ view: "questions", panelIndex: 0, panelCount: 0, panelNavigationActive: false, reveal: null, readableTextAvailable: false, videoAvailable: false, audioFocusActive: false });
   const [activityPresentationCommand, setActivityPresentationCommand] = useState(null);
+  const [activityWorksheetAction, setActivityWorksheetAction] = useState(null);
   const [activitySessionEpoch, setActivitySessionEpoch] = useState(0);
   const pageExtraVideos = useMemo(() => unitExtrasForPage(publication, { unitNumber: unit?.number, pageId: page?.id }), [page?.id, publication, unit?.number]);
   const onActivityPresentationStateChange = useCallback((state) => {
@@ -156,6 +157,7 @@ export default function TeacherOfflinePages({
       audioFocusActive: false,
     });
     setActivityPresentationCommand(null);
+    setActivityWorksheetAction(null);
     setActivitySessionEpoch(0);
   }, [activityActive, embeddedActivityId, page?.id, readingPresentationFeatures.internalPartCount, selectedPageId]);
 
@@ -374,7 +376,7 @@ export default function TeacherOfflinePages({
     active: nativeVideoAvailable ? activityPresentationState.view === "video" : activityVideoOpen,
     iconName: "video",
     onClick: () => nativeVideoAvailable ? sendActivityCommand("toggle-video") : setActivityVideoOpen((open) => !open),
-  }] : []), ...(!videoAvailable && listeningAvailable ? [{
+  }] : []), ...(activityWorksheetAction ? [{ ...activityWorksheetAction, controlId: "navigation:video-worksheet" }] : []), ...(!videoAvailable && listeningAvailable ? [{
     id: "show-text",
     label: "Show Text",
     title: "Show Text",
@@ -446,6 +448,7 @@ export default function TeacherOfflinePages({
               onListeningStateChange={setListeningView}
               activityPresentationCommand={activityPresentationCommand}
               onActivityPresentationStateChange={onActivityPresentationStateChange}
+              onVideoWorksheetActionChange={setActivityWorksheetAction}
               runtimeContext={runtimeContext}
               componentIdentity={componentIdentity}
             />

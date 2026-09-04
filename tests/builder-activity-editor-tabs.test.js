@@ -37,17 +37,17 @@ test("every editable activity exposes only its supported semantic authoring mode
     assert.doesNotMatch(labelSource, /label: "(?:Front|Back)"/);
   };
 
-  expectLabels("openResponse", ["Content", "Layout", "Readable Text", "Video", "Local Preview"]);
-  expectLabels("image", ["Content", "Layout", "Readable Text", "Video", "Local Preview"]);
-  expectLabels("singleChoice", ["Content", "Visual", "Answer Key", "Readable Text", "Video", "Local Preview"]);
-  expectLabels("completeSentences", ["Content", "Visual", "Answer Key", "Readable Text", "Video", "Local Preview"]);
-  expectLabels("listening", ["Content", "Audio & Transcript", "Visual", "Answer Key", "Readable Text", "Video", "Local Preview"]);
+  expectLabels("openResponse", ["Content", "Layout", "Readable Text", "Video", "Supplemental MP3", "Local Preview"]);
+  expectLabels("image", ["Content", "Layout", "Readable Text", "Video", "Supplemental MP3", "Local Preview"]);
+  expectLabels("singleChoice", ["Content", "Visual", "Answer Key", "Readable Text", "Video", "Supplemental MP3", "Local Preview"]);
+  expectLabels("completeSentences", ["Content", "Visual", "Answer Key", "Readable Text", "Video", "Supplemental MP3", "Local Preview"]);
+  expectLabels("listening", ["Content", "Audio & Transcript", "Visual", "Answer Key", "Readable Text", "Video", "Supplemental MP3", "Local Preview"]);
   for (const label of ["Content", "Visual", "Audio & Timeline", "Page Mapping", "Answer Key", "Readable Text", "Video", "Local Preview"])
     assert.match(listeningSupport, new RegExp(`label: "${label}"`), `oldschool listening must expose ${label}`);
-  expectLabels("dragDrop", ["Content", "Layout", "Answer Key", "Local Preview"]);
+  expectLabels("dragDrop", ["Content", "Layout", "Answer Key", "Readable Text", "Video", "Supplemental MP3", "Local Preview"]);
   expectLabels("canonicalOpenResponse", ["Content", "Publisher Source"]);
 
-  assert.doesNotMatch(source.dragDrop, /label: "(?:Readable Text|Video)"/);
+  assert.doesNotMatch(listeningSupport.match(/nativeOldschoolListeningEditorTabs = \[[\s\S]*?\n\];/)?.[0] || "", /Supplemental MP3/);
   assert.doesNotMatch(source.canonicalOpenResponse, /label: "Local Preview"/);
   assert.match(source.singleChoice, /mode === "visual" \?/);
   assert.match(source.listening, /tab === "audio-transcript" \?/);

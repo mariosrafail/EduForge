@@ -1,6 +1,7 @@
 import { candidateNativeAudioTextAssetSlots, normalizeNativeAudioTextHotspots } from "./nativeAudioTextHotspots.js";
 import { normalizeTimedTextCues, TIMED_TEXT_LIMITS } from "../timed-media/timedText.js";
 import { normalizeNativePedagogicalText, normalizeNativeSingleLineText } from "./nativePedagogicalText.js";
+import { supportsNativeSupplementalAudio } from "./nativeActivityKinds.js";
 
 export const NATIVE_ACTIVITY_SCHEMA_VERSION = "1.0";
 export const NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION = "1.0";
@@ -130,11 +131,46 @@ export function nativeVideoAssetRequirements(publicDocument) {
   return video ? [{ slot: video.assetSlot, mediaType: "video/mp4", byteSize: video.byteSize, label: "Video MP4" }, ...(video.worksheet ? [{ slot: video.worksheet.assetSlot, mediaType: "application/pdf", byteSize: video.worksheet.byteSize, label: "Video Worksheet PDF" }] : [])] : [];
 }
 
+export function normalizeNativeSupplementalAudio(input, assets) {
+  const value = structuredClone(object(input, "Native supplemental audio"));
+  const hasReference = Object.hasOwn(value, "reference");
+  exactKeys(value, ["assetSlot", "durationMs", ...(hasReference ? ["reference"] : [])], "Native supplemental audio");
+  const audioReference = assets.find((asset) => asset.slot === value.assetSlot);
+  if (!audioReference || audioReference.role !== "activity_artwork") throw new Error("Native supplemental audio must reference a managed native asset.");
+  if (!Number.isSafeInteger(value.durationMs) || value.durationMs < 1 || value.durationMs > TIMED_TEXT_LIMITS.durationMs) throw new Error("Native supplemental audio duration is invalid.");
+  const normalized = { assetSlot: audioReference.slot, durationMs: value.durationMs };
+  if (hasReference) {
+    exactKeys(value.reference, ["assetSlot", "sourceWidth", "sourceHeight", "altText"], "Native supplemental audio reference");
+    const imageReference = assets.find((asset) => asset.slot === value.reference.assetSlot);
+    if (!imageReference || imageReference.role !== "activity_artwork" || imageReference.slot === audioReference.slot) throw new Error("Native supplemental audio reference must use distinct managed activity artwork.");
+    for (const [key, label] of [["sourceWidth", "width"], ["sourceHeight", "height"]]) {
+      if (!Number.isSafeInteger(value.reference[key]) || value.reference[key] < 1 || value.reference[key] > NATIVE_READABLE_TEXT_MAXIMUM_DIMENSION) throw new Error(`Native supplemental audio reference ${label} is invalid.`);
+    }
+    normalized.reference = {
+      assetSlot: imageReference.slot,
+      sourceWidth: value.reference.sourceWidth,
+      sourceHeight: value.reference.sourceHeight,
+      altText: normalizeNativePedagogicalText(value.reference.altText, "Native supplemental audio reference alt text", NATIVE_READABLE_TEXT_ALT_TEXT_MAXIMUM, { required: true, forbidMarkup: false }),
+    };
+  }
+  return normalized;
+}
+
+export function nativeSupplementalAudioAssetRequirements(publicDocument) {
+  const supplementalAudio = publicDocument?.supplementalAudio;
+  return supplementalAudio ? [
+    { slot: supplementalAudio.assetSlot, mediaType: "audio/mpeg", label: "Supplemental MP3" },
+    ...(supplementalAudio.reference ? [{ slot: supplementalAudio.reference.assetSlot, width: supplementalAudio.reference.sourceWidth, height: supplementalAudio.reference.sourceHeight, label: "Supplemental audio reference" }] : []),
+  ] : [];
+}
+
 export function nativeActivityUsesManagedAssetSlot(publicDocument, slot) {
   const interaction = publicDocument?.parts?.[0]?.interaction;
   return publicDocument?.readableText?.assetSlot === slot
     || publicDocument?.video?.assetSlot === slot
     || publicDocument?.video?.worksheet?.assetSlot === slot
+    || publicDocument?.supplementalAudio?.assetSlot === slot
+    || publicDocument?.supplementalAudio?.reference?.assetSlot === slot
     || Boolean(slot && publicDocument?.audioTextHotspots?.hotspots?.some((hotspot) => hotspot.audioAssetSlot === slot))
     || Boolean(interaction?.artwork?.some((item) => item.assetSlot === slot))
     || Boolean(interaction?.images?.some((item) => item.assetSlot === slot))
@@ -162,11 +198,13 @@ export function normalizeNativeActivityPublic(input, { normalizeInteraction, exp
   const hasReadableText = Object.hasOwn(value, "readableText");
   const hasVideo = Object.hasOwn(value, "video");
   const hasAudioTextHotspots = Object.hasOwn(value, "audioTextHotspots");
-  const optionalKeys = [...(hasReadableText ? ["readableText"] : []), ...(hasVideo ? ["video"] : []), ...(hasAudioTextHotspots ? ["audioTextHotspots"] : [])];
+  const hasSupplementalAudio = Object.hasOwn(value, "supplementalAudio");
+  const optionalKeys = [...(hasReadableText ? ["readableText"] : []), ...(hasVideo ? ["video"] : []), ...(hasAudioTextHotspots ? ["audioTextHotspots"] : []), ...(hasSupplementalAudio ? ["supplementalAudio"] : [])];
   exactKeys(value, ["schemaVersion", "activityId", "kind", "metadata", "placement", "assets", "parts", ...optionalKeys], "Native public activity");
   if (value.schemaVersion !== NATIVE_ACTIVITY_SCHEMA_VERSION) throw new Error("Unsupported native public activity schema version.");
   const activityId = safeId(value.activityId, "Native activity ID");
   const kind = safeId(value.kind, "Native activity kind");
+  if (hasSupplementalAudio && !supportsNativeSupplementalAudio(kind)) throw new Error("Native supplemental audio is not supported for this activity kind.");
   if (expectedActivityId && activityId !== expectedActivityId) throw new Error("Native public activity identity does not match its resource.");
   if (expectedKind && kind !== expectedKind) throw new Error("Native public activity kind is immutable.");
   exactKeys(value.metadata, ["title", "visibleInstructionText"], "Native public metadata");
@@ -184,10 +222,13 @@ export function normalizeNativeActivityPublic(input, { normalizeInteraction, exp
   if (part.id !== NATIVE_ACTIVITY_PART_ID) throw new Error("Native activity schema v1 requires stable Part ID part-1.");
   const readableText = hasReadableText ? normalizeNativeReadableText(value.readableText, assets) : null;
   const video = hasVideo ? normalizeNativeVideo(value.video, assets) : null;
+  const supplementalAudio = hasSupplementalAudio ? normalizeNativeSupplementalAudio(value.supplementalAudio, assets) : null;
   const commonAssetSlots = new Set([
     ...(readableText ? [readableText.assetSlot] : []),
     ...(video ? [video.assetSlot] : []),
     ...(video?.worksheet ? [video.worksheet.assetSlot] : []),
+    ...(supplementalAudio ? [supplementalAudio.assetSlot] : []),
+    ...(supplementalAudio?.reference ? [supplementalAudio.reference.assetSlot] : []),
     ...(hasAudioTextHotspots ? candidateNativeAudioTextAssetSlots(value.audioTextHotspots) : []),
   ]);
   const interaction = normalizeInteraction(part.interaction, { assets, commonAssetSlots });
@@ -205,6 +246,7 @@ export function normalizeNativeActivityPublic(input, { normalizeInteraction, exp
   };
   if (readableText) normalized.readableText = readableText;
   if (video) normalized.video = video;
+  if (supplementalAudio) normalized.supplementalAudio = supplementalAudio;
   if (hasAudioTextHotspots) normalized.audioTextHotspots = normalizeNativeAudioTextHotspots(value.audioTextHotspots, normalized);
   return normalized;
 }

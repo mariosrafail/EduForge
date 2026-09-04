@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Eye, ImagePlus, Layers3, Plus, Trash2 } from "lucide-react";
+import { BookOpenText, Eye, Film, ImagePlus, Layers3, Music, Plus, Trash2 } from "lucide-react";
 
 import { StudioButton, StudioCanvasToolbar, StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
 import { QuickNumber, StageGeometryControls } from "../../../components/builder-studio/StageGeometryControls.jsx";
 import { NativeDragDropAuthoringCanvas } from "../../../components/native-drag-drop/NativeDragDropAuthoringCanvas.jsx";
 import { NativeDragDropStudentSurface } from "../../../components/native-drag-drop/NativeDragDropSurface.jsx";
 import { NativeDragDropTeacherSurface } from "../../../components/native-drag-drop/NativeDragDropTeacherSurface.jsx";
+import { NativeReadableTextPresentation } from "../../../components/native-readable-text/NativeReadableTextPresentation.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { generateNativeBulkCandidate } from "../../../data/native-activities/nativeBulkAuthoring.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
@@ -31,10 +32,13 @@ import { NativeActivityFontControls } from "./NativeCompleteSentencesFontControl
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeBulkGenerator } from "./NativeBulkGenerator.jsx";
 import { NativeDragDropHotspotBulkImporter } from "./NativeDragDropHotspotBulkImporter.jsx";
+import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
+import { NativeSupplementalAudioEditor } from "./NativeSupplementalAudioEditor.jsx";
+import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
 import "./nativeDragDropEditor.css";
 
 const clone = (value) => structuredClone(value);
-const tabs = [{ id: "content", label: "Content" }, { id: "layout", label: "Layout" }, { id: "answer-key", label: "Answer Key" }, { id: "preview", label: "Local Preview", icon: Eye }];
+const tabs = [{ id: "content", label: "Content" }, { id: "layout", label: "Layout" }, { id: "answer-key", label: "Answer Key" }, { id: "readable-text", label: "Readable Text", icon: BookOpenText }, { id: "video", label: "Video", icon: Film }, { id: "supplemental-audio", label: "Supplemental MP3", icon: Music }, { id: "preview", label: "Local Preview", icon: Eye }];
 const previewRoot = (bookSlug, componentSlug, activityId, assetId) => `/builder/api/native-activities/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/activities/${encodeURIComponent(activityId)}/assets/${encodeURIComponent(assetId)}/preview`;
 
 function moveInArray(list, index, delta) {
@@ -74,12 +78,14 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
   const [uploading, setUploading] = useState(false);
   const [previewMode, setPreviewMode] = useState("student");
   const [fonts, setFonts] = useState([]);
-  const [bulkOneToOne, setBulkOneToOne] = useState(false);
+  const [readableTextIncomplete, setReadableTextIncomplete] = useState(false);
+  const [videoIncomplete, setVideoIncomplete] = useState(false);
+  const [supplementalAudioIncomplete, setSupplementalAudioIncomplete] = useState(false);
   const [zoom, setZoom] = useState(1);
 
   useEffect(() => {
     const controller = new AbortController();
-    setState({ kind: "loading", message: "" }); setPublicDraft(null); setTeacherDraft(null); setTab("content"); setDirty(false); setBulkOneToOne(false); onDirtyChange(false);
+    setState({ kind: "loading", message: "" }); setPublicDraft(null); setTeacherDraft(null); setTab("content"); setDirty(false); onDirtyChange(false);
     Promise.all([
       getBuilderContent({ bookSlug, componentSlug, resource: "native-activity-public", documentKey: activityId }, { signal: controller.signal }),
       getBuilderContent({ bookSlug, componentSlug, resource: "native-activity-teacher", documentKey: activityId }, { signal: controller.signal }),
@@ -103,16 +109,14 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
   const readiness = useMemo(() => {
     if (!publicDraft || !teacherDraft) return null;
     const base = assessNativeDragDropReadiness(publicDraft, teacherDraft);
-    const wordCount = publicDraft.parts[0].interaction.words.length;
-    const targetCount = publicDraft.parts[0].interaction.panels.flatMap((entry) => entry.dropTargets).length;
-    const mismatch = bulkOneToOne && wordCount !== targetCount ? [`Word/target count mismatch: ${wordCount} words and ${targetCount} targets.`] : [];
     const topology = [];
     if (base.ready) {
       try { validateNativeDragDropTopology(publicDraft, teacherDraft); }
       catch (error) { topology.push(error.message); }
     }
-    return { ready: base.ready && !mismatch.length && !topology.length, issues: [...base.issues, ...mismatch, ...topology] };
-  }, [bulkOneToOne, publicDraft, teacherDraft]);
+    const commonIssues = [readableTextIncomplete ? "Complete the Readable Text setup." : "", videoIncomplete ? "Complete the Video setup." : "", supplementalAudioIncomplete ? "Complete the Supplemental MP3 setup." : ""].filter(Boolean);
+    return { ready: base.ready && !topology.length && !commonIssues.length, issues: [...base.issues, ...topology, ...commonIssues] };
+  }, [publicDraft, readableTextIncomplete, supplementalAudioIncomplete, teacherDraft, videoIncomplete]);
   const mappings = new Map(teacherDraft?.parts[0].solution.mappings.map((mapping) => [mapping.targetId, nativeDragDropMappingWordIds(mapping)]) || []);
   const assetUrl = (assetId) => previewRoot(bookSlug, componentSlug, activityId, assetId);
 
@@ -125,7 +129,7 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
 
   const generateBulk = (source, options) => {
     const result = generateNativeBulkCandidate({ kind: "drag-drop", source, publicDocument: publicDraft, teacherDocument: teacherDraft, ...options });
-    setPublicDraft(result.publicDocument); setTeacherDraft(result.teacherDocument); setSelection(null); setDrawingTarget(false); setBulkOneToOne(true); markDirty();
+    setPublicDraft(result.publicDocument); setTeacherDraft(result.teacherDocument); setSelection(null); setDrawingTarget(false); markDirty();
     return result;
   };
 
@@ -339,7 +343,10 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
     </div></> : null}
 
     {tab === "answer-key" ? <div className="native-drag-drop-mapping"><h3>Teacher-only correct mappings</h3><p>Select every item required by each target. Capacity is derived from the selected count; correct identities stay in the private Teacher document.</p>{interaction.panels.map((entry, panelIndex) => <section key={entry.id}><h4>Panel {panelIndex + 1}</h4>{entry.dropTargets.map((target, targetIndex) => { const currentWordIds = mappings.get(target.id) || []; return <StudioField key={target.id} label={`${targetIndex + 1}. ${target.accessibleLabel} · ${currentWordIds.length} expected`}><select multiple size={Math.min(8, Math.max(3, interaction.words.length + 1))} value={currentWordIds} onChange={(event) => setMappingWords(target.id, [...event.currentTarget.selectedOptions].map((option) => option.value))}><option value="" disabled>Select one or more items</option>{interaction.words.map((word, wordIndex) => <option key={word.id} value={word.id}>{word.text} · word {wordIndex + 1}{interaction.layoutMode === "text" ? ` · label ${word.shortLabel}` : ""}{word.reusable ? " · reusable" : ""}</option>)}</select></StudioField>; })}</section>)}</div> : null}
-    {tab === "preview" ? <div className="studio-preview-panel"><div className="native-drag-drop-editor-actions"><button type="button" aria-pressed={previewMode === "student"} onClick={() => setPreviewMode("student")}>Student Preview</button><button type="button" aria-pressed={previewMode === "teacher"} onClick={() => setPreviewMode("teacher")}>Teacher Preview</button></div>{previewMode === "student" ? <NativeDragDropStudentSurface document={publicDraft} assetUrl={assetUrl} evaluatePlacement={(targetId, wordId) => (mappings.get(targetId) || []).includes(wordId)} resolveWordsForTarget={(targetId) => mappings.get(targetId) || []} /> : <NativeDragDropTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={assetUrl} />}</div> : null}
+    {tab === "preview" ? <div className="studio-preview-panel"><div className="native-drag-drop-editor-actions"><button type="button" aria-pressed={previewMode === "student"} onClick={() => setPreviewMode("student")}>Student Preview</button><button type="button" aria-pressed={previewMode === "teacher"} onClick={() => setPreviewMode("teacher")}>Teacher Preview</button></div><NativeReadableTextPresentation document={publicDraft} assetUrl={assetUrl}>{(presentation) => previewMode === "student" ? <NativeDragDropStudentSurface document={publicDraft} assetUrl={assetUrl} evaluatePlacement={(targetId, wordId) => (mappings.get(targetId) || []).includes(wordId)} resolveWordsForTarget={(targetId) => mappings.get(targetId) || []} presentation={presentation} /> : <NativeDragDropTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={assetUrl} presentation={presentation} />}</NativeReadableTextPresentation></div> : null}
+    {tab === "readable-text" ? <NativeReadableTextEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={assetUrl} onIncompleteChange={setReadableTextIncomplete} onIntentChange={markDirty} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
+    {tab === "video" ? <NativeVideoEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} onIncompleteChange={setVideoIncomplete} onIntentChange={markDirty} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
+    {tab === "supplemental-audio" ? <NativeSupplementalAudioEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={assetUrl} onIncompleteChange={setSupplementalAudioIncomplete} onIntentChange={markDirty} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
     </StudioTabWorkspace>
     <StudioSaveBar dirty={dirty} saving={state.saving} message={state.message} ready={readiness.ready} issues={readiness.issues} disabled={!dirty || state.saving || !readiness.ready || !publicDraft.metadata.title.trim()} reason={!readiness.ready ? "Complete every panel, target, and private mapping before saving" : !dirty ? "No unsaved changes" : ""} onSave={save} />
   </section>;

@@ -114,10 +114,11 @@ test("v2 compatibility variants and capability sets are frozen and reproducible"
       { name: "unit-extras-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS },
       { name: "page-lifecycle-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS },
       { name: "oldschool-listening-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS },
+      { name: "native-media-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS },
     ],
   );
   for (const variant of ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS) {
-    const options = { unitExtras: variant.unitExtras === true, pageLifecycle: variant.pageLifecycle === true };
+    const options = { unitExtras: variant.unitExtras === true, pageLifecycle: variant.pageLifecycle === true, ...(variant.legacyRuntimeCompatibility ? { legacyRuntimeCompatibility: variant.legacyRuntimeCompatibility } : {}) };
     const descriptor = ultimateB2PublicationV2CompatibilityDescriptor(variant.nativeKinds, options);
     assert.deepEqual(descriptor.nativeKinds, variant.nativeKinds);
     assert.ok(builderDocumentSha256(descriptor) === variant.compatibility, `${variant.name} compatibility descriptor drifted`);

@@ -109,11 +109,13 @@ test("Shared timed text parser accepts SRT variants and enforces bounded determi
   assert.throws(() => parseTimedTextSrt(tooMany, { createId: () => cues[0].id }), /too many cues/);
 });
 
-test("Shared video runtime owns captions, custom controls, and the fullscreen shell", async () => {
-  const [player, css, presentation] = await Promise.all([
+test("Shared video runtime owns captions and fullscreen while the worksheet stays in presentation navigation", async () => {
+  const [player, css, presentation, worksheetAction, teacherPages] = await Promise.all([
     readFile(new URL("../src/components/native-video/NativeVideoPlayer.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-video/nativeVideo.css", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-readable-text/NativeReadableTextPresentation.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/components/native-video/NativeVideoWorksheetAction.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/android-teacher-offline/TeacherOfflinePages.jsx", import.meta.url), "utf8"),
   ]);
   assert.match(player, /shellRef\.current\.requestFullscreen/);
   assert.doesNotMatch(player, /videoRef\.current\.requestFullscreen/);
@@ -122,9 +124,8 @@ test("Shared video runtime owns captions, custom controls, and the fullscreen sh
   assert.match(player, /<Captions/);
   assert.match(player, />Subtitles</);
   assert.match(player, /aria-pressed=\{captionsEnabled\}/);
-  assert.match(player, /Video Worksheet/);
-  assert.match(player, /PdfSaver\.savePdf/);
-  assert.match(player, /querySelectorAll\("audio, video"\)/);
+  assert.doesNotMatch(player, /Video Worksheet|PdfSaver|worksheet/);
+  assert.match(player, /pauseSiblingNativeMedia/);
   assert.doesNotMatch(player, /dangerouslySetInnerHTML|<track/);
   assert.match(css, /native-video-exit-fullscreen[^}]*opacity:\s*\.34/s);
   assert.match(css, /native-video-exit-fullscreen:hover/);
@@ -135,4 +136,11 @@ test("Shared video runtime owns captions, custom controls, and the fullscreen sh
   assert.match(css, /native-video-exit-fullscreen[^}]*bottom:\s*calc\(max\(16px, env\(safe-area-inset-bottom\)\) \+ var\(--native-video-controls-min-height\) \+ var\(--native-video-fullscreen-control-gap\)\)/s);
   assert.match(presentation, /effectiveView === "video"/);
   assert.match(presentation, /<NativeVideoPlayer/);
+  assert.match(presentation, /onWorksheetActionChange/);
+  assert.match(presentation, /<NativeVideoWorksheetAction/);
+  assert.match(worksheetAction, /PdfSaver\.savePdf/);
+  assert.match(worksheetAction, /link\.type = "application\/pdf"/);
+  assert.match(worksheetAction, /link\.click\(\)/);
+  assert.match(teacherPages, /id: "video"[\s\S]*activityWorksheetAction/);
+  assert.match(teacherPages, /controlId: "navigation:video-worksheet"/);
 });

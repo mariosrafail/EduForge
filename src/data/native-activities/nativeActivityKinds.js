@@ -1,5 +1,7 @@
 export const NATIVE_ACTIVITY_KINDS = Object.freeze(["open-response", "image", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop"]);
 
+export const NATIVE_SUPPLEMENTAL_AUDIO_KINDS = Object.freeze(["image", "open-response", "single-choice", "complete-sentences", "listening", "drag-drop"]);
+
 export const nativeActivityKindLabels = Object.freeze({
   "open-response": "Open Response",
   image: "Image",
@@ -12,4 +14,8 @@ export const nativeActivityKindLabels = Object.freeze({
 
 export function isNativeActivityKind(kind) {
   return NATIVE_ACTIVITY_KINDS.includes(kind);
+}
+
+export function supportsNativeSupplementalAudio(kind) {
+  return NATIVE_SUPPLEMENTAL_AUDIO_KINDS.includes(kind);
 }

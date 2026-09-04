@@ -40,7 +40,7 @@ const toolbar = [
 const navigation = [
   ["back", "Back"], ["check", "Check"], ["home", "Home"], ["next", "Next"],
   ["previous", "Previous"], ["close", "Close"], ["minimize", "Minimize"], ["settings", "Settings"],
-  ["video", "Video"], ["showText", "Show Text"], ["showTextPressed", "Show Text - pressed"],
+  ["video", "Video"], ["videoWorksheet", "Video Worksheet"], ["showText", "Show Text"], ["showTextPressed", "Show Text - pressed"],
   ["previousInternal", "Previous activity part"], ["previousInternalDisabled", "Previous activity part - disabled"],
   ["nextInternal", "Next activity part"], ["nextInternalDisabled", "Next activity part - disabled"],
 ];

@@ -4,6 +4,7 @@ import { StudioButton, StudioCanvasToolbar, StudioField, StudioSaveBar, StudioTa
 import { QuickNumber, StageGeometryControls } from "../../../components/builder-studio/StageGeometryControls.jsx";
 import { NativeCompleteSentencesHotspotCanvas } from "../../../components/native-complete-sentences/NativeCompleteSentencesHotspotCanvas.jsx";
 import { NativeCompleteSentencesStudentSurface, NativeCompleteSentencesTeacherSurface } from "../../../components/native-complete-sentences/NativeCompleteSentencesSurface.jsx";
+import { NativeReadableTextPresentation } from "../../../components/native-readable-text/NativeReadableTextPresentation.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { generateNativeBulkCandidate } from "../../../data/native-activities/nativeBulkAuthoring.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
@@ -17,17 +18,13 @@ import { NATIVE_COMPLETE_SENTENCES_TABS, NativeCompleteSentencesEditorHeader, Na
 import { NativeCompleteSentencesFontControls } from "./NativeCompleteSentencesFontControls.jsx";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
+import { NativeSupplementalAudioEditor } from "./NativeSupplementalAudioEditor.jsx";
 import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
 import { NativeBulkGenerator } from "./NativeBulkGenerator.jsx";
 const clone = (value) => structuredClone(value);
 const previewRoot = (bookSlug, componentSlug, activityId, assetId) => `/builder/api/native-activities/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/activities/${encodeURIComponent(activityId)}/assets/${encodeURIComponent(assetId)}/preview`;
 export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {}, onSaved = () => {} }) {
-  const [state, setState] = useState({
-    kind: "loading",
-    publicRevision: 0,
-    teacherRevision: 0,
-    message: "",
-  });
+  const [state, setState] = useState({ kind: "loading", publicRevision: 0, teacherRevision: 0, message: "" });
   const [publicDraft, setPublicDraft] = useState(null);
   const [teacherDraft, setTeacherDraft] = useState(null);
   const [authoringSentences, setAuthoringSentences] = useState({});
@@ -45,6 +42,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   const [zoom, setZoom] = useState(1);
   const [readableIncomplete, setReadableIncomplete] = useState(false);
   const [videoIncomplete, setVideoIncomplete] = useState(false);
+  const [supplementalAudioIncomplete, setSupplementalAudioIncomplete] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
     setTab("content");
@@ -322,7 +320,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
     setSelectedHotspotId(null);
   };
   const save = async () => {
-    if (!saveability.saveable || authoringIssues.length || readableIncomplete || videoIncomplete)
+    if (!saveability.saveable || authoringIssues.length || readableIncomplete || videoIncomplete || supplementalAudioIncomplete)
       return setState((current) => ({
         ...current,
         message: "Resolve all authoring issues before saving.",
@@ -371,8 +369,8 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
       </section>
     );
   const mapped = mappedItemIds;
-  const readinessIssues = [...readiness.issues, ...authoringIssues, readableIncomplete ? "Complete the Readable Text setup." : "", videoIncomplete ? "Complete the Video setup." : ""].filter(Boolean);
-  const readyToSave = saveability.saveable && !authoringIssues.length && !readableIncomplete && !videoIncomplete;
+  const readinessIssues = [...readiness.issues, ...authoringIssues, readableIncomplete ? "Complete the Readable Text setup." : "", videoIncomplete ? "Complete the Video setup." : "", supplementalAudioIncomplete ? "Complete the Supplemental MP3 setup." : ""].filter(Boolean);
+  const readyToSave = saveability.saveable && !authoringIssues.length && !readableIncomplete && !videoIncomplete && !supplementalAudioIncomplete;
 
   return (
     <section className="native-activity-foundation native-single-choice-editor studio-editor">
@@ -622,6 +620,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
         ) : null}
         {tab === "readable-text" ? <NativeReadableTextEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={assetUrl} onIncompleteChange={setReadableIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
         {tab === "video" ? <NativeVideoEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} onIncompleteChange={setVideoIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
+        {tab === "supplemental-audio" ? <NativeSupplementalAudioEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={assetUrl} onIncompleteChange={setSupplementalAudioIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
         {tab === "preview" ? (
           <div className="studio-preview-panel">
             <header>
@@ -639,7 +638,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                 Teacher Preview
               </button>
             </div>
-            {preview === "student" ? <NativeCompleteSentencesStudentSurface document={publicDraft} assetUrl={previewAssetUrl} /> : <NativeCompleteSentencesTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={previewAssetUrl} />}
+            <NativeReadableTextPresentation document={publicDraft} assetUrl={previewAssetUrl}>{(presentation, audioHotspotPresentation) => preview === "student" ? <NativeCompleteSentencesStudentSurface document={publicDraft} assetUrl={previewAssetUrl} presentation={presentation} audioHotspotPresentation={audioHotspotPresentation} /> : <NativeCompleteSentencesTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={previewAssetUrl} presentation={presentation} audioHotspotPresentation={audioHotspotPresentation} />}</NativeReadableTextPresentation>
           </div>
         ) : null}
       </StudioTabWorkspace>

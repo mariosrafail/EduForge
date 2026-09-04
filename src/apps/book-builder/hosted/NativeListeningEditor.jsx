@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
 import { NativeListeningStudentSurface, NativeListeningTeacherSurface } from "../../../components/native-listening/NativeListeningSurface.jsx";
+import { NativeReadableTextPresentation } from "../../../components/native-readable-text/NativeReadableTextPresentation.jsx";
 import { formatNativeListeningTime, parseNativeListeningDisplayTime, parseNativeListeningSrt } from "../../../components/native-listening/nativeListeningRuntime.js";
 import { NativeOldschoolListeningStudentSurface } from "../../../components/native-oldschool-listening/NativeOldschoolListeningStudentSurface.jsx";
 import { NativeOldschoolListeningTeacherSurface } from "../../../components/native-oldschool-listening/NativeOldschoolListeningTeacherSurface.jsx";
@@ -15,6 +16,7 @@ import { getBuilderContent } from "./builderContentApi.js";
 import { nativeFontPreviewUrl, saveNativeActivityPair, uploadNativeActivityArtwork, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
+import { NativeSupplementalAudioEditor } from "./NativeSupplementalAudioEditor.jsx";
 import { NativeListeningQuestionAuthoring } from "./NativeListeningQuestionAuthoring.jsx";
 import { NativeSingleChoiceQuestionAuthoring } from "./NativeSingleChoiceQuestionAuthoring.jsx";
 import { NativeSingleChoiceVisualAuthoring } from "./NativeSingleChoiceVisualAuthoring.jsx";
@@ -47,6 +49,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
   const [uploading, setUploading] = useState("");
   const [readableTextIncomplete, setReadableTextIncomplete] = useState(false);
   const [videoIncomplete, setVideoIncomplete] = useState(false);
+  const [supplementalAudioIncomplete, setSupplementalAudioIncomplete] = useState(false);
   useEffect(() => {
     const controller = new AbortController();
     setState({
@@ -513,8 +516,8 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
     mutatePublic((next) => {
       next.parts[0].interaction.panels[1].transcriptArea = Object.fromEntries(Object.entries(geometry).map(([key, value]) => [key, Math.round(value)]));
     });
-  const readinessIssues = [...readiness.issues, readableTextIncomplete ? "Upload a readable-text image." : "", videoIncomplete ? "Upload one MP4 and one valid SRT subtitle file." : ""].filter(Boolean);
-  const readyToSave = readiness.ready && !readableTextIncomplete && !videoIncomplete;
+  const readinessIssues = [...readiness.issues, readableTextIncomplete ? "Upload a readable-text image." : "", videoIncomplete ? "Upload one MP4 and one valid SRT subtitle file." : "", !oldschool && supplementalAudioIncomplete ? "Complete the Supplemental MP3 setup." : ""].filter(Boolean);
+  const readyToSave = readiness.ready && !readableTextIncomplete && !videoIncomplete && (oldschool || !supplementalAudioIncomplete);
   return (
     <section className={`native-activity-foundation native-listening-editor ${oldschool ? "native-oldschool-listening-editor" : ""} studio-editor studio-open-response`}>
       <header className="studio-editor-header">
@@ -606,11 +609,12 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
                 Teacher Preview
               </button>
             </div>
-            {preview === "student" ? (oldschool ? <NativeOldschoolListeningStudentSurface document={publicDraft} assetUrl={previewAssetUrl} /> : <NativeListeningStudentSurface document={publicDraft} assetUrl={previewAssetUrl} />) : (oldschool ? <NativeOldschoolListeningTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={previewAssetUrl} /> : <NativeListeningTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={previewAssetUrl} />)}
+            <NativeReadableTextPresentation document={publicDraft} assetUrl={previewAssetUrl}>{(presentation) => preview === "student" ? (oldschool ? <NativeOldschoolListeningStudentSurface document={publicDraft} assetUrl={previewAssetUrl} presentation={presentation} /> : <NativeListeningStudentSurface document={publicDraft} assetUrl={previewAssetUrl} presentation={presentation} />) : (oldschool ? <NativeOldschoolListeningTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={previewAssetUrl} presentation={presentation} /> : <NativeListeningTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={previewAssetUrl} presentation={presentation} />)}</NativeReadableTextPresentation>
           </section>
         ) : null}
         {tab === "readable-text" ? <NativeReadableTextEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={assetUrl} onIncompleteChange={setReadableTextIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
         {tab === "video" ? <NativeVideoEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} onIncompleteChange={setVideoIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
+        {!oldschool && tab === "supplemental-audio" ? <NativeSupplementalAudioEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={assetUrl} onIncompleteChange={setSupplementalAudioIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
         {dirty && state.message ? (
           <p className="native-listening-editor-status" role="status">
             {state.message}

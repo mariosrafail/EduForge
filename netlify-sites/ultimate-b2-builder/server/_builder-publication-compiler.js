@@ -27,9 +27,9 @@ export function ultimateB2PublicationCanonicalSeeds() {
   }));
 }
 
-export function ultimateB2PublicationCompatibility() {
+export function ultimateB2PublicationCompatibilityDescriptor(teacherUiBindingIds = Object.keys(HOSTED_EDITABLE_UI_BINDINGS_BY_ID).sort()) {
   const seeds = ultimateB2PublicationCanonicalSeeds();
-  return builderDocumentSha256({
+  return {
     compilerId: ULTIMATE_B2_COMPONENT_RELEASE_COMPILER_ID,
     releaseSchemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_SCHEMA_VERSION,
     activities: Object.values(seeds).map((seed) => ({ activityId: seed.activityId, questionIds: seed.questions.map((question) => question.id) })),
@@ -38,8 +38,18 @@ export function ultimateB2PublicationCompatibility() {
     publicImportSchemaVersion: ULTIMATE_B2_HOSTED_OPEN_RESPONSE_IMPORT_SCHEMA_VERSION,
     teacherImportSchemaVersion: ULTIMATE_B2_HOSTED_OPEN_RESPONSE_TEACHER_SCHEMA_VERSION,
     teacherUiSchemaVersion: createEmptyHostedTeacherUiDocument().schemaVersion,
-    teacherUiBindingIds: Object.keys(HOSTED_EDITABLE_UI_BINDINGS_BY_ID).sort(),
-  });
+    teacherUiBindingIds: [...teacherUiBindingIds].sort(),
+  };
+}
+
+export function ultimateB2PublicationCompatibility() {
+  return builderDocumentSha256(ultimateB2PublicationCompatibilityDescriptor());
+}
+
+export function ultimateB2PublicationCompatibilityBeforeVideoWorksheetBinding() {
+  return builderDocumentSha256(ultimateB2PublicationCompatibilityDescriptor(
+    Object.keys(HOSTED_EDITABLE_UI_BINDINGS_BY_ID).filter((id) => id !== "navigation.videoWorksheet"),
+  ));
 }
 
 function source(document, baselineSha256) {

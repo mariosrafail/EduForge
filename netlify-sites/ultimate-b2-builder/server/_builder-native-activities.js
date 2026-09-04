@@ -9,7 +9,7 @@ import { inspectManagedTtf, MANAGED_TTF_MAXIMUM_BYTES, MANAGED_TTF_MEDIA_TYPE } 
 import { buildBuilderFontLibraryObjectKey, buildBuilderFontLibraryStagingKey, buildNativeActivityAssetObjectKey, buildNativeActivityAssetStagingKey } from "../../../lib/book-assets/object-keys.js";
 import { inspectManagedRaster, MANAGED_RASTER_MAXIMUM_BYTES, MANAGED_RASTER_TYPES } from "../../../lib/book-assets/raster-inspection.js";
 import { nativeAudioTextAssetRequirements } from "../../../src/data/native-activities/nativeAudioTextHotspots.js";
-import { appendNativeActivityIndexEntry, createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, nativeVideoAssetRequirements, NATIVE_ACTIVITY_SCHEMA_VERSION, normalizeNativeActivityIndex, removeNativeActivityIndexEntry } from "../../../src/data/native-activities/nativeActivityPublic.js";
+import { appendNativeActivityIndexEntry, createEmptyNativeActivityIndex, nativeReadableTextAssetRequirements, nativeSupplementalAudioAssetRequirements, nativeVideoAssetRequirements, NATIVE_ACTIVITY_SCHEMA_VERSION, normalizeNativeActivityIndex, removeNativeActivityIndexEntry } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { nativeSingleChoicePresentationAssetRequirements } from "../../../src/data/native-activities/nativeSingleChoice.js";
 import { nativeCompleteSentencesAssetRequirements } from "../../../src/data/native-activities/nativeCompleteSentences.js";
 import { nativeListeningAssetRequirements } from "../../../src/data/native-activities/nativeListening.js";
@@ -476,6 +476,7 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
       assets: publicDocument.assets,
       requirements: [
         ...nativeReadableTextAssetRequirements(publicDocument),
+        ...nativeSupplementalAudioAssetRequirements(publicDocument),
         ...nativeVideoAssetRequirements(publicDocument),
         ...nativeAudioTextAssetRequirements(publicDocument),
         ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
@@ -627,6 +628,7 @@ function catalogDocumentCode(error, audience) {
 function nativeAssetRequirements(publicDocument) {
   return [
     ...nativeReadableTextAssetRequirements(publicDocument),
+    ...nativeSupplementalAudioAssetRequirements(publicDocument),
     ...nativeVideoAssetRequirements(publicDocument),
     ...nativeAudioTextAssetRequirements(publicDocument),
     ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),

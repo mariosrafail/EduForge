@@ -6,6 +6,7 @@ import readableHotspotActive from "../../assets/native-activities/readable-text-
 import readableHotspotPressed from "../../assets/native-activities/readable-text-hotspot-pressed.svg";
 import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
 import { nativeAudioTextFocusLayout, nativeAudioTextHighlightColor, nativeAudioTextReadableHighlightArea } from "../../data/native-activities/nativeAudioTextHotspots.js";
+import { pauseSiblingNativeMedia } from "./nativeMediaArbitration.js";
 import { NativeVerticalScrollViewport } from "./NativeVerticalScrollViewport.jsx";
 
 export const nativeAudioHotspotArtwork = Object.freeze({ active: audioHotspotActive, pressed: audioHotspotPressed });
@@ -65,6 +66,6 @@ export function NativeAudioTextFocusContent({ document, hotspot, assetUrl, autoP
     </div>;
   return <section className="native-audio-text-focus" data-focus-layout={focusLayout} aria-label={`Focused readable text: ${hotspot.label}`}>
     {focusLayout === "natural-width" ? <NativeVerticalScrollViewport id={`${document.activityId}-${hotspot.id}-focus-scroll`} className="native-audio-text-focus-scroll" ariaLabel="Focused readable text vertical scroll" resetKey={hotspot.id}>{crop}</NativeVerticalScrollViewport> : crop}
-    {audioReference ? <audio ref={audioRef} hidden autoPlay={autoPlay} preload="metadata" src={assetUrl(audioReference.assetId)} /> : null}
+    {audioReference ? <audio ref={audioRef} hidden autoPlay={autoPlay} preload="metadata" src={assetUrl(audioReference.assetId)} onPlay={(event) => pauseSiblingNativeMedia(event.currentTarget)} /> : null}
   </section>;
 }

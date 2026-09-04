@@ -41,7 +41,7 @@ export const ultimateB2TeacherExtrasDefinitions = Object.freeze([
 const navigationFiles = Object.freeze({
   back: "back.png", check: "check.png", home: "home.png", next: "next.png", previous: "previous.png",
   close: "dialogs/exit-btn-enabled.png", minimize: "dialogs/minimize-btn-enabled.png",
-  settings: "navigation/navibar-settings-active.png", video: "navigation/navibar-video-active.png",
+  settings: "navigation/navibar-settings-active.png", video: "navigation/navibar-video-active.png", videoWorksheet: "navigation/navibar-video-active.png",
   showText: "navigation/navibar-show-text-active.png", showTextPressed: "navigation/navibar-show-text-pressed.png",
   previousInternal: "navigation/navibar-previous-internal-active.png",
   previousInternalDisabled: "navigation/navibar-previous-internal-disabled.png",

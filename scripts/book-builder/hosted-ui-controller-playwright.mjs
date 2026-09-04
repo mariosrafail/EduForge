@@ -129,6 +129,10 @@ const uiHandler = createBuilderTeacherUiAssetsHandler({
     session.state = "finalizing";
     return { outcome: "claimed", state: session.state, currentRevision: input.expectedRevision, fileDescriptors: session.fileDescriptors };
   },
+  loadUploadScope: async (_sql, input) => {
+    const session = sessions.get(input.uploadId);
+    return session?.builderUserId === input.builderUserId ? { bookSlug: session.bookSlug, componentSlug: session.componentSlug } : null;
+  },
   complete: async (_sql, input) => { const session = sessions.get(input.uploadId); session.state = "validated"; session.validatedAssets = input.validatedAssets; },
   fail: async (_sql, input) => { const session = sessions.get(input.uploadId); if (session) session.state = "failed"; },
   loadCandidates: async (_sql, input) => input.uploadIds.map((id) => sessions.get(id)).filter((session) => session?.builderUserId === input.builderUserId && ["validated", "saved"].includes(session.state)).map((session) => ({ id: session.uploadId, validatedAssets: session.validatedAssets })),
@@ -237,7 +241,7 @@ try {
   await page.getByRole("button", { name: "Close Review" }).click();
 
   const expectedHash = createHash("sha256").update(hostedTeacherUiPngFixture.buffer).digest("hex");
-  for (const [section, bindingId] of [["Shell / Background", "background.main"], ["Teacher Toolbar", "toolbar.mouse.normal"], ["Navigation / Window Controls", "navigation.home"]]) {
+  for (const [section, bindingId] of [["Shell / Background", "background.main"], ["Teacher Toolbar", "toolbar.mouse.normal"], ["Navigation / Window Controls", "navigation.home"], ["Navigation / Window Controls", "navigation.videoWorksheet"]]) {
     await editor.getByRole("button", { name: section, exact: true }).click();
     const slot = editor.locator(`[data-binding-id="${bindingId}"]`);
     await slot.locator('input[type="file"]').setInputFiles(fixture(`${bindingId.replaceAll(".", "-")}.png`));
@@ -286,6 +290,7 @@ try {
   assert.equal(Boolean(saved.document.assets["background.main"]), false, "canonical revert did not persist");
   assert.equal(Boolean(saved.document.assets["toolbar.mouse.normal"]), true, "unrelated toolbar override was lost");
   assert.equal(Boolean(saved.document.assets["navigation.home"]), true, "unrelated navigation override was lost");
+  assert.equal(Boolean(saved.document.assets["navigation.videoWorksheet"]), true, "independent Video Worksheet override was lost");
   await page.getByRole("button", { name: "Review", exact: true }).click();
   await frame().locator(".teacher-fixed-stage-host").waitFor();
   assert.equal((await frame().locator(".teacher-fixed-stage-host").evaluate((node) => node.style.backgroundImage)).includes(expectedHash), false, "reverted background remained in Viewer");

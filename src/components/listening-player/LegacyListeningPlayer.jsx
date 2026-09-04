@@ -1,4 +1,4 @@
-import { Pause, Play, Square, Volume2, VolumeX } from "lucide-react";
+import { BookOpenText, Pause, Play, Square, Volume2, VolumeX } from "lucide-react";
 
 import "./legacyListeningPlayer.css";
 
@@ -24,6 +24,7 @@ export function LegacyListeningPlayer({
   playLabel = "Play Listening audio",
   pauseLabel = "Pause Listening audio",
   stopLabel = "Stop Listening audio",
+  extraAction = null,
 }) {
   const maximum = Math.max(0, durationMs);
   if (!assets) return null;
@@ -37,5 +38,6 @@ export function LegacyListeningPlayer({
       <button type="button" className="legacy-listening-player-mute" aria-label={muted ? "Unmute Listening audio" : "Mute Listening audio"} aria-pressed={muted} disabled={disabled} onClick={onToggleMute}>{muted ? <VolumeX /> : <Volume2 />}</button>
     </div>
     <output className="legacy-listening-player-time" aria-label="Listening audio time">{formatTime(currentMs)} / {formatTime(maximum)}</output>
+    {extraAction ? <button type="button" className="legacy-listening-player-extra-action" aria-label={extraAction.label} aria-pressed={extraAction.pressed} title={extraAction.title || extraAction.label} onClick={extraAction.onClick}><BookOpenText aria-hidden="true" /><span>Reference</span></button> : null}
   </div>;
 }

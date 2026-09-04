@@ -5,6 +5,7 @@ import { NativeOpenResponseStudentSurface } from "../native-open-response/Native
 import { NativeOpenResponseTeacherSurface } from "../native-open-response/NativeOpenResponseTeacherSurface.jsx";
 import { formatNativeListeningTime, resolveNativeListeningHighlightedCueIds, transcriptScrollTarget } from "./nativeListeningRuntime.js";
 import { nativeListeningPlayerAssets } from "./nativeListeningPlayerAssets.js";
+import { pauseSiblingNativeMedia } from "../native-readable-text/nativeMediaArbitration.js";
 import "./nativeListening.css";
 
 function referenceForSlot(document, slot) { return document.assets.find((asset) => asset.slot === slot) || null; }
@@ -160,7 +161,7 @@ export function NativeListeningSurface({ publicDocument, teacherDocument = null,
     </div>
     {!audioUrl ? <p className="native-listening-error" role="alert">Listening audio is unavailable.</p> : null}
     {audioError ? <p className="native-listening-error" role="alert">Listening audio could not be played.</p> : null}
-    <audio ref={audioRef} hidden preload="metadata" src={audioUrl} onLoadedMetadata={() => { const duration = Math.round((audioRef.current?.duration || 0) * 1_000); if (duration > 0) setPlaybackDurationMs(duration); }} onPlay={() => setPlaying(true)} onPause={() => { setPlaying(false); if (audioRef.current) setCurrentMs(Math.round(audioRef.current.currentTime * 1_000)); }} onTimeUpdate={() => { if (audioRef.current) setCurrentMs(Math.round(audioRef.current.currentTime * 1_000)); }} onSeeked={() => { if (audioRef.current) setCurrentMs(Math.round(audioRef.current.currentTime * 1_000)); }} onEnded={() => { finishedRef.current = true; setPlaying(false); setCurrentMs(playbackDurationMs); }} onError={() => setAudioError(true)} />
+    <audio ref={audioRef} hidden preload="metadata" src={audioUrl} onLoadedMetadata={() => { const duration = Math.round((audioRef.current?.duration || 0) * 1_000); if (duration > 0) setPlaybackDurationMs(duration); }} onPlay={(event) => { pauseSiblingNativeMedia(event.currentTarget); setPlaying(true); }} onPause={() => { setPlaying(false); if (audioRef.current) setCurrentMs(Math.round(audioRef.current.currentTime * 1_000)); }} onTimeUpdate={() => { if (audioRef.current) setCurrentMs(Math.round(audioRef.current.currentTime * 1_000)); }} onSeeked={() => { if (audioRef.current) setCurrentMs(Math.round(audioRef.current.currentTime * 1_000)); }} onEnded={() => { finishedRef.current = true; setPlaying(false); setCurrentMs(playbackDurationMs); }} onError={() => setAudioError(true)} />
   </div>;
 }
 

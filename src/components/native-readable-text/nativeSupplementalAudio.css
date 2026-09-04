@@ -1,0 +1,48 @@
+.legacy-listening-player-extra-action {
+  position: absolute;
+  z-index: 3;
+  right: 7px;
+  bottom: 8px;
+  display: grid;
+  width: 62px;
+  height: 38px;
+  min-height: 38px;
+  place-items: center;
+  padding: 2px;
+  color: #542574;
+  background: #f7e8ff;
+  border: 2px solid #754392;
+  border-radius: 12px;
+  font-size: 9px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.legacy-listening-player-extra-action svg { width: 18px; height: 18px; }
+.legacy-listening-player-extra-action[aria-pressed="true"] { color: #fff; background: #66308f; }
+.legacy-listening-player-extra-action:focus-visible { outline: 3px solid #ffdc42; outline-offset: 2px; }
+
+.native-supplemental-audio-anchor {
+  position: absolute;
+  z-index: 121;
+  right: 24px;
+  bottom: 18px;
+  width: 266px;
+  height: 100px;
+  filter: drop-shadow(0 3px 5px rgb(33 15 44 / 25%));
+  pointer-events: auto;
+}
+
+.native-supplemental-audio-anchor[data-stacked] { bottom: 126px; }
+.native-readable-text-view.native-supplemental-audio-reference { position: absolute; inset: 0; z-index: 119; height: auto; max-height: 80vh; }
+.native-supplemental-audio-error { position: absolute; right: 0; bottom: 100%; width: 266px; margin: 0 0 4px; padding: 5px 8px; color: #fff; background: #991b1b; border-radius: 6px; font-size: 12px; }
+.native-readable-text-presentation[data-supplemental-audio] .native-supplementary-navigation { bottom: 126px; }
+.native-readable-text-presentation[data-supplemental-audio][data-native-kind="listening"] .native-supplementary-navigation { bottom: 234px; }
+
+@media (max-width: 640px) {
+  .native-supplemental-audio-anchor { right: 8px; bottom: 8px; transform: scale(.82); transform-origin: bottom right; }
+  .native-supplemental-audio-anchor[data-stacked] { bottom: 96px; }
+  .native-readable-text-presentation[data-supplemental-audio] .native-supplementary-navigation { right: 8px; bottom: 96px; }
+  .native-readable-text-presentation[data-supplemental-audio][data-native-kind="listening"] .native-supplementary-navigation { bottom: 184px; }
+}

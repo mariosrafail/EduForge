@@ -3,6 +3,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { NativeAudioTextFocusContent } from "./NativeAudioTextHotspots.jsx";
 import { NativeVerticalScrollViewport } from "./NativeVerticalScrollViewport.jsx";
 import { NativeVideoPlayer } from "../native-video/NativeVideoPlayer.jsx";
+import { NativeVideoWorksheetAction, openNativeVideoWorksheet } from "../native-video/NativeVideoWorksheetAction.jsx";
+import { NativeSupplementalAudioPresentation } from "./NativeSupplementalAudioPresentation.jsx";
 import "./nativeReadableText.css";
 
 export function nextNativeReadableTextView(current, commandType, available) {
@@ -53,7 +55,9 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
   const [activityState, setActivityState] = useState(() => defaultActivityState(document));
   const [childSupplementaryState, setChildSupplementaryState] = useState({ view: "questions", readableTextAvailable: false });
   const [activeHotspotId, setActiveHotspotId] = useState(null);
+  const [worksheetMessage, setWorksheetMessage] = useState("");
   const activityViewRef = useRef(null);
+  const worksheetDetailsRef = useRef(null);
   const lastCommandToken = useRef(presentation?.command?.token);
   const onStateChange = presentation?.onStateChange;
 
@@ -62,6 +66,7 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
     setActivityState(defaultActivityState(document));
     setChildSupplementaryState({ view: "questions", readableTextAvailable: false });
     setActiveHotspotId(null);
+    setWorksheetMessage("");
     lastCommandToken.current = presentation?.command?.token;
   }, [document.activityId]);
 
@@ -147,8 +152,22 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
   const focusOpen = effectiveView === "questions" && Boolean(activeHotspot);
   const videoReference = videoAvailable ? document.assets.find((asset) => asset.slot === document.video.assetSlot) : null;
   const worksheetReference = document.video?.worksheet ? document.assets.find((asset) => asset.slot === document.video.worksheet.assetSlot) : null;
+  worksheetDetailsRef.current = worksheetReference ? { video: document.video, worksheetSrc: assetUrl(worksheetReference.assetId) } : null;
+  const openWorksheet = useCallback(() => {
+    const details = worksheetDetailsRef.current;
+    if (!details) return;
+    setWorksheetMessage("");
+    openNativeVideoWorksheet(details).catch(() => setWorksheetMessage("Video Worksheet could not be saved."));
+  }, []);
+  const externalWorksheetControl = typeof presentation?.onWorksheetActionChange === "function";
+  useEffect(() => {
+    if (!externalWorksheetControl) return undefined;
+    presentation.onWorksheetActionChange(worksheetReference ? { id: "video-worksheet", label: "Video Worksheet", ariaLabel: "Open Video Worksheet", iconName: "videoWorksheet", onClick: openWorksheet } : null);
+    return () => presentation.onWorksheetActionChange(null);
+  }, [document.activityId, externalWorksheetControl, openWorksheet, presentation?.onWorksheetActionChange, worksheetReference?.assetId]);
   const internalNavigation = !presentation && (available || videoAvailable);
-  return <div className="native-readable-text-presentation" data-readable-text-available={available || undefined} data-video-available={videoAvailable || undefined} data-presentation-view={effectiveView} data-audio-focus={focusOpen || undefined} data-internal-navigation={internalNavigation || undefined}>
+  const fallbackWorksheetControl = Boolean(worksheetReference) && !externalWorksheetControl;
+  return <div className="native-readable-text-presentation" data-native-media-scope="" data-native-kind={document.kind} data-readable-text-available={available || undefined} data-video-available={videoAvailable || undefined} data-supplemental-audio={Boolean(document.supplementalAudio) || undefined} data-presentation-view={effectiveView} data-audio-focus={focusOpen || undefined} data-internal-navigation={internalNavigation || undefined}>
     <div className="native-audio-text-focus-slot" hidden={!focusOpen}>{focusOpen ? <NativeAudioTextFocusContent document={document} hotspot={activeHotspot} assetUrl={assetUrl} autoPlay /> : null}</div>
     <div ref={activityViewRef} className={`native-readable-text-activity-view${focusOpen ? " is-audio-focus" : ""}`} hidden={effectiveView === "text" || effectiveView === "video"}>{activity}</div>
     {effectiveView === "text" && reference ? <section className="native-readable-text-view" aria-label="Readable text">
@@ -156,10 +175,13 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
         <img src={assetUrl(reference.assetId)} alt={document.readableText.altText} width={document.readableText.sourceWidth} height={document.readableText.sourceHeight} />
       </NativeVerticalScrollViewport>
     </section> : null}
-    {effectiveView === "video" && videoReference ? <div className="native-video-presentation-view"><NativeVideoPlayer video={document.video} src={assetUrl(videoReference.assetId)} worksheetSrc={worksheetReference ? assetUrl(worksheetReference.assetId) : ""} /></div> : null}
-    {internalNavigation ? <nav className="native-supplementary-navigation" aria-label="Activity presentation">
+    {effectiveView === "video" && videoReference ? <div className="native-video-presentation-view"><NativeVideoPlayer video={document.video} src={assetUrl(videoReference.assetId)} /></div> : null}
+    <NativeSupplementalAudioPresentation document={document} assetUrl={assetUrl} presentationView={effectiveView} command={presentation?.command} />
+    {worksheetMessage ? <p className="native-video-worksheet-message" role="status">{worksheetMessage}</p> : null}
+    {internalNavigation || fallbackWorksheetControl ? <nav className="native-supplementary-navigation" aria-label="Activity presentation">
       {available ? <button type="button" aria-pressed={effectiveView === "text"} onClick={() => setView((current) => nextNativeSupplementaryView(current, "toggle-text", { readableText: available, video: videoAvailable }))}>{effectiveView === "text" ? "Questions" : "Read Text"}</button> : null}
       {videoAvailable ? <button type="button" aria-pressed={effectiveView === "video"} onClick={() => setView((current) => nextNativeSupplementaryView(current, "toggle-video", { readableText: available, video: videoAvailable }))}>{effectiveView === "video" ? "Questions" : "Video"}</button> : null}
+      {fallbackWorksheetControl ? <NativeVideoWorksheetAction video={document.video} worksheetSrc={assetUrl(worksheetReference.assetId)} onError={setWorksheetMessage} /> : null}
     </nav> : null}
   </div>;
 }

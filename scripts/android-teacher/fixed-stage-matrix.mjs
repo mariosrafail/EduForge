@@ -426,7 +426,8 @@ try {
       await page.locator(".teacher-offline-pages-viewer").waitFor();
 
       assert.equal(await page.getByRole("button", { name: "Page activities" }).count(), 0, "obsolete Page activities control stays absent");
-      await page.getByRole("button", { name: "Unit 1 extra video 1", exact: true }).click();
+      await page.getByRole("button", { name: "Extra Videos", exact: true }).click();
+      await page.getByRole("menuitem", { name: "Unit 1 extra video 1", exact: true }).click();
       await page.locator(".teacher-offline-media").waitFor();
       const mediaBackdrop = await readViewportBackdrop(page);
       assertBackdrop(mediaBackdrop, "media", "Media");

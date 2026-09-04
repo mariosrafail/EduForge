@@ -11,6 +11,7 @@ export const nativeListeningEditorTabs = [
   { id: "answer-key", label: "Answer Key", icon: KeyRound },
   { id: "readable-text", label: "Readable Text", icon: BookOpenText },
   { id: "video", label: "Video", icon: Film },
+  { id: "supplemental-audio", label: "Supplemental MP3", icon: Music },
   { id: "preview", label: "Local Preview", icon: Eye },
 ];
 
