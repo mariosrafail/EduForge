@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
 import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
@@ -16,6 +16,7 @@ import "./nativeDragDrop.css";
 
 const DRAG_MOVEMENT_THRESHOLD = 5;
 const DRAG_RETURN_MS = 160;
+const FITTED_CONTENT_MIN_FONT_PX = 8;
 
 function PanelArtwork({ document, panel, assetUrl, textMode, children }) {
   const assets = new Map(document.assets.map((asset) => [asset.slot, asset]));
@@ -47,15 +48,83 @@ function previewComputedStyle(element) {
   const style = globalThis.getComputedStyle?.(element);
   if (!style) return {};
   return {
-    boxSizing: style.boxSizing, fontFamily: style.fontFamily, fontSize: style.fontSize, fontWeight: style.fontWeight,
-    lineHeight: style.lineHeight, letterSpacing: style.letterSpacing, whiteSpace: style.whiteSpace, overflowWrap: style.overflowWrap,
+    appearance: style.appearance, display: style.display, alignItems: style.alignItems, justifyContent: style.justifyContent,
+    boxSizing: style.boxSizing, verticalAlign: style.verticalAlign,
+    fontFamily: style.fontFamily, fontSize: style.fontSize, fontStyle: style.fontStyle, fontStretch: style.fontStretch,
+    fontVariant: style.fontVariant, fontWeight: style.fontWeight, lineHeight: style.lineHeight,
+    letterSpacing: style.letterSpacing, wordSpacing: style.wordSpacing, textTransform: style.textTransform,
+    textDecoration: style.textDecoration, textIndent: style.textIndent, textRendering: style.textRendering,
+    whiteSpace: style.whiteSpace, overflowWrap: style.overflowWrap, wordBreak: style.wordBreak,
     paddingTop: style.paddingTop, paddingRight: style.paddingRight, paddingBottom: style.paddingBottom, paddingLeft: style.paddingLeft,
-    borderTop: style.borderTop, borderRight: style.borderRight, borderBottom: style.borderBottom, borderLeft: style.borderLeft,
-    borderRadius: style.borderRadius, backgroundColor: style.backgroundColor, color: style.color, textAlign: style.textAlign,
+    borderTopWidth: style.borderTopWidth, borderTopStyle: style.borderTopStyle, borderTopColor: style.borderTopColor,
+    borderRightWidth: style.borderRightWidth, borderRightStyle: style.borderRightStyle, borderRightColor: style.borderRightColor,
+    borderBottomWidth: style.borderBottomWidth, borderBottomStyle: style.borderBottomStyle, borderBottomColor: style.borderBottomColor,
+    borderLeftWidth: style.borderLeftWidth, borderLeftStyle: style.borderLeftStyle, borderLeftColor: style.borderLeftColor,
+    borderTopLeftRadius: style.borderTopLeftRadius, borderTopRightRadius: style.borderTopRightRadius,
+    borderBottomRightRadius: style.borderBottomRightRadius, borderBottomLeftRadius: style.borderBottomLeftRadius,
+    background: style.background, color: style.color, textAlign: style.textAlign,
   };
 }
 
 const responseIds = (value) => Array.isArray(value) ? value : value ? [value] : [];
+
+function fitContainedContent(element, { property, sampleSelector = null }) {
+  if (!element || element.clientWidth < 1 || element.clientHeight < 1) return;
+  element.style.setProperty(property, "1");
+  const sample = sampleSelector ? element.querySelector(sampleSelector) : element;
+  const baseFontSize = Number.parseFloat(globalThis.getComputedStyle?.(sample || element)?.fontSize || "0");
+  const minimumScale = baseFontSize > FITTED_CONTENT_MIN_FONT_PX ? FITTED_CONTENT_MIN_FONT_PX / baseFontSize : 1;
+  const fits = () => element.scrollWidth <= element.clientWidth + 1 && element.scrollHeight <= element.clientHeight + 1;
+  let scale = 1;
+  if (!fits()) {
+    scale = minimumScale;
+    element.style.setProperty(property, String(scale));
+    if (fits()) {
+      let lower = minimumScale;
+      let upper = 1;
+      for (let iteration = 0; iteration < 8; iteration += 1) {
+        const candidate = (lower + upper) / 2;
+        element.style.setProperty(property, String(candidate));
+        if (fits()) lower = candidate;
+        else upper = candidate;
+      }
+      scale = lower;
+    }
+  }
+  element.style.setProperty(property, scale.toFixed(4));
+  element.dataset.fitScale = scale.toFixed(4);
+}
+
+function useContainedContentFit(ref, { enabled, property, sampleSelector = null, dependency }) {
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!enabled || !element) return undefined;
+    let frame = null;
+    const fit = () => {
+      if (frame !== null) globalThis.cancelAnimationFrame?.(frame);
+      frame = globalThis.requestAnimationFrame?.(() => { frame = null; fitContainedContent(element, { property, sampleSelector }); }) ?? null;
+      if (frame === null) fitContainedContent(element, { property, sampleSelector });
+    };
+    fit();
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(fit);
+    if (element.parentElement) observer?.observe(element.parentElement);
+    globalThis.document?.fonts?.ready?.then(fit);
+    globalThis.document?.fonts?.addEventListener?.("loadingdone", fit);
+    globalThis.addEventListener?.("resize", fit);
+    return () => {
+      if (frame !== null) globalThis.cancelAnimationFrame?.(frame);
+      observer?.disconnect();
+      globalThis.document?.fonts?.removeEventListener?.("loadingdone", fit);
+      globalThis.removeEventListener?.("resize", fit);
+    };
+  }, [dependency, enabled, property, ref, sampleSelector]);
+}
+
+function TargetItems({ children, textMode, fontState, style, dependency }) {
+  const ref = useRef(null);
+  useContainedContentFit(ref, { enabled: textMode, property: "--native-drag-drop-target-fit-scale", dependency });
+  return <span ref={ref} className="native-drag-drop-target-items" data-font-status={fontState.status} style={style}>{children}</span>;
+}
 
 export function NativeDragDropStudentSurface({
   document, assetUrl = () => "", responses: controlled = null, initialResponses = null, onResponsesChange = null,
@@ -65,7 +134,6 @@ export function NativeDragDropStudentSurface({
 }) {
   const interaction = document.parts[0].interaction;
   const textMode = interaction.layoutMode === "text";
-  const configuredBank = Number.isFinite(interaction.answerBankHeightPx);
   const [local, setLocal] = useState(() => normalizeNativeDragDropResponses(initialResponses, document));
   const [localPanelIndex, setLocalPanelIndex] = useState(0);
   const [selectedWordId, setSelectedWordId] = useState(null);
@@ -75,6 +143,7 @@ export function NativeDragDropStudentSurface({
   const [sessionWordIds, setSessionWordIds] = useState(() => shuffleNativeDragDropWordIds(interaction.words));
   const [dragPreview, setDragPreview] = useState(null);
   const dragRef = useRef(null);
+  const bankItemsRef = useRef(null);
   const returnTimer = useRef(null);
   const suppressClickWordId = useRef(null);
   const lastResetToken = useRef(resetToken);
@@ -94,6 +163,12 @@ export function NativeDragDropStudentSurface({
   const visibilityWords = textMode ? interaction.words.map((word) => ({ ...word, reusable: false })) : interaction.words;
   const visibleWordIds = visibleNativeDragDropWordIds(sessionWordIds, responses, targetWordOverrides, visibilityWords);
   const visibleWords = visibleWordIds.map((wordId) => wordById.get(wordId)).filter(Boolean);
+  useContainedContentFit(bankItemsRef, {
+    enabled: textMode,
+    property: "--native-drag-drop-bank-fit-scale",
+    sampleSelector: ".native-drag-drop-word",
+    dependency: `${panelIndex}|${visibleWordIds.join("\0")}|${bankFontState.status}|${bankWordStyle.fontSize}|${interaction.answerBankHeightPx || "default"}`,
+  });
   const clearFeedback = () => setIncorrectTargetId(null);
   const clearReturnTimer = () => { if (returnTimer.current) globalThis.clearTimeout(returnTimer.current); returnTimer.current = null; };
   const clearDrag = () => { clearReturnTimer(); dragRef.current = null; setDragPreview(null); setDragOverTargetId(null); };
@@ -189,8 +264,8 @@ export function NativeDragDropStudentSurface({
   if (!panel) return <p role="status">This Drag &amp; Drop activity has no panels yet.</p>;
   const previewWord = dragPreview ? wordById.get(dragPreview.wordId) : null;
   const bank = <div className="native-drag-drop-bank" aria-label={textMode ? "Phrase bank" : "Word bank"} data-font-status={bankFontState.status} style={{ zIndex: panel.images.length + 4 }}>
-    <div className="native-drag-drop-bank-items">
-      {visibleWords.map((word) => <button key={word.id} type="button" className={`native-drag-drop-word${textMode ? " native-drag-drop-phrase" : ""}`} style={{ fontFamily: bankFont, fontSize: `${(bankWordStyle.fontSize / panel.surface.width) * 100}cqw`, color: bankWordStyle.color }} aria-label={textMode ? `${word.shortLabel}, ${word.text}` : word.text} aria-pressed={selectedWordId === word.id} data-drag-drop-word-id={word.id} data-dragging={dragPreview?.wordId === word.id && !dragPreview.returning || undefined} disabled={readOnly} onClick={() => { if (suppressClickWordId.current === word.id) { suppressClickWordId.current = null; return; } clearFeedback(); setSelectedWordId((current) => current === word.id ? null : word.id); }} onPointerDown={(event) => beginDrag(event, word.id)} onPointerMove={moveDrag} onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)} onLostPointerCapture={(event) => finishDrag(event, true)}>{textMode ? <><span className="native-drag-drop-short-label" data-drag-drop-drag-handle>{word.shortLabel}</span><span>{word.shortLabel}. {word.text}</span></> : word.text}</button>)}
+    <div ref={bankItemsRef} className="native-drag-drop-bank-items">
+      {visibleWords.map((word) => <button key={word.id} type="button" className={`native-drag-drop-word${textMode ? " native-drag-drop-phrase" : ""}`} style={{ fontFamily: bankFont, fontSize: textMode ? `calc(${(bankWordStyle.fontSize / panel.surface.width) * 100}cqw * var(--native-drag-drop-bank-fit-scale, 1))` : `${(bankWordStyle.fontSize / panel.surface.width) * 100}cqw`, color: bankWordStyle.color }} aria-label={textMode ? `${word.shortLabel}, ${word.text}` : word.text} aria-pressed={selectedWordId === word.id} data-drag-drop-word-id={word.id} data-dragging={dragPreview?.wordId === word.id && !dragPreview.returning || undefined} disabled={readOnly} onClick={() => { if (suppressClickWordId.current === word.id) { suppressClickWordId.current = null; return; } clearFeedback(); setSelectedWordId((current) => current === word.id ? null : word.id); }} onPointerDown={(event) => beginDrag(event, word.id)} onPointerMove={moveDrag} onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)} onLostPointerCapture={(event) => finishDrag(event, true)}>{textMode ? <><span className="native-drag-drop-short-label" data-drag-drop-drag-handle>{word.shortLabel}</span><span>{word.shortLabel}. {word.text}</span></> : word.text}</button>)}
     </div>
     <span className="native-drag-drop-status" role="status" aria-live="polite">{announcement || (selectedWordId ? `${textMode ? `${wordById.get(selectedWordId)?.shortLabel}, ${wordById.get(selectedWordId)?.text}` : wordById.get(selectedWordId)?.text || "Item"} selected. Choose a target.` : "")}</span>
   </div>;
@@ -215,17 +290,17 @@ export function NativeDragDropStudentSurface({
     return <div key={target.id} role="button" tabIndex={readOnly ? -1 : 0} className={`native-drag-drop-target${presentationMode ? " native-drag-drop-teacher-target" : ""}`} style={{ ...logicalAreaStyle(target.area, panel.surface), zIndex: panel.images.length + 2 }} data-drag-drop-target-id={target.id} data-occupied={Boolean(placedWords.length) || undefined} data-full={full || undefined} data-revealed={Boolean(overrideWords.length) || undefined} data-incorrect={incorrectTargetId === target.id || undefined} data-drag-over={dragOverTargetId === target.id || undefined} aria-disabled={readOnly || undefined} aria-label={`${target.accessibleLabel}, contains ${contents}, ${placedWords.length} of ${target.capacity} places used`} onClick={activate} onKeyDown={(event) => {
       if ((event.key === "Enter" || event.key === " ") && !readOnly) { event.preventDefault(); activate(); }
       if ((event.key === "Delete" || event.key === "Backspace") && placedWords.length && !readOnly) { event.preventDefault(); remove(target, placedWords[placedWords.length - 1]); }
-    }}><span className="native-drag-drop-target-items" data-font-status={placedFontState.status} style={{ fontFamily: placedFont, fontSize: `${(placedAnswerStyle.fontSize / panel.surface.width) * 100}cqw`, color: placedAnswerStyle.color }}>{visibleWordsAtTarget.map((word) => overrideWords.length || readOnly ? <span key={word.id} className="native-drag-drop-target-text" data-drag-drop-target-text aria-label={textMode ? `${word.shortLabel}, ${word.text}` : word.text}>{textMode ? word.shortLabel : word.text}</span> : <button key={word.id} type="button" className="native-drag-drop-target-text" data-drag-drop-target-text aria-label={`Remove ${textMode ? `${word.shortLabel}, ${word.text}` : word.text} from ${target.accessibleLabel}`} onClick={(event) => { event.stopPropagation(); remove(target, word); }} onKeyDown={(event) => { if (event.key === "Delete" || event.key === "Backspace") { event.preventDefault(); event.stopPropagation(); remove(target, word); } }}>{textMode ? word.shortLabel : word.text}</button>)}</span></div>;
+    }}><TargetItems textMode={textMode} fontState={placedFontState} dependency={`${target.id}|${visibleWordsAtTarget.map((word) => word.id).join("\0")}|${placedFontState.status}|${placedAnswerStyle.fontSize}`} style={{ fontFamily: placedFont, fontSize: textMode ? `calc(${(placedAnswerStyle.fontSize / panel.surface.width) * 100}cqw * var(--native-drag-drop-target-fit-scale, 1))` : `${(placedAnswerStyle.fontSize / panel.surface.width) * 100}cqw`, color: placedAnswerStyle.color }}>{visibleWordsAtTarget.map((word) => overrideWords.length || readOnly ? <span key={word.id} className="native-drag-drop-target-text" data-drag-drop-target-text aria-label={textMode ? `${word.shortLabel}, ${word.text}` : word.text}>{textMode ? word.shortLabel : word.text}</span> : <button key={word.id} type="button" className="native-drag-drop-target-text" data-drag-drop-target-text aria-label={`Remove ${textMode ? `${word.shortLabel}, ${word.text}` : word.text} from ${target.accessibleLabel}`} onClick={(event) => { event.stopPropagation(); remove(target, word); }} onKeyDown={(event) => { if (event.key === "Delete" || event.key === "Backspace") { event.preventDefault(); event.stopPropagation(); remove(target, word); } }}>{textMode ? word.shortLabel : word.text}</button>)}</TargetItems></div>;
   });
   const rootStyle = {
     ...(interaction.answerBankHeightPx ? { "--native-drag-drop-bank-height": `${interaction.answerBankHeightPx}px` } : {}),
     ...(interaction.textPanelHeightPx ? { "--native-drag-drop-text-panel-height": `${interaction.textPanelHeightPx}px` } : {}),
   };
-  const preview = previewWord && dragPreview ? <span className="native-drag-drop-drag-preview" data-drag-drop-drag-preview data-returning={dragPreview.returning || undefined} aria-label={textMode ? `${previewWord.shortLabel}, ${previewWord.text}` : previewWord.text} style={{ left: dragPreview.clientX - dragPreview.offsetX, top: dragPreview.clientY - dragPreview.offsetY, width: dragPreview.sourceRect.width, height: dragPreview.sourceRect.height, minWidth: dragPreview.sourceRect.width, maxWidth: "none", minHeight: dragPreview.sourceRect.height, maxHeight: "none", ...dragPreview.previewStyle }}>{textMode ? previewWord.shortLabel : previewWord.text}</span> : null;
+  const preview = previewWord && dragPreview ? <span className={`${textMode ? "native-drag-drop-short-label" : "native-drag-drop-word"} native-drag-drop-drag-preview`} data-drag-drop-drag-preview data-returning={dragPreview.returning || undefined} aria-label={textMode ? `${previewWord.shortLabel}, ${previewWord.text}` : previewWord.text} style={{ left: dragPreview.clientX - dragPreview.offsetX, top: dragPreview.clientY - dragPreview.offsetY, width: dragPreview.sourceRect.width, height: dragPreview.sourceRect.height, minWidth: dragPreview.sourceRect.width, maxWidth: "none", minHeight: dragPreview.sourceRect.height, maxHeight: "none", ...dragPreview.previewStyle }}>{textMode ? previewWord.shortLabel : previewWord.text}</span> : null;
   return <section className={`native-drag-drop ${presentationMode ? "native-drag-drop-teacher" : "native-drag-drop-student"}`} aria-label={document.metadata.title} data-layout-mode={textMode ? "text" : "standard"} data-configured-bank-height={interaction.answerBankHeightPx ? "true" : undefined} data-read-only={readOnly || undefined} style={rootStyle}>
     <div className="native-drag-drop-visual-region">
-      <div className="native-drag-drop-workspace"><PanelArtwork document={document} panel={panel} assetUrl={assetUrl} textMode={textMode}>{targets}{!textMode && !configuredBank ? bank : null}</PanelArtwork></div>
-      {textMode || configuredBank ? bank : null}
+      <div className="native-drag-drop-workspace"><PanelArtwork document={document} panel={panel} assetUrl={assetUrl} textMode={textMode}>{targets}{!textMode ? bank : null}</PanelArtwork></div>
+      {textMode ? bank : null}
       {!presentation ? <PanelNavigation panels={interaction.panels} panelIndex={panelIndex} setPanelIndex={setPanelIndex} /> : null}
     </div>
     {preview && globalThis.document?.body ? createPortal(preview, globalThis.document.body) : preview}

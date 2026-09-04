@@ -119,6 +119,47 @@ async function dragBetween(page, source, target) {
   await page.mouse.up();
 }
 
+const dragChipStyleProperties = [
+  "boxSizing", "fontFamily", "fontSize", "fontStyle", "fontStretch", "fontVariant", "fontWeight", "lineHeight", "letterSpacing", "wordSpacing",
+  "whiteSpace", "overflowWrap", "wordBreak", "paddingTop", "paddingRight", "paddingBottom", "paddingLeft",
+  "borderTopWidth", "borderTopStyle", "borderTopColor", "borderRightWidth", "borderRightStyle", "borderRightColor",
+  "borderBottomWidth", "borderBottomStyle", "borderBottomColor", "borderLeftWidth", "borderLeftStyle", "borderLeftColor",
+  "borderTopLeftRadius", "borderTopRightRadius", "borderBottomRightRadius", "borderBottomLeftRadius",
+  "backgroundColor", "color", "textAlign", "verticalAlign", "display", "alignItems", "justifyContent",
+];
+
+async function renderedChipSnapshot(locator) {
+  return locator.evaluate((element, properties) => {
+    const rect = element.getBoundingClientRect();
+    const style = getComputedStyle(element);
+    return {
+      rect: { width: rect.width, height: rect.height },
+      style: Object.fromEntries(properties.map((property) => [property, style[property]])),
+    };
+  }, dragChipStyleProperties);
+}
+
+export async function assertPixelIdenticalDragPreview(page, source) {
+  await source.scrollIntoViewIfNeeded();
+  const sourceSnapshot = await renderedChipSnapshot(source);
+  const sourceBox = await source.boundingBox();
+  assert.ok(sourceBox);
+  const start = { x: sourceBox.x + sourceBox.width * .37, y: sourceBox.y + sourceBox.height * .61 };
+  await page.mouse.move(start.x, start.y);
+  await page.mouse.down();
+  await page.mouse.move(start.x + 34, start.y - 24, { steps: 5 });
+  const preview = page.locator("[data-drag-drop-drag-preview]");
+  await preview.waitFor();
+  const previewSnapshot = await renderedChipSnapshot(preview);
+  assert.ok(Math.abs(sourceSnapshot.rect.width - previewSnapshot.rect.width) <= 1, JSON.stringify({ sourceSnapshot, previewSnapshot }));
+  assert.ok(Math.abs(sourceSnapshot.rect.height - previewSnapshot.rect.height) <= 1, JSON.stringify({ sourceSnapshot, previewSnapshot }));
+  assert.deepEqual(previewSnapshot.style, sourceSnapshot.style, "the portal preview preserves the source chip's rendered typography and box styling");
+  await page.mouse.up();
+  await preview.waitFor({ state: "detached" });
+  await source.click();
+  if (await source.getAttribute("aria-pressed") === "true") await source.click();
+}
+
 async function dispatchImmediatePointerSequence(source, target, { cancel = false } = {}) {
   const [sourceBox, targetBox] = await Promise.all([source.boundingBox(), target.boundingBox()]);
   assert.ok(sourceBox && targetBox);
@@ -174,6 +215,11 @@ export async function exerciseDragDropProxy(page, surface, pair) {
   const wrongWordId = pair.publicDocument.parts[0].interaction.words.find((word) => word.id !== correctWordId)?.id;
   assert.ok(correctWordId && wrongWordId);
   const wrongWord = surface.locator(`[data-drag-drop-word-id="${wrongWordId}"]`);
+  const candidateWords = surface.locator("[data-drag-drop-word-id]");
+  const candidateTexts = await candidateWords.evaluateAll((nodes) => nodes.map((node) => node.textContent.trim()));
+  const orderedIndexes = candidateTexts.map((text, index) => ({ index, length: text.length })).sort((left, right) => left.length - right.length);
+  const previewIndexes = [...new Set([orderedIndexes[0]?.index, orderedIndexes.at(-1)?.index].filter(Number.isInteger))];
+  for (const index of previewIndexes) await assertPixelIdenticalDragPreview(page, candidateWords.nth(index));
   await wrongWord.scrollIntoViewIfNeeded();
   const [wrongBox, targetBox] = await Promise.all([wrongWord.boundingBox(), target.boundingBox()]);
   assert.ok(wrongBox && targetBox);

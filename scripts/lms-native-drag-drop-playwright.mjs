@@ -73,6 +73,62 @@ try {
   const surface = page.locator(".native-drag-drop");
   await surface.waitFor();
   await page.waitForFunction(() => document.querySelector(".native-drag-drop-stage")?.getBoundingClientRect().height > 0);
+  await page.evaluate(async () => {
+    await document.fonts?.ready;
+    await Promise.all([...document.images]
+      .filter((image) => !image.complete)
+      .map((image) => new Promise((resolve) => {
+        image.addEventListener("load", resolve, { once: true });
+        image.addEventListener("error", resolve, { once: true });
+      })));
+    const nextFrame = () => new Promise((resolve) => requestAnimationFrame(resolve));
+    let previous = null;
+    let stableFrames = 0;
+    for (let frame = 0; frame < 120; frame += 1) {
+      await nextFrame();
+      const box = document.querySelector(".native-drag-drop-stage")?.getBoundingClientRect();
+      const current = box ? [box.left, box.top, box.width, box.height] : [];
+      if (previous && current.every((value, index) => Math.abs(value - previous[index]) <= .01)) stableFrames += 1;
+      else stableFrames = 0;
+      if (stableFrames >= 3) return;
+      previous = current;
+    }
+    throw new Error("Native Drag & Drop stage did not settle before geometry assertions.");
+  });
+  const stableRects = [];
+  for (const height of [120, 180, 220]) {
+    const metrics = await surface.evaluate(async (element, bankHeight) => {
+      element.dataset.configuredBankHeight = "true";
+      element.style.setProperty("--native-drag-drop-bank-height", `${bankHeight}px`);
+      await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+      const rect = (selector) => {
+        const box = element.querySelector(selector)?.getBoundingClientRect();
+        return box ? { left: box.left, top: box.top, right: box.right, bottom: box.bottom, width: box.width, height: box.height } : null;
+      };
+      return {
+        surface: (() => { const box = element.getBoundingClientRect(); return { left: box.left, top: box.top, right: box.right, bottom: box.bottom, width: box.width, height: box.height }; })(),
+        workspace: rect(".native-drag-drop-workspace"),
+        stage: rect(".native-drag-drop-stage"),
+        artwork: rect(".native-drag-drop-artwork"),
+        bank: rect(".native-drag-drop-bank"),
+        target: rect("[data-drag-drop-target-id]"),
+      };
+    }, height);
+    assert.ok(Math.abs(metrics.bank.height - height) <= 1, JSON.stringify({ height, metrics }));
+    assert.ok(Math.abs(metrics.bank.bottom - metrics.stage.bottom) <= 1, JSON.stringify({ height, metrics }));
+    stableRects.push(metrics);
+  }
+  const stableProperties = ["left", "top", "width", "height"];
+  for (const metrics of stableRects.slice(1)) {
+    for (const region of ["surface", "workspace", "stage", "artwork", "target"]) {
+      for (const property of stableProperties) assert.ok(Math.abs(metrics[region][property] - stableRects[0][region][property]) <= 1, JSON.stringify({ region, property, baseline: stableRects[0], metrics }));
+    }
+    assert.ok(Math.abs(metrics.stage.width / metrics.stage.height - stableRects[0].stage.width / stableRects[0].stage.height) <= .001, JSON.stringify(metrics));
+  }
+  await surface.evaluate((element) => {
+    delete element.dataset.configuredBankHeight;
+    element.style.removeProperty("--native-drag-drop-bank-height");
+  });
   const measure = () => surface.evaluate((element) => {
     const snapshot = (node) => {
       if (!node) return null;
