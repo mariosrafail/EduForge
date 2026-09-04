@@ -141,7 +141,8 @@ async function dispatchImmediatePointerSequence(source, target, { cancel = false
 export async function exerciseValidatedDragDrop(page, surface, pair) {
   const target = surface.locator("[data-drag-drop-target-id]").first();
   const targetId = await target.getAttribute("data-drag-drop-target-id");
-  const correctWordId = pair.teacherDocument.parts[0].solution.mappings.find((entry) => entry.targetId === targetId)?.wordId;
+  const mapping = pair.teacherDocument.parts[0].solution.mappings.find((entry) => entry.targetId === targetId);
+  const correctWordId = mapping?.wordIds?.[0] || mapping?.wordId;
   const wrongWordId = pair.publicDocument.parts[0].interaction.words.find((word) => word.id !== correctWordId)?.id;
   assert.ok(correctWordId && wrongWordId);
   const wrongWord = surface.locator(`[data-drag-drop-word-id="${wrongWordId}"]`);
@@ -154,36 +155,39 @@ export async function exerciseValidatedDragDrop(page, surface, pair) {
   assert.equal(await target.getAttribute("data-occupied"), null);
   assert.equal(await target.getAttribute("data-incorrect"), "true");
   assert.equal(await wrongWord.count(), 1);
-  assert.equal(await surface.getByRole("status").textContent(), "");
+  assert.match(await surface.getByRole("status").textContent(), /does not belong/);
   assert.doesNotMatch(await target.getAttribute("aria-label"), /incorrect|wrong/i);
   assert.equal(await target.evaluate((element) => getComputedStyle(element).borderColor), "rgb(185, 28, 28)");
   await dispatchImmediatePointerSequence(correctWord, target);
   assert.equal(await target.getAttribute("data-occupied"), "true");
   assert.equal(await target.getAttribute("data-incorrect"), null);
   assert.equal(await correctWord.count(), 0, "a correctly placed word leaves the bank");
-  assert.equal(await surface.getByRole("status").textContent(), "");
+  assert.match(await surface.getByRole("status").textContent(), /placed in/);
   return target;
 }
 
 export async function exerciseDragDropProxy(page, surface, pair) {
   const target = surface.locator("[data-drag-drop-target-id]").first();
   const targetId = await target.getAttribute("data-drag-drop-target-id");
-  const correctWordId = pair.teacherDocument.parts[0].solution.mappings.find((entry) => entry.targetId === targetId)?.wordId;
+  const mapping = pair.teacherDocument.parts[0].solution.mappings.find((entry) => entry.targetId === targetId);
+  const correctWordId = mapping?.wordIds?.[0] || mapping?.wordId;
   const wrongWordId = pair.publicDocument.parts[0].interaction.words.find((word) => word.id !== correctWordId)?.id;
   assert.ok(correctWordId && wrongWordId);
   const wrongWord = surface.locator(`[data-drag-drop-word-id="${wrongWordId}"]`);
   await wrongWord.scrollIntoViewIfNeeded();
   const [wrongBox, targetBox] = await Promise.all([wrongWord.boundingBox(), target.boundingBox()]);
   assert.ok(wrongBox && targetBox);
+  const pointerOffset = { x: wrongBox.width * .23, y: wrongBox.height * .71 };
   const destination = { x: targetBox.x + targetBox.width / 2, y: targetBox.y + targetBox.height / 2 };
-  await page.mouse.move(wrongBox.x + wrongBox.width / 2, wrongBox.y + wrongBox.height / 2);
+  await page.mouse.move(wrongBox.x + pointerOffset.x, wrongBox.y + pointerOffset.y);
   await page.mouse.down();
   await page.mouse.move(destination.x, destination.y, { steps: 6 });
-  const proxy = surface.locator("[data-drag-drop-drag-preview]");
+  const proxy = page.locator("[data-drag-drop-drag-preview]");
   await proxy.waitFor();
   const proxyBox = await proxy.boundingBox();
   assert.ok(proxyBox && destination.x >= proxyBox.x && destination.x <= proxyBox.x + proxyBox.width && destination.y >= proxyBox.y && destination.y <= proxyBox.y + proxyBox.height, "the drag proxy follows mouse coordinates");
-  assert.ok(Math.abs(proxyBox.x + proxyBox.width / 2 - destination.x) < 2 && Math.abs(proxyBox.y + proxyBox.height / 2 - destination.y) < 2, "the drag proxy is centered on the mouse pointer");
+  assert.ok(Math.abs(proxyBox.width - wrongBox.width) <= 1 && Math.abs(proxyBox.height - wrongBox.height) <= 1, "the portal drag proxy preserves the source border-box dimensions");
+  assert.ok(Math.abs(proxyBox.x + pointerOffset.x - destination.x) < 2 && Math.abs(proxyBox.y + pointerOffset.y - destination.y) < 2, "the drag proxy preserves the mouse pointer's source-relative offset");
   await page.mouse.up();
   await expect(target).toHaveAttribute("data-incorrect", "true");
   await expect(proxy).toHaveAttribute("data-returning", "true");
@@ -216,6 +220,17 @@ export async function exerciseDragDropProxy(page, surface, pair) {
   await dispatchPointer(correctWord, "pointercancel", { button: 0, buttons: 0, clientX: touchEnd.x, clientY: touchEnd.y }, { pointerId: 71, pointerType: "touch" });
   await proxy.waitFor({ state: "detached" });
   assert.equal(await correctWord.count(), 1, "pointer cancellation preserves the source word");
+
+  await correctWord.focus();
+  await correctWord.press("Enter");
+  await expect(correctWord).toHaveAttribute("aria-pressed", "true");
+  await target.focus();
+  await target.press("Enter");
+  await expect(target).toHaveAttribute("data-occupied", "true");
+  assert.match(await surface.getByRole("status").textContent(), /placed in/);
+  await target.press("Delete");
+  await expect(target).not.toHaveAttribute("data-occupied", "true");
+  assert.equal(await surface.locator(`[data-drag-drop-word-id="${correctWordId}"]`).count(), 1, "keyboard removal restores a consumed word");
 }
 
 export async function exerciseDragDropPanelTransitionGuard(surface) {
@@ -268,7 +283,8 @@ export async function exerciseDragDropResetGuard(page, surface, resetButton, pai
   assert.equal(await source.getAttribute("aria-pressed"), "false");
 
   const targetId = await target.getAttribute("data-drag-drop-target-id");
-  const correctWordId = pair.teacherDocument.parts[0].solution.mappings.find((entry) => entry.targetId === targetId)?.wordId;
+  const mapping = pair.teacherDocument.parts[0].solution.mappings.find((entry) => entry.targetId === targetId);
+  const correctWordId = mapping?.wordIds?.[0] || mapping?.wordId;
   const wrongWordId = pair.publicDocument.parts[0].interaction.words.find((word) => word.id !== correctWordId)?.id;
   assert.ok(correctWordId && wrongWordId);
   const wrongWord = surface.locator(`[data-drag-drop-word-id="${wrongWordId}"]`);

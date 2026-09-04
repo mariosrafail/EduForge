@@ -29,6 +29,7 @@ import {
 } from "./nativeOpenResponse.js";
 import {
   assessNativeDragDropReadiness,
+  nativeDragDropShortLabel,
   NATIVE_DRAG_DROP_LIMITS,
   normalizeNativeDragDropInteraction,
   normalizeNativeDragDropSolution,
@@ -341,9 +342,17 @@ function normalizeDragDropCandidate(publicDocument, teacherDocument, parsed, cre
   const interaction = publicCandidate.parts[0].interaction;
   [...interaction.words].slice(parsed.length).forEach((word) => removeNativeDragDropWord(publicCandidate, teacherCandidate, word.id));
   const existing = interaction.words;
-  interaction.words = parsed.map((word, index) => ({ id: existing[index]?.id || createId("word"), text: word.text }));
+  interaction.words = parsed.map((word, index) => ({
+    id: existing[index]?.id || createId("word"),
+    text: word.text,
+    reusable: interaction.layoutMode === "text" ? false : existing[index]?.reusable || false,
+    shortLabel: existing[index]?.shortLabel || nativeDragDropShortLabel(index),
+  }));
   const targets = interaction.panels.flatMap((panel) => panel.dropTargets);
-  teacherCandidate.parts[0].solution.mappings = targets.slice(0, interaction.words.length).map((target, index) => ({ targetId: target.id, wordId: interaction.words[index].id }));
+  teacherCandidate.parts[0].solution.mappings = targets.slice(0, interaction.words.length).map((target, index) => {
+    target.capacity = 1;
+    return { targetId: target.id, wordIds: [interaction.words[index].id] };
+  });
   const normalized = normalizeCandidatePair(publicCandidate, teacherCandidate, "drag-drop", normalizeNativeDragDropInteraction, normalizeNativeDragDropSolution);
   if (targets.length === normalized.teacherDocument.parts[0].solution.mappings.length) validateNativeDragDropTopology(normalized.publicDocument, normalized.teacherDocument);
   const baseReadiness = assessNativeDragDropReadiness(normalized.publicDocument, normalized.teacherDocument);

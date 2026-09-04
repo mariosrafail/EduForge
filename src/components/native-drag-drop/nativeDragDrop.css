@@ -24,21 +24,38 @@
 .native-drag-drop-artwork img { display: block; width: 100%; height: 100%; }
 .native-drag-drop-target { position: absolute; box-sizing: border-box; display: grid; place-items: center; min-width: 0; min-height: 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: transparent; box-shadow: none; overflow: hidden; cursor: pointer; }
 .native-drag-drop-target[data-occupied], .native-drag-drop-target[data-revealed] { border: 0; background: transparent; }
-.native-drag-drop-target-text { display: block; box-sizing: border-box; max-width: 100%; max-height: 100%; padding: 2px 4px; font-weight: 700; line-height: 1.15; overflow: hidden; overflow-wrap: anywhere; white-space: pre-wrap; text-align: center; pointer-events: none; }
-.native-drag-drop-target[data-drag-over]:not([data-occupied]):not([data-revealed]) { outline: 2px solid rgb(37 99 235 / 72%); outline-offset: -2px; background: rgb(219 234 254 / 18%); }
+.native-drag-drop-target-items { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 3px; box-sizing: border-box; max-width: 100%; max-height: 100%; padding: 2px; overflow: auto; overscroll-behavior: contain; }
+.native-drag-drop-target-text { display: block; box-sizing: border-box; max-width: 100%; max-height: 100%; margin: 0; padding: 2px 4px; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 700; line-height: 1.15; overflow: visible; overflow-wrap: anywhere; white-space: pre-wrap; text-align: center; }
+button.native-drag-drop-target-text { cursor: pointer; }
+.native-drag-drop-target[data-drag-over]:not([data-full]):not([data-revealed]) { outline: 2px solid rgb(37 99 235 / 72%); outline-offset: -2px; background: rgb(219 234 254 / 18%); }
 .native-drag-drop-target[data-incorrect] { border: 2px solid #b91c1c; background: rgb(254 226 226 / 94%); color: #7f1d1d; box-shadow: 0 0 0 3px rgb(248 113 113 / 52%); }
-.native-drag-drop-target:focus-visible, .native-drag-drop-word:focus-visible, .native-drag-drop-panel-navigation button:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
-.native-drag-drop-bank { position: absolute; inset: auto 0 0; box-sizing: border-box; display: grid; grid-template-rows: minmax(0, 1fr) auto; width: 100%; height: 20%; min-width: 0; min-height: 0; padding: clamp(4px, .8cqw, 8px); border: 0; border-top: 1px solid rgb(100 116 139 / 55%); background: rgb(248 250 252 / 88%); backdrop-filter: blur(2px); overflow: hidden; }
+.native-drag-drop-target:focus-visible, .native-drag-drop-target-text:focus-visible, .native-drag-drop-word:focus-visible, .native-drag-drop-panel-navigation button:focus-visible { outline: 3px solid #f59e0b; outline-offset: 2px; }
+.native-drag-drop-bank { position: absolute; inset: auto 0 0; box-sizing: border-box; display: grid; grid-template-rows: minmax(0, 1fr) auto; width: 100%; height: var(--native-drag-drop-bank-height, 20%); min-width: 0; min-height: 0; padding: clamp(4px, .8cqw, 8px); border: 0; border-top: 1px solid rgb(100 116 139 / 55%); background: rgb(248 250 252 / 88%); backdrop-filter: blur(2px); overflow: hidden; }
 .native-drag-drop-bank-items { display: flex; flex-wrap: wrap; gap: clamp(3px, .65cqw, 7px); align-content: flex-start; min-height: 0; overflow: auto; overscroll-behavior: contain; }
-.native-drag-drop-word, .native-drag-drop-drag-preview { box-sizing: border-box; padding: clamp(4px, .75cqw, 8px) clamp(7px, 1.1cqw, 12px); border: 1px solid #64748b; border-radius: 999px; background: #fff; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; white-space: pre-wrap; }
+.native-drag-drop-word { box-sizing: border-box; padding: clamp(4px, .75cqw, 8px) clamp(7px, 1.1cqw, 12px); border: 1px solid #64748b; border-radius: 999px; background: #fff; font-weight: 700; line-height: 1.15; overflow-wrap: anywhere; white-space: pre-wrap; }
 .native-drag-drop-word { cursor: grab; touch-action: none; }
 .native-drag-drop-word[aria-pressed="true"] { border-color: #1d4ed8; background: #dbeafe; box-shadow: 0 0 0 2px #60a5fa; }
 .native-drag-drop-word[data-dragging] { opacity: .24; }
 .native-drag-drop-word.is-reference { display: inline-block; cursor: default; }
-.native-drag-drop-drag-preview { position: fixed; z-index: 10000; display: grid; place-items: center; margin: 0; pointer-events: none; box-shadow: 0 8px 22px rgb(15 23 42 / 30%); transform: translate(-50%, -50%) scale(1.03); transition: none; }
-.native-drag-drop-drag-preview[data-returning] { transform: translate(-50%, -50%) scale(1); transition: left 160ms ease-out, top 160ms ease-out, transform 160ms ease-out; }
+.native-drag-drop-drag-preview { position: fixed; z-index: 2147483647; margin: 0; overflow: visible; pointer-events: none; box-shadow: 0 8px 22px rgb(15 23 42 / 30%); transition: none; }
+.native-drag-drop-drag-preview[data-returning] { transition: left 160ms ease-out, top 160ms ease-out; }
 @media (prefers-reduced-motion: reduce) { .native-drag-drop-drag-preview[data-returning] { transition: none; } }
 .native-drag-drop-status { display: block; min-height: 1.15em; margin-top: 1px; color: #334155; font: 700 clamp(.58rem, 1cqw, .76rem)/1.15 system-ui, sans-serif; }
 .native-drag-drop-panel-navigation { position: absolute; z-index: 200; top: 8px; left: 50%; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 4px 7px; border-radius: 8px; background: rgb(248 250 252 / 88%); font: 600 .86rem/1.15 system-ui, sans-serif; transform: translateX(-50%); }
 .native-drag-drop-panel-navigation button { padding: 5px 9px; }
 .native-drag-drop[data-read-only] .native-drag-drop-target, .native-drag-drop[data-read-only] .native-drag-drop-word { cursor: default; }
+
+.native-drag-drop[data-layout-mode="standard"][data-configured-bank-height] .native-drag-drop-visual-region { display: grid; grid-template-rows: minmax(0, 1fr) var(--native-drag-drop-bank-height); }
+.native-drag-drop[data-layout-mode="standard"][data-configured-bank-height] .native-drag-drop-bank { position: relative; inset: auto; height: var(--native-drag-drop-bank-height); }
+.native-drag-drop[data-layout-mode="standard"][data-configured-bank-height] .native-drag-drop-stage-slot > .native-drag-drop-stage > .native-drag-drop-bank { display: none; }
+
+.native-drag-drop[data-layout-mode="text"] { aspect-ratio: auto; }
+.native-drag-drop[data-layout-mode="text"] .native-drag-drop-visual-region { display: grid; grid-template-rows: minmax(0, 1fr) var(--native-drag-drop-bank-height, 180px); height: min(100%, calc(var(--native-drag-drop-text-panel-height, 360px) + var(--native-drag-drop-bank-height, 180px))); }
+.native-drag-drop[data-layout-mode="text"] .native-drag-drop-workspace { max-height: var(--native-drag-drop-text-panel-height, 360px); overflow: auto; overscroll-behavior: contain; }
+.native-drag-drop[data-layout-mode="text"] .native-drag-drop-stage-slot { height: auto; min-height: 100%; overflow: visible; }
+.native-drag-drop[data-layout-mode="text"] .native-drag-drop-stage { height: 100%; }
+.native-drag-drop[data-layout-mode="text"] .native-drag-drop-bank { position: relative; inset: auto; height: var(--native-drag-drop-bank-height, 180px); }
+.native-drag-drop-phrase { display: flex; align-items: center; gap: 8px; width: 100%; border-radius: 10px; text-align: left; }
+.native-drag-drop-short-label { display: inline-grid; place-items: center; flex: 0 0 auto; box-sizing: border-box; min-width: 2em; min-height: 2em; padding: 3px 6px; border: 1px solid #64748b; border-radius: 999px; background: #fff; color: inherit; font: inherit; font-weight: 700; line-height: 1.15; text-align: center; white-space: nowrap; }
+.native-drag-drop[data-layout-mode="text"] .native-drag-drop-target-items { flex-wrap: wrap; gap: 1px; padding: 1px; }
+.native-drag-drop[data-layout-mode="text"] .native-drag-drop-target-text { min-width: 1.35em; padding: 1px 2px; border: 1px solid currentColor; border-radius: 4px; background: #fff; white-space: nowrap; }

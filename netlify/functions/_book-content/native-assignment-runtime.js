@@ -195,6 +195,18 @@ function dragDropTargets(document = {}) {
   return (document.parts?.[0]?.interaction?.panels || []).flatMap((panel) => panel.dropTargets || []);
 }
 
+function dragDropMappingWordIds(mapping) {
+  return Array.isArray(mapping?.wordIds) ? mapping.wordIds.map(String) : typeof mapping?.wordId === "string" ? [String(mapping.wordId)] : [];
+}
+
+function dragDropResponseWordIds(value) {
+  return Array.isArray(value) ? value.map(String) : typeof value === "string" ? [value] : [];
+}
+
+function sameIdSet(left, right) {
+  return left.length === right.length && new Set(left).size === left.length && left.every((id) => right.includes(id));
+}
+
 function normalizeDragDrop(publicDocument, rawEnvelope) {
   if (!rawEnvelope || typeof rawEnvelope !== "object" || Array.isArray(rawEnvelope)
     || rawEnvelope.schemaVersion !== NATIVE_RESPONSE_SCHEMA_VERSION
@@ -204,34 +216,51 @@ function normalizeDragDrop(publicDocument, rawEnvelope) {
   const interaction = publicDocument.parts?.[0]?.interaction || {};
   const targets = dragDropTargets(publicDocument);
   const allowedTargets = new Set(targets.map((target) => String(target.id)));
-  const allowedWords = new Set((interaction.words || []).map((word) => String(word.id)));
+  const wordById = new Map((interaction.words || []).map((word) => [String(word.id), word]));
+  const targetById = new Map(targets.map((target) => [String(target.id), target]));
   const values = new Map(); const usedWords = new Set();
   for (const item of rawEnvelope.items) {
     if (!item || typeof item !== "object" || Array.isArray(item) || Object.keys(item).sort().join(",") !== "id,value") return { error: "Each response item must contain exactly id and value" };
-    const targetId = String(item.id || ""); const wordId = String(item.value || "");
-    if (!allowedTargets.has(targetId) || !allowedWords.has(wordId) || values.has(targetId) || usedWords.has(wordId)) return { error: `Drag & Drop response ${targetId} is invalid` };
-    values.set(targetId, wordId); usedWords.add(wordId);
+    const targetId = String(item.id || ""); const wordIds = dragDropResponseWordIds(item.value); const target = targetById.get(targetId);
+    if (!allowedTargets.has(targetId) || !target || !wordIds.length || wordIds.length > (target.capacity || 1) || new Set(wordIds).size !== wordIds.length || values.has(targetId) || wordIds.some((wordId) => !wordById.has(wordId))) return { error: `Drag & Drop response ${targetId} is invalid` };
+    for (const wordId of wordIds) {
+      const reusable = interaction.layoutMode !== "text" && wordById.get(wordId)?.reusable === true;
+      if (!reusable && usedWords.has(wordId)) return { error: `Drag & Drop response ${targetId} is invalid` };
+      if (!reusable) usedWords.add(wordId);
+    }
+    values.set(targetId, wordIds);
   }
   return { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, payload: { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, kind: "drag-drop", items: targets.filter((target) => values.has(String(target.id))).map((target) => ({ id: String(target.id), value: values.get(String(target.id)) })) } };
 }
 
 function scoreDragDrop(publicDocument, teacherDocument, payload = {}) {
   const targets = dragDropTargets(publicDocument);
-  const responses = new Map((payload.items || []).map((item) => [String(item.id), String(item.value)]));
-  const correct = new Map((teacherDocument.parts?.[0]?.solution?.mappings || []).map((mapping) => [String(mapping.targetId), String(mapping.wordId)]));
-  const correctCount = targets.filter((target) => responses.get(String(target.id)) === correct.get(String(target.id))).length;
+  const responses = new Map((payload.items || []).map((item) => [String(item.id), dragDropResponseWordIds(item.value)]));
+  const correct = new Map((teacherDocument.parts?.[0]?.solution?.mappings || []).map((mapping) => [String(mapping.targetId), dragDropMappingWordIds(mapping)]));
+  const correctCount = targets.filter((target) => {
+    const expected = correct.get(String(target.id)) || [];
+    return expected.length > 0 && sameIdSet(responses.get(String(target.id)) || [], expected);
+  }).length;
   const totalCount = targets.length;
   return { status: "submitted", correctCount, totalCount, scorePercent: totalCount ? Math.round(correctCount / totalCount * 100) : 0 };
 }
 
 function dragDropReview(publicDocument, teacherDocument, payload = {}) {
-  const words = new Map((publicDocument.parts?.[0]?.interaction?.words || []).map((word) => [String(word.id), word.text]));
-  const responses = new Map((payload.items || []).map((item) => [String(item.id), String(item.value)]));
-  const correct = new Map((teacherDocument.parts?.[0]?.solution?.mappings || []).map((mapping) => [String(mapping.targetId), String(mapping.wordId)]));
+  const words = new Map((publicDocument.parts?.[0]?.interaction?.words || []).map((word) => [String(word.id), word]));
+  const responses = new Map((payload.items || []).map((item) => [String(item.id), dragDropResponseWordIds(item.value)]));
+  const correct = new Map((teacherDocument.parts?.[0]?.solution?.mappings || []).map((mapping) => [String(mapping.targetId), dragDropMappingWordIds(mapping)]));
   return dragDropTargets(publicDocument).map((target) => {
-    const selectedWordId = responses.get(String(target.id)) || null;
-    const correctWordId = correct.get(String(target.id)) || null;
-    return { questionId: String(target.id), prompt: target.accessibleLabel || "", answer: words.get(selectedWordId) || "", modelAnswer: words.get(correctWordId) || "", isCorrect: selectedWordId !== null && selectedWordId === correctWordId, feedback: "" };
+    const selectedWordIds = responses.get(String(target.id)) || [];
+    const correctWordIds = correct.get(String(target.id)) || [];
+    const selectedTexts = selectedWordIds.map((id) => words.get(id)?.text).filter(Boolean);
+    const correctTexts = correctWordIds.map((id) => words.get(id)?.text).filter(Boolean);
+    const textMode = publicDocument.parts?.[0]?.interaction?.layoutMode === "text";
+    return {
+      questionId: String(target.id), prompt: target.accessibleLabel || "",
+      answer: selectedTexts.join("; "), modelAnswer: correctTexts.join("; "), answers: selectedTexts, modelAnswers: correctTexts,
+      ...(textMode ? { answerLabels: selectedWordIds.map((id) => words.get(id)?.shortLabel).filter(Boolean), modelAnswerLabels: correctWordIds.map((id) => words.get(id)?.shortLabel).filter(Boolean) } : {}),
+      isCorrect: selectedWordIds.length > 0 && sameIdSet(selectedWordIds, correctWordIds), feedback: "",
+    };
   });
 }
 

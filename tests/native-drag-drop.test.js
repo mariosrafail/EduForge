@@ -11,6 +11,8 @@ import {
   assessNativeDragDropReadiness,
   NATIVE_DRAG_DROP_DEFAULT_PRESENTATION,
   nativeDragDropAssetRequirements,
+  nativeDragDropMappingWordIds,
+  nativeDragDropShortLabel,
   normalizeNativeDragDropResponses,
   placeNativeDragDropWord,
   reassignNativeDragDropMapping,
@@ -132,11 +134,11 @@ test("Drag & Drop rejects unknown fields, invalid geometry, duplicate identities
   const duplicate = pair(); duplicate.publicDocument.parts[0].interaction.panels[1].dropTargets[0].id = targetIds[0];
   assert.throws(() => duplicate.kind.normalizePublic(duplicate.publicDocument), /duplicate/);
   const dangling = pair(); dangling.teacherDocument.parts[0].solution.mappings[0].wordId = id("word", 999);
-  assert.throws(() => dangling.kind.validatePair(dangling.publicDocument, dangling.teacherDocument), /exactly one private stable-ID mapping/);
+  assert.throws(() => dangling.kind.validatePair(dangling.publicDocument, dangling.teacherDocument), /private stable-ID mapping/);
   const reused = pair(); reused.teacherDocument.parts[0].solution.mappings[1].wordId = reused.teacherDocument.parts[0].solution.mappings[0].wordId;
-  assert.throws(() => reused.kind.normalizeTeacher(reused.teacherDocument), /reused/);
+  assert.throws(() => reused.kind.validatePair(reused.publicDocument, reused.teacherDocument), /only reusable items/);
   const missing = pair(); missing.teacherDocument.parts[0].solution.mappings.pop();
-  assert.throws(() => missing.kind.validatePair(missing.publicDocument, missing.teacherDocument), /exactly one/);
+  assert.throws(() => missing.kind.validatePair(missing.publicDocument, missing.teacherDocument), /one private/);
 });
 
 test("managed image requirements close every layer once and canonical removals retain shared assets", () => {
@@ -153,12 +155,12 @@ test("managed image requirements close every layer once and canonical removals r
 
 test("controlled response helpers place, move, displace, remove, and sanitize one word instance", () => {
   const current = pair();
-  assert.deepEqual(normalizeNativeDragDropResponses({ [targetIds[0]]: wordIds[0], [targetIds[1]]: wordIds[0], unknown: wordIds[2] }, current.publicDocument), { [targetIds[0]]: wordIds[0] });
+  assert.deepEqual(normalizeNativeDragDropResponses({ [targetIds[0]]: wordIds[0], [targetIds[1]]: wordIds[0], unknown: wordIds[2] }, current.publicDocument), { [targetIds[0]]: [wordIds[0]] });
   let responses = placeNativeDragDropWord({}, targetIds[0], wordIds[0]);
   responses = placeNativeDragDropWord(responses, targetIds[1], wordIds[0]);
-  assert.deepEqual(responses, { [targetIds[1]]: wordIds[0] }, "moving a word clears its old target");
+  assert.deepEqual(responses, { [targetIds[1]]: [wordIds[0]] }, "moving a word clears its old target");
   responses = placeNativeDragDropWord(responses, targetIds[1], wordIds[1]);
-  assert.deepEqual(responses, { [targetIds[1]]: wordIds[1] }, "placing into an occupied target displaces its old word");
+  assert.deepEqual(responses, { [targetIds[1]]: [wordIds[1]] }, "placing into an occupied target displaces its old word");
   assert.deepEqual(removeNativeDragDropResponse(responses, targetIds[1]), {});
 });
 
@@ -176,12 +178,40 @@ test("session word order shuffles immutably and consumed words return to the sam
   assert.deepEqual(visibleNativeDragDropWordIds(order, {}, overrides), [wordIds[1], wordIds[0]]);
 });
 
-test("stable-ID mapping reassignment swaps occupied mappings without relying on duplicate text", () => {
+test("stable-ID mapping reassignment supports exact arrays and only permits reusable cross-target use", () => {
   const current = pair().teacherDocument.parts[0].solution.mappings;
-  const swapped = reassignNativeDragDropMapping(current, targetIds[0], wordIds[0]);
-  assert.deepEqual(swapped, [{ targetId: targetIds[0], wordId: wordIds[0] }, { targetId: targetIds[1], wordId: wordIds[1] }]);
+  assert.throws(() => reassignNativeDragDropMapping(current, targetIds[0], [wordIds[0]]), /Only reusable/);
+  const reused = reassignNativeDragDropMapping(current, targetIds[0], [wordIds[0]], { reusableWordIds: new Set([wordIds[0]]) });
+  assert.deepEqual(reused, [{ targetId: targetIds[1], wordIds: [wordIds[0]] }, { targetId: targetIds[0], wordIds: [wordIds[0]] }]);
   assert.deepEqual(current, [{ targetId: targetIds[0], wordId: wordIds[1] }, { targetId: targetIds[1], wordId: wordIds[0] }], "the private draft input remains immutable");
-  assert.throws(() => reassignNativeDragDropMapping([{ targetId: targetIds[0], wordId: wordIds[0] }], targetIds[1], wordIds[0]), /cannot be assigned/);
+});
+
+test("multi-answer, reusable, text layout, stable labels, heights, and legacy shapes normalize compatibly", () => {
+  const current = pair();
+  const interaction = current.publicDocument.parts[0].interaction;
+  interaction.layoutMode = "standard"; interaction.answerBankHeightPx = 164; interaction.textPanelHeightPx = 420;
+  interaction.words[0].reusable = true; interaction.words[0].shortLabel = "A";
+  interaction.words[1].reusable = false; interaction.words[1].shortLabel = "B";
+  interaction.words[2].reusable = false; interaction.words[2].shortLabel = "AA";
+  interaction.panels[0].dropTargets[0].capacity = 2;
+  interaction.panels[1].dropTargets[0].capacity = 1;
+  current.teacherDocument.parts[0].solution.mappings = [
+    { targetId: targetIds[0], wordIds: [wordIds[0], wordIds[1]] },
+    { targetId: targetIds[1], wordIds: [wordIds[0]] },
+  ];
+  const normalizedPublic = current.kind.normalizePublic(current.publicDocument);
+  const normalizedTeacher = current.kind.normalizeTeacher(current.teacherDocument);
+  assert.equal(current.kind.validatePair(normalizedPublic, normalizedTeacher), true);
+  assert.deepEqual(normalizedTeacher.parts[0].solution.mappings[0].wordIds, [wordIds[0], wordIds[1]]);
+  assert.deepEqual(normalizeNativeDragDropResponses({ [targetIds[0]]: [wordIds[1], wordIds[0]], [targetIds[1]]: wordIds[0] }, normalizedPublic), { [targetIds[0]]: [wordIds[1], wordIds[0]], [targetIds[1]]: [wordIds[0]] });
+  let placed = placeNativeDragDropWord({}, targetIds[0], wordIds[0], { capacity: 2, reusable: true });
+  placed = placeNativeDragDropWord(placed, targetIds[1], wordIds[0], { capacity: 1, reusable: true });
+  assert.deepEqual(placed, { [targetIds[0]]: [wordIds[0]], [targetIds[1]]: [wordIds[0]] });
+  assert.deepEqual(visibleNativeDragDropWordIds(wordIds, placed, null, normalizedPublic.parts[0].interaction.words), wordIds);
+  assert.equal(nativeDragDropShortLabel(25), "Z"); assert.equal(nativeDragDropShortLabel(26), "AA");
+  assert.deepEqual(nativeDragDropMappingWordIds({ wordId: wordIds[0] }), [wordIds[0]]);
+  const text = structuredClone(normalizedPublic); text.parts[0].interaction.layoutMode = "text"; text.parts[0].interaction.words[0].reusable = true;
+  assert.throws(() => current.kind.normalizePublic(text), /cannot be reusable/);
 });
 
 test("Teacher reveal state supports individual, next, all, reset, and idempotent actions", () => {
@@ -229,16 +259,16 @@ test("Builder and web/Android runtimes expose managed panels, controlled respons
     readFile(new URL("../src/config/buildProfiles.js", import.meta.url), "utf8"),
   ]);
   assert.match(editor, /Add Background/); assert.match(editor, /Add Image/); assert.match(editor, /Replace image/); assert.match(editor, /Draw Drop Target/); assert.match(editor, /Teacher-only correct mappings/); assert.match(editor, /Move panel/); assert.match(editor, /Remove this word and its private target mapping/);
-  assert.match(editor, /Correct word mapping/); assert.match(editor, /<StageGeometryControls/); assert.match(editor, /reassignNativeDragDropMapping/); assert.match(editor, /resolveWordForTarget/); assert.match(editor, /DragDropTextStyleControls/); assert.match(editor, /getBuilderFontLibrary/);
+  assert.match(editor, /Correct word mapping \(select one or more\)/); assert.match(editor, /<StageGeometryControls/); assert.match(editor, /setMappingWords/); assert.match(editor, /resolveWordsForTarget/); assert.match(editor, /DragDropTextStyleControls/); assert.match(editor, /getBuilderFontLibrary/); assert.match(editor, /Text drag-and-drop/); assert.match(editor, /NativeDragDropHotspotBulkImporter/);
   assert.match(editor, /fit: "contain", locked: background/);
   assert.doesNotMatch(await readFile(new URL("../src/components/native-drag-drop/nativeDragDrop.css", import.meta.url), "utf8"), /\d+(?:\.\d+)?vh\b/, "activity sizing must be based on its container rather than the browser viewport");
   assert.match(surface, /onPointerDown/); assert.match(surface, /onPointerMove/); assert.match(surface, /elementFromPoint/); assert.match(surface, /selectedWordId/); assert.match(surface, /Delete/); assert.match(surface, /initialResponses/); assert.match(surface, /onResponsesChange/); assert.match(surface, /readOnly/);
-  assert.match(surface, /data-drag-drop-drag-preview/); assert.match(surface, /pointerType/); assert.match(surface, /DRAG_MOVEMENT_THRESHOLD/); assert.match(surface, /onPointerCancel/); assert.match(surface, /onLostPointerCapture/); assert.match(surface, /visibleNativeDragDropWordIds/); assert.match(surface, /resolveWordForTarget/);
+  assert.match(surface, /data-drag-drop-drag-preview/); assert.match(surface, /pointerType/); assert.match(surface, /DRAG_MOVEMENT_THRESHOLD/); assert.match(surface, /onPointerCancel/); assert.match(surface, /onLostPointerCapture/); assert.match(surface, /visibleNativeDragDropWordIds/); assert.match(surface, /resolveWordsForTarget/); assert.match(surface, /createPortal/); assert.match(surface, /sourceRect\.height/); assert.match(surface, /offsetX/);
   assert.match(surface, /data-drag-drop-target-text/); assert.doesNotMatch(surface, /Choose a word, then choose a target/);
   assert.doesNotMatch(surface, /Drop here|data-used/);
   assert.match(studentRunner, /NativeDragDropStudentSurface/); assert.doesNotMatch(studentRunner, /NativeDragDropTeacherSurface|loadPublishedNativeTeacherDocument|teacherDocument/);
   assert.match(teacherRunner, /NativeDragDropTeacherSurface/); assert.match(teacherSurface, /teacherDocument\.parts\[0\]\.solution\.mappings/); assert.match(teacherSurface, /evaluatePlacement/);
-  assert.doesNotMatch(surface, /teacherDocument|solution\.mappings|wordIdByTarget|revealedWords|NativeDragDropTeacherSurface/);
+  assert.doesNotMatch(surface, /teacherDocument|solution\.mappings|wordIdsByTarget|revealedWords|NativeDragDropTeacherSurface/);
   assert.match(viteConfig, /appMode === "android-offline"[\s\S]*PublishedNativeStudentActivityRunner\.jsx[\s\S]*isTeacherRuntime \|\| isHostedInteractiveReview[\s\S]*PublishedNativeTeacherActivityRunner\.jsx/);
   assert.match(buildProfiles, /INTERACTIVE_HOSTED_REVIEW[\s\S]*Student Interactive mode is intentionally hidden[\s\S]*teacherPresentation: true/);
   assert.match(editor, /Student Preview/); assert.match(editor, /Teacher Preview/);

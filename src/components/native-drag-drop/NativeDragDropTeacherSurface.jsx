@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
-import { updateNativeDragDropRevealState } from "../../data/native-activities/nativeDragDrop.js";
+import { nativeDragDropMappingWordIds, updateNativeDragDropRevealState } from "../../data/native-activities/nativeDragDrop.js";
 import { NativeDragDropStudentSurface } from "./NativeDragDropSurface.jsx";
 
 export function NativeDragDropTeacherSurface({ publicDocument, teacherDocument, assetUrl = () => "", presentation = null }) {
   const interaction = publicDocument.parts[0].interaction;
   const targetIds = interaction.panels.flatMap((panel) => panel.dropTargets.map((target) => target.id));
   const wordById = new Map(interaction.words.map((word) => [word.id, word]));
-  const wordIdByTarget = new Map(teacherDocument.parts[0].solution.mappings.map((mapping) => [mapping.targetId, mapping.wordId]));
+  const wordIdsByTarget = new Map(teacherDocument.parts[0].solution.mappings.map((mapping) => [mapping.targetId, nativeDragDropMappingWordIds(mapping)]));
   const [panelIndex, setPanelIndex] = useState(0);
   const [revealed, setRevealed] = useState(() => new Set());
   const [resetToken, setResetToken] = useState(null);
@@ -31,11 +31,11 @@ export function NativeDragDropTeacherSurface({ publicDocument, teacherDocument, 
   }, [interaction.panels, presentation?.command, revealed, targetIds.join("\0")]);
   useEffect(() => presentation?.onStateChange?.({ panelIndex, panelCount: interaction.panels.length, reveal: { supported: true, total: targetIds.length, revealed: revealed.size, pristine: revealed.size === 0 } }), [interaction.panels.length, panelIndex, presentation?.onStateChange, revealed, targetIds.length]);
 
-  const revealedWords = new Map([...revealed].map((targetId) => [targetId, wordById.get(wordIdByTarget.get(targetId))]).filter(([, word]) => Boolean(word)));
+  const revealedWords = new Map([...revealed].map((targetId) => [targetId, (wordIdsByTarget.get(targetId) || []).map((wordId) => wordById.get(wordId)).filter(Boolean)]).filter(([, words]) => words.length));
   return <NativeDragDropStudentSurface
     document={publicDocument}
     assetUrl={assetUrl}
-    evaluatePlacement={(targetId, wordId) => wordIdByTarget.get(targetId) === wordId}
+    evaluatePlacement={(targetId, wordId) => (wordIdsByTarget.get(targetId) || []).includes(wordId)}
     targetWordOverrides={revealedWords}
     onEmptyTargetActivate={(targetId) => setRevealed((current) => updateNativeDragDropRevealState(current, targetIds, { targetId }))}
     panelIndex={panelIndex}

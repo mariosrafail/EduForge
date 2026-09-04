@@ -15,6 +15,10 @@ export const NATIVE_DRAG_DROP_LIMITS = Object.freeze({
   surfaceMaximum: NATIVE_IMAGE_LIMITS.surfaceMaximum,
   fontSizeMinimum: 8,
   fontSizeMaximum: 96,
+  answerBankHeightMinimum: 96,
+  answerBankHeightMaximum: 420,
+  textPanelHeightMinimum: 180,
+  textPanelHeightMaximum: 900,
 });
 
 export const NATIVE_DRAG_DROP_DEFAULT_SURFACE = NATIVE_IMAGE_DEFAULT_SURFACE;
@@ -23,6 +27,29 @@ export const NATIVE_DRAG_DROP_DEFAULT_PRESENTATION = Object.freeze({
   bankWordStyle: Object.freeze({ fontFamily: "Arial", fontSize: 18, color: "#172033", fontAssetSlot: null }),
   placedAnswerStyle: Object.freeze({ fontFamily: "Arial", fontSize: 21, color: "#172033", fontAssetSlot: null }),
 });
+export const NATIVE_DRAG_DROP_LAYOUT_MODES = Object.freeze(["standard", "text"]);
+export const NATIVE_DRAG_DROP_DEFAULT_LAYOUT = Object.freeze({
+  layoutMode: "standard",
+  answerBankHeightPx: 116,
+  textPanelHeightPx: 360,
+});
+
+export function nativeDragDropShortLabel(index) {
+  if (!Number.isSafeInteger(index) || index < 0) throw new Error("Drag & Drop short-label index is invalid.");
+  let value = index + 1;
+  let label = "";
+  while (value > 0) {
+    value -= 1;
+    label = String.fromCharCode(65 + (value % 26)) + label;
+    value = Math.floor(value / 26);
+  }
+  return label;
+}
+
+export function nativeDragDropMappingWordIds(mapping) {
+  if (Array.isArray(mapping?.wordIds)) return mapping.wordIds;
+  return typeof mapping?.wordId === "string" ? [mapping.wordId] : [];
+}
 
 function object(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object.`);
@@ -38,6 +65,11 @@ function exactKeys(value, keys, label) {
 function number(value, label, minimum, maximum) {
   if (typeof value !== "number" || !Number.isFinite(value) || value < minimum || value > maximum) throw new Error(`${label} is invalid.`);
   return Math.round(value * 1_000) / 1_000;
+}
+
+function integer(value, label, minimum, maximum) {
+  if (!Number.isSafeInteger(value) || value < minimum || value > maximum) throw new Error(`${label} is invalid.`);
+  return value;
 }
 
 function normalizeArea(input, surface, label) {
@@ -78,18 +110,39 @@ export function createEmptyNativeDragDropInteraction() {
 export function normalizeNativeDragDropInteraction(input, { assets = [], commonAssetSlots = new Set() } = {}) {
   const value = structuredClone(object(input, "Native Drag & Drop interaction"));
   const hasPresentation = Object.hasOwn(value, "presentation");
-  exactKeys(value, ["kind", "words", ...(hasPresentation ? ["presentation"] : []), "panels"], "Native Drag & Drop interaction");
+  const hasLayoutMode = Object.hasOwn(value, "layoutMode");
+  const hasAnswerBankHeight = Object.hasOwn(value, "answerBankHeightPx");
+  const hasTextPanelHeight = Object.hasOwn(value, "textPanelHeightPx");
+  exactKeys(value, ["kind", "words", ...(hasPresentation ? ["presentation"] : []), ...(hasLayoutMode ? ["layoutMode"] : []), ...(hasAnswerBankHeight ? ["answerBankHeightPx"] : []), ...(hasTextPanelHeight ? ["textPanelHeightPx"] : []), "panels"], "Native Drag & Drop interaction");
   if (value.kind !== "drag-drop") throw new Error("Native Drag & Drop interaction kind is invalid.");
   if (!Array.isArray(value.words) || value.words.length > NATIVE_DRAG_DROP_LIMITS.words) throw new Error("Native Drag & Drop word count is invalid.");
   if (!Array.isArray(value.panels) || value.panels.length > NATIVE_DRAG_DROP_LIMITS.panels) throw new Error("Native Drag & Drop panel count is invalid.");
 
+  const layoutMode = hasLayoutMode ? String(value.layoutMode) : "standard";
+  if (!NATIVE_DRAG_DROP_LAYOUT_MODES.includes(layoutMode)) throw new Error("Native Drag & Drop layout mode is invalid.");
+  const answerBankHeightPx = hasAnswerBankHeight && value.answerBankHeightPx !== null
+    ? integer(value.answerBankHeightPx, "Native Drag & Drop answer bank height", NATIVE_DRAG_DROP_LIMITS.answerBankHeightMinimum, NATIVE_DRAG_DROP_LIMITS.answerBankHeightMaximum)
+    : null;
+  const textPanelHeightPx = hasTextPanelHeight && value.textPanelHeightPx !== null
+    ? integer(value.textPanelHeightPx, "Native Drag & Drop text panel height", NATIVE_DRAG_DROP_LIMITS.textPanelHeightMinimum, NATIVE_DRAG_DROP_LIMITS.textPanelHeightMaximum)
+    : null;
+
   const wordIds = new Set();
+  const shortLabels = new Set();
   const words = value.words.map((word, index) => {
     const label = `Native Drag & Drop words[${index}]`;
-    exactKeys(word, ["id", "text"], label);
+    const hasReusable = Object.hasOwn(word, "reusable");
+    const hasShortLabel = Object.hasOwn(word, "shortLabel");
+    exactKeys(word, ["id", "text", ...(hasReusable ? ["reusable"] : []), ...(hasShortLabel ? ["shortLabel"] : [])], label);
     if (!isNativeChildId(word.id, "word") || wordIds.has(word.id)) throw new Error("Native Drag & Drop word identity is invalid or duplicate.");
     wordIds.add(word.id);
-    return { id: word.id, text: normalizeNativePedagogicalText(word.text, `${label}.text`, NATIVE_DRAG_DROP_LIMITS.wordTextLength, { required: true }) };
+    const reusable = hasReusable ? word.reusable : false;
+    if (typeof reusable !== "boolean") throw new Error(`${label}.reusable must be a boolean.`);
+    if (layoutMode === "text" && reusable) throw new Error("Text Drag & Drop items cannot be reusable.");
+    const shortLabel = hasShortLabel ? normalizeNativeSingleLineText(word.shortLabel, `${label}.shortLabel`, 8, { required: true }) : nativeDragDropShortLabel(index);
+    if (!/^[A-Z]{1,8}$/.test(shortLabel) || shortLabels.has(shortLabel)) throw new Error("Native Drag & Drop short labels must be unique uppercase letters.");
+    shortLabels.add(shortLabel);
+    return { id: word.id, text: normalizeNativePedagogicalText(word.text, `${label}.text`, NATIVE_DRAG_DROP_LIMITS.wordTextLength, { required: true }), reusable, shortLabel };
   });
 
   const presentation = normalizePresentation(value.presentation, assets);
@@ -118,13 +171,15 @@ export function normalizeNativeDragDropInteraction(input, { assets = [], commonA
     });
     const dropTargets = panel.dropTargets.map((target, targetIndex) => {
       const targetLabel = `${label}.dropTargets[${targetIndex}]`;
-      exactKeys(target, ["id", "area", "accessibleLabel"], targetLabel);
+      const hasCapacity = Object.hasOwn(target, "capacity");
+      exactKeys(target, ["id", "area", "accessibleLabel", ...(hasCapacity ? ["capacity"] : [])], targetLabel);
       if (!isNativeChildId(target.id, "target") || targetIds.has(target.id)) throw new Error("Native Drag & Drop target identity is invalid or duplicate.");
       targetIds.add(target.id);
       return {
         id: target.id,
         area: normalizeArea(target.area, composition.surface, `${targetLabel}.area`),
         accessibleLabel: normalizeNativeSingleLineText(target.accessibleLabel, `${targetLabel}.accessibleLabel`, NATIVE_DRAG_DROP_LIMITS.targetLabelLength, { required: true }),
+        capacity: hasCapacity ? integer(target.capacity, `${targetLabel}.capacity`, 1, NATIVE_DRAG_DROP_LIMITS.words) : 1,
       };
     });
     return { id: panel.id, surface: composition.surface, images: composition.images, dropTargets };
@@ -132,7 +187,7 @@ export function normalizeNativeDragDropInteraction(input, { assets = [], commonA
 
   [presentation.bankWordStyle.fontAssetSlot, presentation.placedAnswerStyle.fontAssetSlot].filter(Boolean).forEach((slot) => usedAssetSlots.add(slot));
   if (assets.some((asset) => !usedAssetSlots.has(asset.slot) && !commonAssetSlots.has(asset.slot))) throw new Error("Every Native Drag & Drop managed asset must be used by an image layer, text style, or common supporting content.");
-  return { kind: "drag-drop", words, presentation, panels };
+  return { kind: "drag-drop", words, presentation, layoutMode, answerBankHeightPx, textPanelHeightPx, panels };
 }
 
 export function normalizeNativeDragDropSolution(input) {
@@ -140,14 +195,15 @@ export function normalizeNativeDragDropSolution(input) {
   exactKeys(value, ["kind", "mappings"], "Native Drag & Drop Teacher solution");
   if (value.kind !== "drag-drop" || !Array.isArray(value.mappings) || value.mappings.length > NATIVE_DRAG_DROP_LIMITS.totalTargets) throw new Error("Native Drag & Drop Teacher solution is invalid.");
   const targetIds = new Set();
-  const wordIds = new Set();
   return { kind: "drag-drop", mappings: value.mappings.map((mapping, index) => {
     const label = `Native Drag & Drop mappings[${index}]`;
-    exactKeys(mapping, ["targetId", "wordId"], label);
+    const legacy = Object.hasOwn(mapping, "wordId") && !Object.hasOwn(mapping, "wordIds");
+    exactKeys(mapping, ["targetId", legacy ? "wordId" : "wordIds"], label);
     if (!isNativeChildId(mapping.targetId, "target") || targetIds.has(mapping.targetId)) throw new Error("Native Drag & Drop target mapping is invalid or duplicate.");
-    if (!isNativeChildId(mapping.wordId, "word") || wordIds.has(mapping.wordId)) throw new Error("Native Drag & Drop word mapping is invalid or reused.");
-    targetIds.add(mapping.targetId); wordIds.add(mapping.wordId);
-    return { targetId: mapping.targetId, wordId: mapping.wordId };
+    const wordIds = legacy ? [mapping.wordId] : mapping.wordIds;
+    if (!Array.isArray(wordIds) || !wordIds.length || wordIds.length > NATIVE_DRAG_DROP_LIMITS.words || wordIds.some((wordId) => !isNativeChildId(wordId, "word")) || new Set(wordIds).size !== wordIds.length) throw new Error("Native Drag & Drop word mapping is invalid or duplicated within a target.");
+    targetIds.add(mapping.targetId);
+    return { targetId: mapping.targetId, wordIds: [...wordIds] };
   }) };
 }
 
@@ -156,19 +212,30 @@ export function validateNativeDragDropTopology(publicDocument, teacherDocument) 
   const targets = interaction.panels.flatMap((panel) => panel.dropTargets);
   const targetIds = new Set(targets.map((target) => target.id));
   const wordIds = new Set(interaction.words.map((word) => word.id));
+  const reusableWordIds = new Set(interaction.words.filter((word) => word.reusable && interaction.layoutMode !== "text").map((word) => word.id));
   const mappings = teacherDocument.parts[0].solution.mappings;
+  const nonReusableUses = new Set();
   if (mappings.length !== targets.length
-    || mappings.some((mapping) => !targetIds.has(mapping.targetId) || !wordIds.has(mapping.wordId))
+    || mappings.some((mapping) => {
+      const expected = nativeDragDropMappingWordIds(mapping);
+      const target = targets.find((entry) => entry.id === mapping.targetId);
+      if (!targetIds.has(mapping.targetId) || !target || expected.length !== target.capacity || new Set(expected).size !== expected.length || expected.some((wordId) => !wordIds.has(wordId))) return true;
+      for (const wordId of expected) {
+        if (!reusableWordIds.has(wordId) && nonReusableUses.has(wordId)) return true;
+        if (!reusableWordIds.has(wordId)) nonReusableUses.add(wordId);
+      }
+      return false;
+    })
     || new Set(mappings.map((mapping) => mapping.targetId)).size !== mappings.length
-    || new Set(mappings.map((mapping) => mapping.wordId)).size !== mappings.length) {
-    throw new Error("Drag & Drop requires exactly one private stable-ID mapping per target and one target per word instance.");
+  ) {
+    throw new Error("Drag & Drop requires one private stable-ID mapping per target, exact capacity coverage, and only reusable items may map to multiple targets.");
   }
   return true;
 }
 
 export function assessNativeDragDropReadiness(publicDocument, teacherDocument) {
   const interaction = publicDocument.parts[0].interaction;
-  const mappings = new Map(teacherDocument.parts[0].solution.mappings.map((mapping) => [mapping.targetId, mapping.wordId]));
+  const mappings = new Map(teacherDocument.parts[0].solution.mappings.map((mapping) => [mapping.targetId, nativeDragDropMappingWordIds(mapping)]));
   const wordIds = new Set(interaction.words.map((word) => word.id));
   const issues = [];
   if (!interaction.words.length) issues.push("Add at least one draggable word.");
@@ -179,7 +246,8 @@ export function assessNativeDragDropReadiness(publicDocument, teacherDocument) {
     panel.images.forEach((image, imageIndex) => { if (!image.decorative && !image.altText) issues.push(`Panel ${panelIndex + 1} image ${imageIndex + 1} needs alt text or must be decorative.`); });
     panel.dropTargets.forEach((target, targetIndex) => {
       if (!target.accessibleLabel) issues.push(`Panel ${panelIndex + 1} target ${targetIndex + 1} needs an accessible label.`);
-      if (!wordIds.has(mappings.get(target.id))) issues.push(`Panel ${panelIndex + 1} target ${targetIndex + 1} needs a private correct word mapping.`);
+      const expected = mappings.get(target.id) || [];
+      if (expected.length !== target.capacity || expected.some((wordId) => !wordIds.has(wordId))) issues.push(`Panel ${panelIndex + 1} target ${targetIndex + 1} needs ${target.capacity} private correct item${target.capacity === 1 ? "" : "s"}.`);
     });
   });
   return { ready: issues.length === 0, issues };
@@ -230,26 +298,43 @@ export function removeNativeDragDropWord(publicDocument, teacherDocument, wordId
   const interaction = publicDocument.parts[0].interaction;
   if (!interaction.words.some((word) => word.id === wordId)) throw new Error("Drag & Drop word does not exist.");
   interaction.words = interaction.words.filter((word) => word.id !== wordId);
-  teacherDocument.parts[0].solution.mappings = teacherDocument.parts[0].solution.mappings.filter((mapping) => mapping.wordId !== wordId);
+  teacherDocument.parts[0].solution.mappings = teacherDocument.parts[0].solution.mappings.flatMap((mapping) => {
+    const wordIds = nativeDragDropMappingWordIds(mapping).filter((candidate) => candidate !== wordId);
+    return wordIds.length ? [{ targetId: mapping.targetId, wordIds }] : [];
+  });
 }
 
 export function normalizeNativeDragDropResponses(input, publicDocument) {
   const value = input && typeof input === "object" && !Array.isArray(input) ? input : {};
   const interaction = publicDocument.parts[0].interaction;
   const targetIds = new Set(interaction.panels.flatMap((panel) => panel.dropTargets.map((target) => target.id)));
-  const wordIds = new Set(interaction.words.map((word) => word.id));
+  const wordById = new Map(interaction.words.map((word) => [word.id, word]));
+  const targetById = new Map(interaction.panels.flatMap((panel) => panel.dropTargets.map((target) => [target.id, target])));
   const usedWords = new Set();
   const normalized = {};
-  for (const [targetId, wordId] of Object.entries(value)) {
-    if (!targetIds.has(targetId) || !wordIds.has(wordId) || usedWords.has(wordId)) continue;
-    usedWords.add(wordId); normalized[targetId] = wordId;
+  for (const [targetId, rawWordIds] of Object.entries(value)) {
+    const target = targetById.get(targetId);
+    const candidate = Array.isArray(rawWordIds) ? rawWordIds : [rawWordIds];
+    if (!targetIds.has(targetId) || !candidate.length || candidate.length > target.capacity || new Set(candidate).size !== candidate.length || candidate.some((wordId) => !wordById.has(wordId))) continue;
+    if (candidate.some((wordId) => !wordById.get(wordId).reusable && usedWords.has(wordId))) continue;
+    candidate.filter((wordId) => !wordById.get(wordId).reusable).forEach((wordId) => usedWords.add(wordId));
+    normalized[targetId] = [...candidate];
   }
   return normalized;
 }
 
-export function placeNativeDragDropWord(responses, targetId, wordId) {
-  const next = Object.fromEntries(Object.entries(responses || {}).filter(([currentTargetId, currentWordId]) => currentTargetId !== targetId && currentWordId !== wordId));
-  next[targetId] = wordId;
+export function placeNativeDragDropWord(responses, targetId, wordId, { capacity = 1, reusable = false } = {}) {
+  const next = Object.fromEntries(Object.entries(responses || {}).map(([id, value]) => [id, Array.isArray(value) ? [...value] : [value]]));
+  if (!reusable) {
+    for (const [currentTargetId, currentWordIds] of Object.entries(next)) {
+      if (currentTargetId === targetId) continue;
+      next[currentTargetId] = currentWordIds.filter((candidate) => candidate !== wordId);
+      if (!next[currentTargetId].length) delete next[currentTargetId];
+    }
+  }
+  const current = next[targetId] || [];
+  if (current.includes(wordId)) return next;
+  next[targetId] = capacity === 1 ? [wordId] : current.length < capacity ? [...current, wordId] : current;
   return next;
 }
 
@@ -264,26 +349,35 @@ export function shuffleNativeDragDropWordIds(words, random = Math.random) {
   return ids;
 }
 
-export function visibleNativeDragDropWordIds(sessionWordIds, responses = {}, targetWordOverrides = null) {
-  const consumed = new Set(Object.values(responses || {}));
-  if (targetWordOverrides instanceof Map) targetWordOverrides.forEach((word) => { if (word?.id) consumed.add(word.id); });
+export function visibleNativeDragDropWordIds(sessionWordIds, responses = {}, targetWordOverrides = null, words = []) {
+  const reusable = new Set(words.filter((word) => word.reusable).map((word) => word.id));
+  const consumed = new Set(Object.values(responses || {}).flatMap((value) => Array.isArray(value) ? value : [value]).filter((wordId) => !reusable.has(wordId)));
+  if (targetWordOverrides instanceof Map) targetWordOverrides.forEach((value) => { (Array.isArray(value) ? value : [value]).forEach((word) => { if (word?.id && !reusable.has(word.id)) consumed.add(word.id); }); });
   return (sessionWordIds || []).filter((wordId) => !consumed.has(wordId));
 }
 
-export function reassignNativeDragDropMapping(mappings, targetId, wordId) {
+export function reassignNativeDragDropMapping(mappings, targetId, wordIds, { reusableWordIds = new Set() } = {}) {
   if (!Array.isArray(mappings)) throw new Error("Drag & Drop mappings must be an array.");
-  const next = mappings.map((mapping) => ({ ...mapping }));
-  const current = next.find((mapping) => mapping.targetId === targetId);
-  const displaced = next.find((mapping) => mapping.wordId === wordId && mapping.targetId !== targetId);
-  if (displaced && !current) throw new Error("A used Drag & Drop word cannot be assigned to an unmapped target.");
-  if (displaced) displaced.wordId = current.wordId;
-  if (current) current.wordId = wordId;
-  else next.push({ targetId, wordId });
+  const expected = Array.isArray(wordIds) ? [...wordIds] : [wordIds];
+  if (!expected.length || new Set(expected).size !== expected.length) throw new Error("A target needs one or more unique Drag & Drop items.");
+  const next = mappings.filter((mapping) => mapping.targetId !== targetId).map((mapping) => ({ targetId: mapping.targetId, wordIds: [...nativeDragDropMappingWordIds(mapping)] }));
+  for (const wordId of expected) {
+    if (reusableWordIds.has(wordId)) continue;
+    const conflict = next.find((mapping) => mapping.wordIds.includes(wordId));
+    if (conflict) throw new Error("Only reusable Drag & Drop items can be correct for multiple targets.");
+  }
+  next.push({ targetId, wordIds: expected });
   return next;
 }
 
-export function removeNativeDragDropResponse(responses, targetId) {
-  return Object.fromEntries(Object.entries(responses || {}).filter(([currentTargetId]) => currentTargetId !== targetId));
+export function removeNativeDragDropResponse(responses, targetId, wordId = null) {
+  const next = Object.fromEntries(Object.entries(responses || {}).map(([id, value]) => [id, Array.isArray(value) ? [...value] : [value]]));
+  if (wordId === null) delete next[targetId];
+  else {
+    next[targetId] = (next[targetId] || []).filter((candidate) => candidate !== wordId);
+    if (!next[targetId].length) delete next[targetId];
+  }
+  return next;
 }
 
 export function updateNativeDragDropRevealState(current, targetIds, action) {

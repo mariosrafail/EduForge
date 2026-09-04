@@ -77,6 +77,32 @@ test("Drag & Drop assignment responses validate stable target and word ownership
   assert.match(capability.normalizeResponse(publicDragDrop, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: "forged", value: wordIds[0] }] }).error, /invalid/);
 });
 
+test("Drag & Drop assignment runtime accepts legacy scalars and canonical arrays with exact-set target scoring", () => {
+  const targetIds = ["target-11111111111111111111111111111111", "target-22222222222222222222222222222222"];
+  const wordIds = ["word-11111111111111111111111111111111", "word-22222222222222222222222222222222", "word-33333333333333333333333333333333"];
+  const publicDocument = { parts: [{ interaction: { kind: "drag-drop", layoutMode: "standard", words: [
+    { id: wordIds[0], text: "Reusable phrase", reusable: true, shortLabel: "A" },
+    { id: wordIds[1], text: "Second phrase", reusable: false, shortLabel: "B" },
+    { id: wordIds[2], text: "Wrong phrase", reusable: false, shortLabel: "C" },
+  ], panels: [{ dropTargets: [{ id: targetIds[0], accessibleLabel: "Two answers", capacity: 2 }, { id: targetIds[1], accessibleLabel: "One answer", capacity: 1 }] }] } }] };
+  const teacherDocument = { parts: [{ solution: { kind: "drag-drop", mappings: [
+    { targetId: targetIds[0], wordIds: [wordIds[0], wordIds[1]] }, { targetId: targetIds[1], wordIds: [wordIds[0]] },
+  ] } }] };
+  const capability = nativeAssignmentCapability("drag-drop");
+  const normalize = (items) => capability.normalizeResponse(publicDocument, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items });
+  const exact = normalize([{ id: targetIds[0], value: [wordIds[1], wordIds[0]] }, { id: targetIds[1], value: wordIds[0] }]);
+  assert.deepEqual(exact.payload.items[0].value, [wordIds[1], wordIds[0]]);
+  assert.deepEqual(capability.evaluateResponse(publicDocument, teacherDocument, exact.payload), { status: "submitted", correctCount: 2, totalCount: 2, scorePercent: 100 });
+  for (const value of [[wordIds[0]], [wordIds[0], wordIds[2]], [wordIds[0], wordIds[0]]]) {
+    const normalized = normalize([{ id: targetIds[0], value }]);
+    if (value[0] === value[1]) assert.match(normalized.error, /invalid/);
+    else assert.equal(capability.evaluateResponse(publicDocument, teacherDocument, normalized.payload).correctCount, 0);
+  }
+  assert.match(normalize([{ id: targetIds[0], value: [wordIds[1], wordIds[2]] }, { id: targetIds[1], value: wordIds[1] }]).error, /invalid/, "non-reusable items cannot appear in different targets");
+  const review = capability.teacherReviewProjection(publicDocument, teacherDocument, exact.payload);
+  assert.deepEqual(review[0].modelAnswers, ["Reusable phrase", "Second phrase"]);
+});
+
 test("Listening responses reuse ordered text semantics while keeping model answers Teacher-only", () => {
   const teacherDocument = { parts: [{ solution: { kind: "listening", modelAnswers: [
     { questionId: "q-first", text: "Private first" }, { questionId: "q-second", text: "Private second" },
