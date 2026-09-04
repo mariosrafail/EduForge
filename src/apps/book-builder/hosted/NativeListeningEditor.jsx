@@ -2,23 +2,27 @@ import { useEffect, useMemo, useState } from "react";
 import { StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
 import { NativeListeningStudentSurface, NativeListeningTeacherSurface } from "../../../components/native-listening/NativeListeningSurface.jsx";
 import { formatNativeListeningTime, parseNativeListeningDisplayTime, parseNativeListeningSrt } from "../../../components/native-listening/nativeListeningRuntime.js";
-import { NativeOldschoolListeningStudentSurface, NativeOldschoolListeningTeacherSurface } from "../../../components/native-oldschool-listening/NativeOldschoolListeningSurface.jsx";
+import { NativeOldschoolListeningStudentSurface } from "../../../components/native-oldschool-listening/NativeOldschoolListeningStudentSurface.jsx";
+import { NativeOldschoolListeningTeacherSurface } from "../../../components/native-oldschool-listening/NativeOldschoolListeningTeacherSurface.jsx";
 import { parseNativeOldschoolListeningSrt } from "../../../components/native-oldschool-listening/nativeOldschoolListeningRuntime.js";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { assessNativeListeningReadiness, initialNativeListeningArtworkArea } from "../../../data/native-activities/nativeListening.js";
 import { assessNativeOldschoolListeningReadiness, initialNativeOldschoolListeningArtworkArea } from "../../../data/native-activities/nativeOldschoolListening.js";
 import { clearNativeOldschoolListeningMappings } from "../../../data/native-activities/nativeOldschoolListeningAuthoring.js";
-import { createNativeOpenResponseQuestion, removeNativeOpenResponseArtwork, resizeNativeOpenResponseRegion } from "../../../data/native-activities/nativeOpenResponse.js";
+import { removeNativeOpenResponseArtwork, resizeNativeOpenResponseRegion } from "../../../data/native-activities/nativeOpenResponse.js";
 import { getBuilderContent } from "./builderContentApi.js";
 import { nativeFontPreviewUrl, saveNativeActivityPair, uploadNativeActivityArtwork, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
 import { NativeListeningQuestionAuthoring } from "./NativeListeningQuestionAuthoring.jsx";
+import { NativeSingleChoiceQuestionAuthoring } from "./NativeSingleChoiceQuestionAuthoring.jsx";
+import { NativeSingleChoiceVisualAuthoring } from "./NativeSingleChoiceVisualAuthoring.jsx";
 import { NativeListeningTranscriptAuthoring } from "./NativeListeningTranscriptAuthoring.jsx";
 import { NativeOldschoolListeningPageMappingAuthoring, NativeOldschoolListeningTimelineAuthoring } from "./NativeOldschoolListeningAuthoring.jsx";
 import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
 import { createOldschoolJsonActions, createOldschoolMappingActions, nativeListeningEditorTabs, nativeListeningMediaDuration, nativeListeningPreviewRoot, nativeOldschoolListeningEditorTabs, replaceNativeListeningAsset } from "./nativeListeningEditorSupport.js";
+import { useNativeListeningQuestionAuthoring } from "./useNativeListeningQuestionAuthoring.js";
 const clone = (value) => structuredClone(value);
 export function NativeListeningEditor({ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {}, onSaved = () => {}, activityKind = "listening" }) {
   const oldschool = activityKind === "oldschool-listening";
@@ -129,48 +133,18 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
   const cues = interaction?.cues || [];
   const snippets = interaction?.snippetHotspots || [];
   const selectedQuestion = questions.find((entry) => entry.id === selectedQuestionId) || null;
-  const selectedArtwork = questionSelection?.type === "artwork" ? interaction?.artwork.find((entry) => entry.id === questionSelection.id) || null : null;
+  const selectedArtwork = questionSelection?.type === "artwork" ? interaction?.artwork?.find((entry) => entry.id === questionSelection.id) || null : null;
   const selectedCue = cues.find((entry) => entry.id === selectedCueId) || null;
   const selectedSnippet = snippets.find((entry) => entry.id === selectedSnippetId) || null;
   const readiness = useMemo(() => (publicDraft && teacherDraft ? (oldschool ? assessNativeOldschoolListeningReadiness(publicDraft, teacherDraft) : assessNativeListeningReadiness(publicDraft, teacherDraft)) : null), [oldschool, publicDraft, teacherDraft]);
   const assetUrl = (assetId) => nativeListeningPreviewRoot(bookSlug, componentSlug, activityId, assetId);
   const previewAssetUrl = (assetId) => publicDraft?.assets.find((asset) => asset.assetId === assetId)?.role === "activity_font" ? nativeFontPreviewUrl(bookSlug, componentSlug, assetId) : assetUrl(assetId);
+  const questionAuthoring = useNativeListeningQuestionAuthoring({ oldschool, publicDraft, teacherDraft, setPublicDraft, setTeacherDraft, mutatePublic, mutatePair, changed, interaction, questions, selectedQuestion, selectedQuestionId, setSelectedQuestionId, setQuestionSelection, bookSlug, componentSlug, activityId, uploading, setUploading, setState, previewAssetUrl });
+  const { questionMode, addQuestion, removeQuestion, moveQuestion, switchQuestionMode, generateBulk: generateQuestionBulk, questionProps: singleChoiceQuestionProps, visualProps: singleChoiceVisualProps } = questionAuthoring;
   const audioReference = publicDraft?.assets.find((asset) => asset.slot === interaction?.audioAssetSlot);
   const backgroundReference = publicDraft?.assets.find((asset) => asset.slot === interaction?.panels[1].backgroundAssetSlot);
   const pageReference = publicDraft?.assets.find((asset) => asset.slot === interaction?.panels[1].pageAssetSlot);
   const selectedSnippetAudioReference = publicDraft?.assets.find((asset) => asset.slot === selectedSnippet?.audioAssetSlot) || null;
-  const addQuestion = () => {
-    const id = createNativeChildId("q");
-    mutatePair((nextPublic, nextTeacher) => {
-      nextPublic.parts[0].interaction.questions.push(createNativeOpenResponseQuestion(id, nextPublic.parts[0].interaction.questions.length));
-      nextTeacher.parts[0].solution.modelAnswers.push({
-        questionId: id,
-        text: "",
-      });
-    });
-    setSelectedQuestionId(id);
-    setQuestionSelection({ type: "prompt", id });
-  };
-  const removeQuestion = () => {
-    if (!selectedQuestion || !globalThis.confirm("Delete this question and its Teacher model answer?")) return;
-    const index = questions.indexOf(selectedQuestion);
-    mutatePair((nextPublic, nextTeacher) => {
-      nextPublic.parts[0].interaction.questions = nextPublic.parts[0].interaction.questions.filter((entry) => entry.id !== selectedQuestion.id);
-      nextTeacher.parts[0].solution.modelAnswers = nextTeacher.parts[0].solution.modelAnswers.filter((entry) => entry.questionId !== selectedQuestion.id);
-    });
-    setSelectedQuestionId(questions[index + 1]?.id || questions[index - 1]?.id || null);
-    setQuestionSelection(null);
-  };
-  const moveQuestion = (offset) =>
-    mutatePair((nextPublic, nextTeacher) => {
-      const publicItems = nextPublic.parts[0].interaction.questions;
-      const teacherItems = nextTeacher.parts[0].solution.modelAnswers;
-      const index = publicItems.findIndex((entry) => entry.id === selectedQuestionId);
-      const target = index + offset;
-      if (target < 0 || target >= publicItems.length) return;
-      [publicItems[index], publicItems[target]] = [publicItems[target], publicItems[index]];
-      nextTeacher.parts[0].solution.modelAnswers = publicItems.map((question) => teacherItems.find((answer) => answer.questionId === question.id));
-    });
   const addCue = () => {
     const id = createNativeChildId("cue");
     const startMs = cues.at(-1)?.endMs || 0;
@@ -558,6 +532,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
         {tab === "content" ? (
           <section className="studio-content-panel">
             <div className="studio-form-grid">
+              {oldschool ? <StudioField label="Panel 1 activity type"><select value={questionMode} onChange={(event) => switchQuestionMode(event.target.value)}><option value="open-response">Open Response</option><option value="single-choice">Multiple Choice</option></select></StudioField> : null}
               <StudioField label="Activity title">
                 <input
                   value={publicDraft.metadata.title}
@@ -572,7 +547,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
             </div>
           </section>
         ) : null}
-        {["content", "visual", "answer-key"].includes(tab) ? (
+        {["content", "visual", "answer-key"].includes(tab) && questionMode === "open-response" ? (
           <NativeListeningQuestionAuthoring
             mode={tab}
             {...{
@@ -609,9 +584,12 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
               bookSlug,
               componentSlug,
               onMessage: (message) => setState((current) => ({ ...current, message })),
+              generateBulk: generateQuestionBulk,
             }}
           />
         ) : null}
+        {["content", "answer-key"].includes(tab) && questionMode === "single-choice" ? <NativeSingleChoiceQuestionAuthoring {...singleChoiceQuestionProps} mode={tab} /> : null}
+        {tab === "visual" && questionMode === "single-choice" ? <NativeSingleChoiceVisualAuthoring {...singleChoiceVisualProps} /> : null}
         {!oldschool && tab === "audio-transcript" ? <NativeListeningTranscriptAuthoring panel={panelTwo} backgroundReference={backgroundReference} audioReference={audioReference} assetUrl={assetUrl} uploading={uploading} uploadAudio={uploadAudio} uploadBackground={uploadBackground} transcriptSurface={transcriptSurface} commitTranscriptArea={commitTranscriptArea} importSrt={importSrt} interaction={interaction} cues={cues} selectedCue={selectedCue} selectedCueId={selectedCueId} setSelectedCueId={setSelectedCueId} setPlayheadMs={setPlayheadMs} addCue={addCue} mutatePublic={mutatePublic} setCueTime={setCueTime} playheadMs={playheadMs} moveCue={moveCue} removeCue={removeCue} /> : null}
         {oldschool && tab === "audio-timeline" ? <NativeOldschoolListeningTimelineAuthoring interaction={interaction} audioReference={audioReference} pageReference={pageReference} assetUrl={assetUrl} uploading={uploading} uploadAudio={uploadAudio} uploadPage={uploadPage} importSrt={importSrt} importJson={importOldschoolJson} exportJson={exportOldschoolJson} cues={cues} selectedCue={selectedCue} selectedCueId={selectedCueId} setSelectedCueId={(id) => { setSelectedCueId(id); setSelectedRegionId(null); }} playheadMs={playheadMs} setPlayheadMs={setPlayheadMs} addCue={addCue} removeCue={removeCue} moveCue={moveCue} mutatePublic={mutatePublic} setCueTime={setCueTime} /> : null}
         {oldschool && tab === "page-mapping" ? <NativeOldschoolListeningPageMappingAuthoring interaction={interaction} pageReference={pageReference} assetUrl={assetUrl} selectedCue={selectedCue} selectedCueId={selectedCueId} setSelectedCueId={setSelectedCueId} selectedRegionId={selectedRegionId} setSelectedRegionId={setSelectedRegionId} mutatePublic={mutatePublic} addRegion={addPageRegion} updateRegion={updatePageRegion} removeRegion={removePageRegion} clearCueMappings={clearSelectedCueMappings} clearMappings={clearPageMappings} /> : null}

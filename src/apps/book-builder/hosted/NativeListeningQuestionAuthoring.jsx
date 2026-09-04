@@ -4,11 +4,12 @@ import { StageSelectionFrame } from "../../../components/builder-studio/StageSel
 import { StageGeometryControls } from "../../../components/builder-studio/StageGeometryControls.jsx";
 import { StudioButton, StudioField } from "../../../components/builder-studio/StudioControls.jsx";
 import { NativeOpenResponseFontSurface } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
-import { resizeNativeOpenResponseRegion } from "../../../data/native-activities/nativeOpenResponse.js";
+import { nativeOpenResponseModelAnswerTexts, resizeNativeOpenResponseRegion } from "../../../data/native-activities/nativeOpenResponse.js";
 import { NativeOpenResponseResponseControls } from "./NativeOpenResponseResponseControls.jsx";
+import { NativeBulkGenerator } from "./NativeBulkGenerator.jsx";
 import { useNativeListeningResponseFonts } from "./useNativeListeningResponseFonts.js";
 
-export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDraft, interaction, questions, cues, snippets, selectedQuestion, selectedArtwork, selectedSnippet, selectedSnippetAudioReference, selection, selectedArea, surface, assetUrl, uploading, setSelectedQuestionId, setSelectedSnippetId, setSelection, mutatePublic, mutateTeacher, addQuestion, removeQuestion, moveQuestion, uploadArtwork, uploadSnippetAudio, removeSnippetAudio, addSnippet, removeSnippet, removeArtwork, commitArea, bookSlug, componentSlug, onMessage }) {
+export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDraft, interaction, questions, cues, snippets, selectedQuestion, selectedArtwork, selectedSnippet, selectedSnippetAudioReference, selection, selectedArea, surface, assetUrl, uploading, setSelectedQuestionId, setSelectedSnippetId, setSelection, mutatePublic, mutateTeacher, addQuestion, removeQuestion, moveQuestion, uploadArtwork, uploadSnippetAudio, removeSnippetAudio, addSnippet, removeSnippet, removeArtwork, commitArea, bookSlug, componentSlug, onMessage, generateBulk = null }) {
   const { fonts, recordUploadedFont, setAnswerFont } = useNativeListeningResponseFonts({ bookSlug, componentSlug, mutatePublic, selectedQuestionId: selectedQuestion?.id, onMessage });
   const surfaceDocument = {
     ...publicDraft,
@@ -25,6 +26,15 @@ export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDra
     ],
   };
   const selectedSurfaceQuestion = selection && !["artwork", "snippet"].includes(selection.type) ? questions.find((entry) => entry.id === selection.id) : null;
+  const selectedAnswer = teacherDraft.parts[0].solution.modelAnswers.find((entry) => entry.questionId === selectedQuestion?.id);
+  const selectedAnswerTexts = nativeOpenResponseModelAnswerTexts(selectedAnswer);
+  const updateAnswer = (index, text) => mutateTeacher((next) => {
+    const target = next.parts[0].solution.modelAnswers.find((entry) => entry.questionId === selectedQuestion.id);
+    const texts = nativeOpenResponseModelAnswerTexts(target); texts[index] = text;
+    if (texts.length === 1) { target.text = text; delete target.modelAnswerTexts; } else { delete target.text; target.modelAnswerTexts = texts; }
+  });
+  const addAnswerVariant = () => mutateTeacher((next) => { const target = next.parts[0].solution.modelAnswers.find((entry) => entry.questionId === selectedQuestion.id); const texts = nativeOpenResponseModelAnswerTexts(target); if (texts.length < 2) texts.push(""); delete target.text; target.modelAnswerTexts = texts; });
+  const removeAnswerVariant = () => mutateTeacher((next) => { const target = next.parts[0].solution.modelAnswers.find((entry) => entry.questionId === selectedQuestion.id); target.text = nativeOpenResponseModelAnswerTexts(target)[0] || ""; delete target.modelAnswerTexts; });
   const changeResponse = (questionId, key, value) => mutatePublic((next) => {
     const target = next.parts[0].interaction.questions.find((question) => question.id === questionId);
     const presentation = target.responseRegion.presentation;
@@ -39,6 +49,7 @@ export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDra
     <div className="native-listening-question-authoring" data-authoring-mode={mode}>
       {["content", "answer-key"].includes(mode) ? (
         <div className="native-or-content">
+          {mode === "content" && generateBulk ? <NativeBulkGenerator kind="open-response" hasExistingContent={questions.length > 0} onGenerate={generateBulk} /> : null}
           <div className="native-or-question-workspace">
             <aside>
               {mode === "content" ? (
@@ -96,23 +107,7 @@ export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDra
                     />
                   </label>
                 ) : null}
-                {mode === "answer-key" ? (
-                  <label className="studio-teacher-field">
-                    <span>
-                      Teacher-only model answer <small>Private model answer · never shown to students</small>
-                    </span>
-                    <textarea
-                      aria-label="Private model answer"
-                      value={teacherDraft.parts[0].solution.modelAnswers.find((entry) => entry.questionId === selectedQuestion.id)?.text || ""}
-                      maxLength="5000"
-                      onChange={(event) =>
-                        mutateTeacher((next) => {
-                          next.parts[0].solution.modelAnswers.find((entry) => entry.questionId === selectedQuestion.id).text = event.target.value;
-                        })
-                      }
-                    />
-                  </label>
-                ) : null}
+                {mode === "answer-key" ? <><label className="studio-teacher-field"><span>Teacher-only model answer 1 <small>Private model answer · never shown to students</small></span><textarea aria-label="Private model answer 1" value={selectedAnswerTexts[0] || ""} maxLength="5000" onChange={(event) => updateAnswer(0, event.target.value)} /></label>{selectedAnswerTexts.length > 1 ? <label className="studio-teacher-field"><span>Teacher-only model answer 2 <button type="button" onClick={removeAnswerVariant}>Remove second model answer</button></span><textarea aria-label="Private model answer 2" value={selectedAnswerTexts[1] || ""} maxLength="5000" onChange={(event) => updateAnswer(1, event.target.value)} /></label> : <StudioButton onClick={addAnswerVariant}>Add second model answer</StudioButton>}</> : null}
               </section>
             ) : (
               <p>Add a question to begin.</p>
@@ -190,7 +185,7 @@ export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDra
               </div>
             </div>
             {selection ? (
-              <div className="studio-content-panel native-listening-question-properties">
+              <div className="studio-content-panel native-listening-question-properties" role="group" aria-label={`${selection.type === "snippet" ? "Show Text hotspot" : selection.type === "artwork" ? "Artwork" : selection.type === "response" ? "Response region" : "Prompt"} quick controls`}>
                 <h3>{selection.type === "snippet" ? "Show Text hotspot" : selection.type === "artwork" ? "Artwork" : selection.type === "response" ? "Response region" : "Prompt"}</h3>
                 <StageGeometryControls area={selectedArea} stage={surface} label={`Listening ${selection.type}`} minWidth={selection.type === "response" ? Math.max(80, 2 * selectedSurfaceQuestion.responseRegion.presentation.paddingX + 1) : 24} minHeight={selection.type === "response" ? Math.max(44, 2 * selectedSurfaceQuestion.responseRegion.presentation.paddingY + selectedSurfaceQuestion.responseRegion.presentation.lineSpacing) : 24} locked={Boolean(selectedArtwork?.locked)} onChange={commitArea} />
                 {selectedArtwork ? (
@@ -249,9 +244,10 @@ export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDra
                 ) : null}
                 {selection.type === "response" && selectedSurfaceQuestion ? (
                   <>
-                    <NativeOpenResponseResponseControls document={publicDraft} assetUrl={assetUrl} question={selectedSurfaceQuestion} modelAnswerText={teacherDraft.parts[0].solution.modelAnswers.find((entry) => entry.questionId === selectedSurfaceQuestion.id)?.text || ""} changeResponse={changeResponse} updateQuestion={updateQuestion} bookSlug={bookSlug} componentSlug={componentSlug} fonts={fonts} setAnswerFont={setAnswerFont} recordUploadedFont={recordUploadedFont} onMessage={onMessage} />
+                    <NativeOpenResponseResponseControls document={publicDraft} assetUrl={assetUrl} question={selectedSurfaceQuestion} modelAnswerText={nativeOpenResponseModelAnswerTexts(teacherDraft.parts[0].solution.modelAnswers.find((entry) => entry.questionId === selectedSurfaceQuestion.id)).join(" / ")} changeResponse={changeResponse} updateQuestion={updateQuestion} bookSlug={bookSlug} componentSlug={componentSlug} fonts={fonts} setAnswerFont={setAnswerFont} recordUploadedFont={recordUploadedFont} onMessage={onMessage} />
                   </>
                 ) : null}
+                {selection.type === "prompt" && selectedSurfaceQuestion ? <><StudioField label="Font size"><input type="number" min="8" max="96" step="1" value={selectedSurfaceQuestion.promptStyle.fontSize} onChange={(event) => updateQuestion(selectedSurfaceQuestion.id, (target) => { target.promptStyle.fontSize = Number(event.target.value); })} /></StudioField><StudioField label="Align"><select aria-label="Quick Align" value={selectedSurfaceQuestion.promptStyle.align} onChange={(event) => updateQuestion(selectedSurfaceQuestion.id, (target) => { target.promptStyle.align = event.target.value; })}><option>left</option><option>center</option><option>right</option></select></StudioField></> : null}
                 {selection.type === "snippet" && selectedSnippet ? (
                   <>
                     <StudioField label="Accessible label">

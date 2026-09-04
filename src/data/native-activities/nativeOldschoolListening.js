@@ -1,10 +1,20 @@
 import { isNativeChildId } from "./nativeChildIdentity.js";
-import { autoFitNativeOpenResponseAnswer } from "./nativeOpenResponseAutoFit.js";
 import {
+  assessNativeOpenResponseReadiness,
   createNativeOpenResponseQuestion,
   initialNativeOpenResponseArtworkArea,
+  nativeOpenResponseAssetRequirements,
   normalizeNativeOpenResponseInteraction,
+  normalizeNativeOpenResponseSolution,
+  validateNativeOpenResponseTopology,
 } from "./nativeOpenResponse.js";
+import {
+  assessNativeSingleChoiceReadiness,
+  nativeSingleChoicePresentationAssetRequirements,
+  normalizeNativeSingleChoiceInteraction,
+  normalizeNativeSingleChoiceSolution,
+  validateNativeSingleChoiceTopology,
+} from "./nativeSingleChoice.js";
 import { normalizeNativePedagogicalText, normalizeNativeSingleLineText } from "./nativePedagogicalText.js";
 
 export const NATIVE_OLDSCHOOL_LISTENING_LIMITS = Object.freeze({
@@ -23,6 +33,11 @@ export const NATIVE_OLDSCHOOL_LISTENING_LIMITS = Object.freeze({
 });
 
 export const NATIVE_OLDSCHOOL_LISTENING_PANEL_IDS = Object.freeze(["panel-1", "panel-2"]);
+export const NATIVE_OLDSCHOOL_LISTENING_QUESTION_MODES = Object.freeze(["open-response", "single-choice"]);
+
+export function nativeOldschoolListeningQuestionMode(interaction) {
+  return interaction?.questionMode === "single-choice" ? "single-choice" : "open-response";
+}
 
 export function initialNativeOldschoolListeningArtworkArea(surface, metadata, artworkCount = 0) {
   if (artworkCount === 0 && metadata?.width === surface.width && metadata?.height === surface.height) return { x: 0, y: 0, width: surface.width, height: surface.height };
@@ -93,8 +108,13 @@ function normalizeSnippet(input, index, cueIds, surface, assetSlots) {
 
 export function normalizeNativeOldschoolListeningInteraction(input, { assets = [], commonAssetSlots = new Set() } = {}) {
   const value = structuredClone(object(input, "Oldschool Listening interaction"));
-  const legacyQuestions = !Object.hasOwn(value, "artwork");
-  exactKeys(value, ["kind", "audioAssetSlot", "audioDurationMs", "panels", ...(legacyQuestions ? [] : ["artwork"]), "questions", "cues", "snippetHotspots"], "Oldschool Listening interaction");
+  const hasQuestionMode = Object.hasOwn(value, "questionMode");
+  const questionMode = hasQuestionMode ? value.questionMode : "open-response";
+  if (!NATIVE_OLDSCHOOL_LISTENING_QUESTION_MODES.includes(questionMode)) throw new Error("Oldschool Listening question mode is invalid.");
+  const legacyQuestions = questionMode === "open-response" && !Object.hasOwn(value, "artwork");
+  const hasPresentation = questionMode === "single-choice" && Object.hasOwn(value, "presentation");
+  if (hasPresentation && (!Array.isArray(value.presentation?.panels) || value.presentation.panels.length !== 1)) throw new Error("Oldschool Listening Multiple Choice visual presentation must use the fixed Panel 1 surface.");
+  exactKeys(value, ["kind", ...(hasQuestionMode ? ["questionMode"] : []), "audioAssetSlot", "audioDurationMs", "panels", ...(questionMode === "open-response" && !legacyQuestions ? ["artwork"] : []), "questions", ...(hasPresentation ? ["presentation"] : []), "cues", "snippetHotspots"], "Oldschool Listening interaction");
   if (value.kind !== "oldschool-listening") throw new Error("Oldschool Listening interaction kind is invalid.");
   if (!Array.isArray(value.questions) || value.questions.length > NATIVE_OLDSCHOOL_LISTENING_LIMITS.questions) throw new Error("Oldschool Listening question count is invalid.");
   if (!Array.isArray(value.cues) || value.cues.length > NATIVE_OLDSCHOOL_LISTENING_LIMITS.cues) throw new Error("Oldschool Listening cue count is invalid.");
@@ -112,10 +132,10 @@ export function normalizeNativeOldschoolListeningInteraction(input, { assets = [
   const surfaceOne = normalizeSurface(panelOne, "Oldschool Listening Panel 1");
   const surfaceTwo = normalizeSurface(panelTwo, "Oldschool Listening Panel 2");
   if (panelTwo.pageAssetSlot && !assetSlots.has(panelTwo.pageAssetSlot)) throw new Error("Oldschool Listening page must reference a managed asset.");
-  const questionSurface = normalizeNativeOpenResponseInteraction({ kind: "open-response", surface: surfaceOne, artwork: legacyQuestions ? [] : value.artwork, questions: legacyQuestions ? value.questions.map(normalizeLegacyQuestion) : value.questions }, {
-    assets,
-    commonAssetSlots: new Set([...commonAssetSlots, value.audioAssetSlot, panelTwo.pageAssetSlot, ...value.snippetHotspots.map((hotspot) => hotspot?.audioAssetSlot)].filter(Boolean)),
-  });
+  const sharedAssetSlots = new Set([...commonAssetSlots, value.audioAssetSlot, panelTwo.pageAssetSlot, ...value.snippetHotspots.map((hotspot) => hotspot?.audioAssetSlot)].filter(Boolean));
+  const questionSurface = questionMode === "open-response"
+    ? normalizeNativeOpenResponseInteraction({ kind: "open-response", surface: surfaceOne, artwork: legacyQuestions ? [] : value.artwork, questions: legacyQuestions ? value.questions.map(normalizeLegacyQuestion) : value.questions }, { assets, commonAssetSlots: sharedAssetSlots })
+    : normalizeNativeSingleChoiceInteraction({ kind: "single-choice", questions: value.questions, ...(hasPresentation ? { presentation: value.presentation } : {}) }, { assets, commonAssetSlots: sharedAssetSlots });
   const cues = value.cues.map((cue, index) => normalizeCue(cue, index, surfaceTwo));
   const cueIds = cues.map((cue) => cue.id);
   if (new Set(cueIds).size !== cueIds.length) throw new Error("Oldschool Listening cue identities must be unique.");
@@ -130,14 +150,16 @@ export function normalizeNativeOldschoolListeningInteraction(input, { assets = [
   if (new Set(snippets.map((entry) => entry.id)).size !== snippets.length) throw new Error("Oldschool Listening snippet identities must be unique.");
   return {
     kind: "oldschool-listening",
+    questionMode,
     audioAssetSlot: value.audioAssetSlot,
     audioDurationMs,
     panels: [
       { id: "panel-1", kind: "questions", sourceWidth: surfaceOne.width, sourceHeight: surfaceOne.height },
       { id: "panel-2", kind: "synchronized-page", pageAssetSlot: panelTwo.pageAssetSlot, sourceWidth: surfaceTwo.width, sourceHeight: surfaceTwo.height, altText: normalizeNativePedagogicalText(panelTwo.altText, "Oldschool Listening page alt text", NATIVE_OLDSCHOOL_LISTENING_LIMITS.pageAltTextLength, { required: Boolean(panelTwo.pageAssetSlot), forbidMarkup: false }) },
     ],
-    artwork: questionSurface.artwork,
+    ...(questionMode === "open-response" ? { artwork: questionSurface.artwork } : {}),
     questions: questionSurface.questions,
+    ...(questionMode === "single-choice" && questionSurface.presentation ? { presentation: questionSurface.presentation } : {}),
     cues,
     snippetHotspots: snippets,
   };
@@ -145,33 +167,55 @@ export function normalizeNativeOldschoolListeningInteraction(input, { assets = [
 
 export function normalizeNativeOldschoolListeningSolution(input) {
   const value = structuredClone(object(input, "Oldschool Listening Teacher solution"));
-  exactKeys(value, ["kind", "modelAnswers"], "Oldschool Listening Teacher solution");
-  if (value.kind !== "oldschool-listening" || !Array.isArray(value.modelAnswers) || value.modelAnswers.length > NATIVE_OLDSCHOOL_LISTENING_LIMITS.questions) throw new Error("Oldschool Listening Teacher solution is invalid.");
-  const answers = value.modelAnswers.map((entry, index) => {
-    const label = `Oldschool Listening modelAnswers[${index}]`;
-    exactKeys(entry, ["questionId", "text"], label);
-    if (!isNativeChildId(entry.questionId, "q")) throw new Error(`${label}.questionId is invalid.`);
-    return { questionId: entry.questionId, text: normalizeNativePedagogicalText(entry.text, `${label}.text`, NATIVE_OLDSCHOOL_LISTENING_LIMITS.answerLength, { forbidMarkup: false }) };
-  });
-  if (new Set(answers.map((entry) => entry.questionId)).size !== answers.length) throw new Error("Oldschool Listening model-answer identities must be unique.");
-  return { kind: "oldschool-listening", modelAnswers: answers };
+  const hasQuestionMode = Object.hasOwn(value, "questionMode");
+  const questionMode = hasQuestionMode ? value.questionMode : "open-response";
+  if (!NATIVE_OLDSCHOOL_LISTENING_QUESTION_MODES.includes(questionMode)) throw new Error("Oldschool Listening Teacher question mode is invalid.");
+  exactKeys(value, ["kind", ...(hasQuestionMode ? ["questionMode"] : []), questionMode === "open-response" ? "modelAnswers" : "correctAnswers"], "Oldschool Listening Teacher solution");
+  if (value.kind !== "oldschool-listening") throw new Error("Oldschool Listening Teacher solution is invalid.");
+  const normalized = questionMode === "open-response"
+    ? normalizeNativeOpenResponseSolution({ kind: "open-response", modelAnswers: value.modelAnswers })
+    : normalizeNativeSingleChoiceSolution({ kind: "single-choice", correctAnswers: value.correctAnswers });
+  return { kind: "oldschool-listening", questionMode, ...(questionMode === "open-response" ? { modelAnswers: normalized.modelAnswers } : { correctAnswers: normalized.correctAnswers }) };
+}
+
+export function nativeOldschoolListeningQuestionPublicDocument(publicDocument) {
+  const interaction = publicDocument.parts[0].interaction;
+  const questionMode = nativeOldschoolListeningQuestionMode(interaction);
+  return {
+    ...publicDocument,
+    kind: questionMode,
+    parts: [{ ...publicDocument.parts[0], interaction: questionMode === "open-response"
+      ? { kind: "open-response", surface: { width: interaction.panels[0].sourceWidth, height: interaction.panels[0].sourceHeight }, artwork: interaction.artwork || [], questions: interaction.questions }
+      : { kind: "single-choice", questions: interaction.questions, ...(interaction.presentation ? { presentation: interaction.presentation } : {}) } }],
+  };
+}
+
+export function nativeOldschoolListeningQuestionTeacherDocument(teacherDocument) {
+  if (!teacherDocument) return null;
+  const solution = teacherDocument.parts[0].solution;
+  const questionMode = solution.questionMode === "single-choice" ? "single-choice" : "open-response";
+  return { ...teacherDocument, kind: questionMode, parts: [{ ...teacherDocument.parts[0], solution: questionMode === "open-response" ? { kind: "open-response", modelAnswers: solution.modelAnswers } : { kind: "single-choice", correctAnswers: solution.correctAnswers } }] };
 }
 
 export function validateNativeOldschoolListeningTopology(publicDocument, teacherDocument) {
-  const questions = publicDocument.parts[0].interaction.questions;
-  const answers = teacherDocument.parts[0].solution.modelAnswers;
-  if (questions.length !== answers.length || questions.some((question, index) => question.id !== answers[index]?.questionId)) throw new Error("Oldschool Listening Teacher answers must exactly match public question identity and order.");
-  return true;
+  const publicMode = nativeOldschoolListeningQuestionMode(publicDocument.parts[0].interaction);
+  const teacherMode = teacherDocument.parts[0].solution.questionMode === "single-choice" ? "single-choice" : "open-response";
+  if (publicMode !== teacherMode) throw new Error("Oldschool Listening public and Teacher question modes must match.");
+  const projectedPublic = nativeOldschoolListeningQuestionPublicDocument(publicDocument);
+  const projectedTeacher = nativeOldschoolListeningQuestionTeacherDocument(teacherDocument);
+  return publicMode === "open-response" ? validateNativeOpenResponseTopology(projectedPublic, projectedTeacher) : validateNativeSingleChoiceTopology(projectedPublic, projectedTeacher);
 }
 
 export function nativeOldschoolListeningAssetRequirements(publicDocument) {
   const interaction = publicDocument?.parts?.[0]?.interaction;
   if (interaction?.kind !== "oldschool-listening") return [];
   const panelTwo = interaction.panels[1];
+  const questionDocument = nativeOldschoolListeningQuestionPublicDocument(publicDocument);
   return [
     ...(interaction.audioAssetSlot ? [{ slot: interaction.audioAssetSlot, mediaType: "audio/mpeg", label: "Oldschool Listening MP3" }] : []),
     ...(panelTwo?.pageAssetSlot ? [{ slot: panelTwo.pageAssetSlot, width: panelTwo.sourceWidth, height: panelTwo.sourceHeight, label: "Oldschool Listening page image" }] : []),
     ...interaction.snippetHotspots.filter((hotspot) => hotspot.audioAssetSlot).map((hotspot, index) => ({ slot: hotspot.audioAssetSlot, mediaType: "audio/mpeg", label: `Oldschool Listening hotspot MP3 ${index + 1}` })),
+    ...(nativeOldschoolListeningQuestionMode(interaction) === "open-response" ? nativeOpenResponseAssetRequirements(questionDocument) : nativeSingleChoicePresentationAssetRequirements(questionDocument)),
   ];
 }
 
@@ -199,21 +243,19 @@ export function assessNativeOldschoolListeningReadiness(publicDocument, teacherD
     });
     if (cue.scrollY !== null && (cue.scrollY < 0 || cue.scrollY > panelTwo.sourceHeight)) issues.push(`Cue ${index + 1} has an invalid scroll target.`);
   });
-  const answers = new Map(teacherDocument.parts[0].solution.modelAnswers.map((entry) => [entry.questionId, entry.text]));
-  if (!interaction.questions.length) issues.push("Add at least one Panel 1 question.");
-  interaction.questions.forEach((question, index) => {
-    if (!question.prompt.trim()) issues.push(`Question ${index + 1} needs a prompt.`);
-    const modelAnswer = answers.get(question.id) || "";
-    if (!modelAnswer.trim()) issues.push(`Question ${index + 1} needs a model answer.`);
-    else if (question.responseRegion && !autoFitNativeOpenResponseAnswer({ text: modelAnswer, responseRegion: question.responseRegion }).fits) issues.push(`Question ${index + 1} model answer does not fit its authored lines.`);
-  });
-  (interaction.artwork || []).forEach((item, index) => { if (!item.decorative && !item.altText.trim()) issues.push(`Artwork ${index + 1} needs alt text or must be marked decorative.`); });
+  const questionDocument = nativeOldschoolListeningQuestionPublicDocument(publicDocument);
+  const questionTeacher = nativeOldschoolListeningQuestionTeacherDocument(teacherDocument);
+  const questionReadiness = nativeOldschoolListeningQuestionMode(interaction) === "open-response"
+    ? assessNativeOpenResponseReadiness(questionDocument, questionTeacher)
+    : assessNativeSingleChoiceReadiness(questionDocument, questionTeacher);
+  issues.push(...questionReadiness.issues.map((issue) => issue === "Add at least one question." ? "Add at least one Panel 1 question." : issue));
   return { ready: issues.length === 0, issues };
 }
 
 export function createEmptyNativeOldschoolListeningInteraction() {
   return {
     kind: "oldschool-listening",
+    questionMode: "open-response",
     audioAssetSlot: "",
     audioDurationMs: 0,
     panels: [

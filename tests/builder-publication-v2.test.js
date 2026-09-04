@@ -6,6 +6,7 @@ import { builderDocumentSha256 } from "../netlify-sites/ultimate-b2-builder/serv
 import { compileUltimateB2ComponentReleaseV2, NativePublicationError } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { createNativeOpenResponseQuestion } from "../src/data/native-activities/nativeOpenResponse.js";
+import { createNativeSingleChoiceQuestion } from "../src/data/native-activities/nativeSingleChoice.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
 
 const pageId = "ub2-sb-unit-1-part-1";
@@ -182,6 +183,16 @@ test("v2 publishes Oldschool Listening with both managed assets and no Teacher-a
   const wrongPage = structuredClone(input);
   wrongPage.native.assetRows.find((row) => row.id === oldschoolPage.assetId).height = 1799;
   assert.throws(() => compileUltimateB2ComponentReleaseV2(wrongPage), (error) => error.code === "native_activity_asset_invalid");
+
+  const multipleChoice = withOldschoolPublication(sources({ ids: [openId] }));
+  const publicSource = multipleChoice.native.activities[oldschoolId].public; const teacherSource = multipleChoice.native.activities[oldschoolId].teacher;
+  const questionId = nativeChildIdFromUuid("q", "10000000-0000-4000-8000-000000000071"); const optionIds = [nativeChildIdFromUuid("opt", "10000000-0000-4000-8000-000000000072"), nativeChildIdFromUuid("opt", "10000000-0000-4000-8000-000000000073")];
+  const interaction = publicSource.payload.parts[0].interaction; interaction.questionMode = "single-choice"; delete interaction.artwork; interaction.questions = [createNativeSingleChoiceQuestion(questionId, optionIds)]; interaction.questions[0].prompt = "Which route?"; interaction.questions[0].options[0].text = "Train"; interaction.questions[0].options[1].text = "Car";
+  teacherSource.payload.parts[0].solution = { kind: "oldschool-listening", questionMode: "single-choice", correctAnswers: [{ questionId, correctOptionId: optionIds[0] }] };
+  publicSource.sha256 = builderDocumentSha256(publicSource.payload); teacherSource.sha256 = builderDocumentSha256(teacherSource.payload);
+  const compiledChoice = compileUltimateB2ComponentReleaseV2(multipleChoice);
+  assert.equal(compiledChoice.publicProjection.nativeActivities[oldschoolId].document.parts[0].interaction.questionMode, "single-choice");
+  assert.doesNotMatch(JSON.stringify(compiledChoice.publicProjection.nativeActivities[oldschoolId]), /correctOption/); assert.match(JSON.stringify(compiledChoice.teacherProjection.nativeActivities[oldschoolId]), /correctOptionId/);
 });
 
 test("unreferenced incomplete native drafts do not block v2 publication", () => {

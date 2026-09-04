@@ -1,6 +1,6 @@
-import { useCallback, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useImperativeHandle, useLayoutEffect, useRef, useState } from "react";
 
-export function NativeVerticalScrollViewport({ id, className, ariaLabel, resetKey, children }) {
+export function NativeVerticalScrollViewport({ id, className, ariaLabel, resetKey, children, apiRef = null, onViewportReady = null, onManualScrollStateChange = null }) {
   const viewportRef = useRef(null);
   const trackRef = useRef(null);
   const dragRef = useRef(null);
@@ -18,11 +18,23 @@ export function NativeVerticalScrollViewport({ id, className, ariaLabel, resetKe
     });
   }, []);
 
+  const scrollTo = useCallback((request) => {
+    const viewport = viewportRef.current;
+    if (!viewport) return;
+    const options = typeof request === "number" ? { top: request } : request || {};
+    const top = Math.min(Math.max(0, Number(options.top) || 0), Math.max(0, viewport.scrollHeight - viewport.clientHeight));
+    viewport.scrollTo({ top, behavior: options.behavior || "auto" });
+    requestAnimationFrame(measure);
+  }, [measure]);
+
+  useImperativeHandle(apiRef, () => ({ get viewport() { return viewportRef.current; }, scrollTo, remeasure: measure }), [measure, scrollTo]);
+
   useLayoutEffect(() => {
     const viewport = viewportRef.current;
     if (!viewport) return undefined;
     viewport.scrollTop = 0;
     measure();
+    onViewportReady?.({ viewport, scrollTo, remeasure: measure });
     viewport.addEventListener("scroll", measure, { passive: true });
     globalThis.addEventListener("resize", measure);
     if (typeof ResizeObserver === "undefined") return () => { viewport.removeEventListener("scroll", measure); globalThis.removeEventListener("resize", measure); };
@@ -30,12 +42,8 @@ export function NativeVerticalScrollViewport({ id, className, ariaLabel, resetKe
     observer.observe(viewport);
     if (viewport.firstElementChild) observer.observe(viewport.firstElementChild);
     return () => { observer.disconnect(); viewport.removeEventListener("scroll", measure); globalThis.removeEventListener("resize", measure); };
-  }, [measure, resetKey]);
+  }, [measure, onViewportReady, resetKey, scrollTo]);
 
-  const scrollTo = (top) => {
-    const viewport = viewportRef.current;
-    if (viewport) viewport.scrollTop = Math.min(Math.max(0, top), Math.max(0, viewport.scrollHeight - viewport.clientHeight));
-  };
   const keyDown = (event) => {
     const viewport = viewportRef.current;
     if (!viewport) return;
@@ -56,10 +64,11 @@ export function NativeVerticalScrollViewport({ id, className, ariaLabel, resetKe
     event.preventDefault(); event.stopPropagation();
     const thumb = event.currentTarget.getBoundingClientRect();
     dragRef.current = { pointerId: event.pointerId, grabRatio: Math.min(1, Math.max(0, (event.clientY - thumb.top) / Math.max(1, thumb.height))) };
+    onManualScrollStateChange?.(true);
     event.currentTarget.setPointerCapture?.(event.pointerId);
   };
   const moveDrag = (event) => { if (dragRef.current?.pointerId === event.pointerId) scrollFromTrackPoint(event.clientY, dragRef.current.grabRatio); };
-  const endDrag = (event) => { if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null; };
+  const endDrag = (event) => { if (dragRef.current?.pointerId === event.pointerId) { dragRef.current = null; onManualScrollStateChange?.(false); } };
 
   return <>
     <div id={id} ref={viewportRef} className={className} tabIndex={0} data-overflowing={state.overflowing || undefined} onLoadCapture={measure}>{children}</div>

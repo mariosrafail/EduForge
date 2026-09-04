@@ -1,4 +1,27 @@
 import { createNativeChildId } from "./nativeChildIdentity.js";
+import { removeNativeManagedAssetReferenceIfUnused } from "./nativeActivityPublic.js";
+import { NATIVE_OLDSCHOOL_LISTENING_QUESTION_MODES, nativeOldschoolListeningQuestionMode } from "./nativeOldschoolListening.js";
+
+export function switchNativeOldschoolListeningQuestionMode(publicDocument, teacherDocument, requestedMode) {
+  if (!NATIVE_OLDSCHOOL_LISTENING_QUESTION_MODES.includes(requestedMode)) throw new Error("Oldschool Listening question mode is invalid.");
+  const interaction = publicDocument?.parts?.[0]?.interaction;
+  const solution = teacherDocument?.parts?.[0]?.solution;
+  if (interaction?.kind !== "oldschool-listening" || solution?.kind !== "oldschool-listening") throw new Error("Oldschool Listening document pair is required.");
+  if (nativeOldschoolListeningQuestionMode(interaction) === requestedMode) return false;
+  const incompatibleSlots = requestedMode === "single-choice"
+    ? [...(interaction.artwork || []).map((item) => item.assetSlot), ...(interaction.questions || []).map((question) => question.responseRegion?.presentation?.answerFontAssetSlot)]
+    : (interaction.presentation?.panels || []).map((panel) => panel.backgroundAssetSlot);
+  interaction.questionMode = requestedMode;
+  interaction.questions = [];
+  delete interaction.artwork;
+  delete interaction.presentation;
+  if (requestedMode === "open-response") interaction.artwork = [];
+  teacherDocument.parts[0].solution = requestedMode === "open-response"
+    ? { kind: "oldschool-listening", questionMode: "open-response", modelAnswers: [] }
+    : { kind: "oldschool-listening", questionMode: "single-choice", correctAnswers: [] };
+  incompatibleSlots.filter(Boolean).forEach((slot) => removeNativeManagedAssetReferenceIfUnused(publicDocument, slot));
+  return true;
+}
 
 export function addNativeOldschoolListeningCue(interaction, cue, { createId = () => createNativeChildId("cue") } = {}) {
   const created = {

@@ -24,7 +24,7 @@ function normalizeVisualNode(value, inheritedStage = null) {
     Object.assign(value, normalized);
   }
   for (const key of INTEGER_VISUAL_KEYS) {
-    if (Number.isFinite(Number(value[key]))) value[key] = roundStageValue(Number(value[key]));
+    if (value[key] != null && Number.isFinite(Number(value[key]))) value[key] = roundStageValue(Number(value[key]));
   }
   if (Array.isArray(value.linePositions)) value.linePositions = value.linePositions.map((position) => roundStageValue(Number(position)));
   for (const [key, child] of Object.entries(value)) {

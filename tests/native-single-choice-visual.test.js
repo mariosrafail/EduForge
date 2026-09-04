@@ -447,8 +447,10 @@ test("authoring save validates managed background ownership and intrinsic dimens
 });
 
 test("Student and Teacher share a public classroom renderer while only Teacher owns private answer interpretation", async () => {
-  const [editor, canvas, hostedRunner, publishedStudentRunner, publishedTeacherRunner, studentSurface, presentation, teacherSurface] = await Promise.all([
+  const [editor, questionAuthoring, visualAuthoring, canvas, hostedRunner, publishedStudentRunner, publishedTeacherRunner, studentSurface, presentation, teacherSurface] = await Promise.all([
     readFile(new URL("../src/apps/book-builder/hosted/NativeSingleChoiceEditor.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/book-builder/hosted/NativeSingleChoiceQuestionAuthoring.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/book-builder/hosted/NativeSingleChoiceVisualAuthoring.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/native-single-choice/NativeSingleChoiceHotspotCanvas.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/lms/activities/ultimate-b2/HostedNativeDraftActivityRunner.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/components/lms/activities/ultimate-b2/PublishedNativeStudentActivityRunner.jsx", import.meta.url), "utf8"),
@@ -463,14 +465,16 @@ test("Student and Teacher share a public classroom renderer while only Teacher o
   assert.match(editor, /const readyToSave = readiness\.ready && !readableTextIncomplete && !videoIncomplete/);
   assert.match(editor, /<StudioSaveBar[\s\S]*disabled=\{!dirty \|\| state\.saving \|\| !readyToSave\}/);
   assert.match(editor, /uploadNativeActivityAsset/);
-  assert.match(editor, /NativeSingleChoiceHotspotCanvas/);
-  assert.match(editor, /Needs answer/);
+  assert.match(editor, /NativeSingleChoiceQuestionAuthoring/);
+  assert.match(editor, /NativeSingleChoiceVisualAuthoring/);
+  assert.match(visualAuthoring, /NativeSingleChoiceHotspotCanvas/);
+  assert.match(questionAuthoring, /Needs answer/);
   assert.match(canvas, /StageSelectionFrame/);
   assert.match(canvas, /label="Hotspot"/);
   assert.match(canvas, /geometry=\{selected\.area\}/);
   assert.match(canvas, /onDelete=\{onDelete\}/);
   assert.match(editor, /createNativeSingleChoiceHotspotArea/);
-  assert.match(editor, />New hotspot<\/StudioButton>/);
+  assert.match(visualAuthoring, />New hotspot<\/StudioButton>/);
   assert.match(editor, /setNativeSingleChoiceHotspotArea/);
   assert.doesNotMatch(canvas, /beginDraw|moveDraw|draftArea|highlightArea|selectedGeometry|drawingHighlight/);
   assert.doesNotMatch(editor, /Draw Highlight|Redraw Highlight|Edit Click Target|Edit Highlight|Draw hotspot|selectedGeometry|drawingHighlight|drawingEnabled/);

@@ -129,6 +129,29 @@ test("Oldschool Listening responses reuse Panel 1 text semantics without exposin
   assert.deepEqual(capability.teacherReviewProjection(publicDocument, teacherDocument, normalized.payload).map(({ questionId, modelAnswer }) => ({ questionId, modelAnswer })), [{ questionId: "q-first", modelAnswer: "Private first" }, { questionId: "q-second", modelAnswer: "Private second" }]);
 });
 
+test("Oldschool Listening Single Choice mode uses canonical validation, exact-set scoring, and review", () => {
+  const publicChoice = { parts: [{ interaction: { kind: "oldschool-listening", questionMode: "single-choice", questions: [
+    { id: "q-single", prompt: "Choose one", options: [{ id: "o-a", text: "A" }, { id: "o-b", text: "B" }] },
+    { id: "q-multi", selectionMode: "multiple", prompt: "Choose two", options: [{ id: "o-c", text: "C" }, { id: "o-d", text: "D" }, { id: "o-e", text: "E" }] },
+  ] } }] };
+  const teacherChoice = { parts: [{ solution: { kind: "oldschool-listening", questionMode: "single-choice", correctAnswers: [
+    { questionId: "q-single", correctOptionIds: ["o-b"] }, { questionId: "q-multi", correctOptionIds: ["o-c", "o-e"] },
+  ] } }] };
+  const capability = nativeAssignmentCapability("oldschool-listening", publicChoice);
+  assert.equal(capability.reviewMode, "auto-scored");
+  const normalized = capability.normalizeResponse(publicChoice, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [
+    { id: "q-multi", value: ["o-e", "o-c"] }, { id: "q-single", value: "o-b" },
+  ] });
+  assert.equal(normalized.payload.kind, "oldschool-listening");
+  assert.deepEqual(normalized.payload.items[0], { id: "q-single", value: "o-b" });
+  assert.deepEqual(normalized.payload.items[1], { id: "q-multi", value: ["o-c", "o-e"] });
+  assert.deepEqual(capability.evaluateResponse(publicChoice, teacherChoice, normalized.payload), { status: "submitted", correctCount: 2, totalCount: 2, scorePercent: 100 });
+  assert.deepEqual(capability.teacherReviewProjection(publicChoice, teacherChoice, normalized.payload)[1].modelAnswers, ["C", "E"]);
+  assert.match(capability.normalizeResponse(publicChoice, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: "q-single", value: "o-c" }] }).error, /belonging/);
+  assert.match(capability.normalizeResponse(publicChoice, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: "q-single", value: "o-b" }, { id: "q-single", value: "o-b" }] }).error, /Duplicate/);
+  assert.equal(JSON.stringify(normalized.payload).includes("correctOption"), false);
+});
+
 test("Complete the Sentences response uses public item order and joins private answers only in Teacher review", () => {
   const first = "item-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
   const second = "item-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";

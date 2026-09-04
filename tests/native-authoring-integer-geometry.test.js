@@ -10,6 +10,7 @@ function historicalDraft() {
     parts: [{ interaction: {
       kind: "drag-drop",
       audioDurationMs: 1250.75,
+      scrollY: null,
       panels: [{
         surface: { width: 1024.4, height: 581.6 },
         images: [{ area: { x: -0.4, y: 18.7, width: 400.6, height: 200.2 } }],
@@ -29,6 +30,7 @@ test("editable historical decimals normalize to stable integer visual values wit
   assert.deepEqual(panel.dropTargets[0].area, { x: 944, y: 551, width: 80, height: 31 });
   assert.equal(projected.parts[0].interaction.presentation.bankWordStyle.fontSize, 24);
   assert.equal(projected.parts[0].interaction.audioDurationMs, 1250.75);
+  assert.equal(projected.parts[0].interaction.scrollY, null, "nullable automatic-scroll sentinel remains canonical");
   assert.equal(projected.metadata.visibleInstructionText, "");
   assert.equal(original.metadata.visibleInstructionText, "Published instruction", "projection does not mutate immutable source material");
   assert.deepEqual(normalizeNativeActivityAuthoringVisualValues(projected), projected, "canonicalization is idempotent");

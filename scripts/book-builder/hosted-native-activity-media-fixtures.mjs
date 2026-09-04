@@ -11,4 +11,4 @@ export const replacementTallReadablePng = Buffer.concat([tallReadablePng, Buffer
 export const hotspotMp3 = (marker) => Buffer.from([0xff, 0xfb, 0x90, 0x64, ...new Array(32).fill(marker)]);
 export const worksheetPdf = Buffer.from("%PDF-1.4\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
 export const replacementWorksheetPdf = Buffer.from("%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Version /1.4 >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%EOF\n");
-export const oldschoolSrt = `1\n00:00:00,000 --> 00:00:02,000\nThe opening sentence spans two printed lines.\n\n2\n00:00:02,000 --> 00:00:05,000\nThe later sentence appears near the bottom of the page.`;
+export const oldschoolSrt = `1\n00:00:00,000 --> 00:00:02,000\nThe opening sentence spans two printed lines.\n\n2\n00:00:02,000 --> 00:00:05,000\nThe middle sentence follows its mapped highlight.\n\n3\n00:00:05,000 --> 00:00:08,000\nThe later sentence appears near the bottom of the page.`;

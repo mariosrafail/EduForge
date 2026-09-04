@@ -7,7 +7,8 @@ import { NativeCompleteSentencesStudentSurface, NativeCompleteSentencesTeacherSu
 import { NativeReadableTextPresentation } from "../../../native-readable-text/NativeReadableTextPresentation.jsx";
 import "./nativeActivityText.css";
 import { NativeListeningStudentSurface, NativeListeningTeacherSurface } from "../../../native-listening/NativeListeningSurface.jsx";
-import { NativeOldschoolListeningStudentSurface, NativeOldschoolListeningTeacherSurface } from "../../../native-oldschool-listening/NativeOldschoolListeningSurface.jsx";
+import { NativeOldschoolListeningStudentSurface } from "../../../native-oldschool-listening/NativeOldschoolListeningStudentSurface.jsx";
+import { NativeOldschoolListeningTeacherSurface } from "../../../native-oldschool-listening/NativeOldschoolListeningTeacherSurface.jsx";
 import { NativeDragDropStudentSurface } from "../../../native-drag-drop/NativeDragDropSurface.jsx";
 import { NativeDragDropTeacherSurface } from "../../../native-drag-drop/NativeDragDropTeacherSurface.jsx";
 import { hostedNativeDraftAssetUrl } from "virtual:hosted-native-drafts";

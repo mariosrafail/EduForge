@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { findNativeOldschoolListeningCue, nativeOldschoolListeningCueScrollY, nativeOldschoolListeningFragmentFontSize, nativeOldschoolListeningRegionStyle, nativeOldschoolListeningScrollTarget, nativeOldschoolListeningTranscriptFragments, parseNativeOldschoolListeningSrt } from "../src/components/native-oldschool-listening/nativeOldschoolListeningRuntime.js";
@@ -8,12 +9,16 @@ import { parseNativeOldschoolListeningJson, serializeNativeOldschoolListeningJso
 import { adaptLegacyListeningAuthoringToOldschoolInteraction } from "../src/data/native-activities/legacyOldschoolListeningAdapter.js";
 import { createNativeOpenResponseQuestion } from "../src/data/native-activities/nativeOpenResponse.js";
 import { assessNativeOldschoolListeningReadiness, nativeOldschoolListeningAssetRequirements, normalizeNativeOldschoolListeningInteraction } from "../src/data/native-activities/nativeOldschoolListening.js";
+import { switchNativeOldschoolListeningQuestionMode } from "../src/data/native-activities/nativeOldschoolListeningAuthoring.js";
+import { createNativeSingleChoiceQuestion } from "../src/data/native-activities/nativeSingleChoice.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import legacyListeningAuthoring from "../src/data/ultimate-b2/authoring/unit-01-reading-exercise-2.listening.json" with { type: "json" };
 
 const id = (prefix, last) => nativeChildIdFromUuid(prefix, `00000000-0000-4000-8000-${String(last).padStart(12, "0")}`);
 const audio = { assetId: "10000000-0000-4000-8000-000000000001", checksumSha256: "a".repeat(64), role: "activity_artwork", slot: "oldschool-main-audio" };
 const page = { assetId: "10000000-0000-4000-8000-000000000002", checksumSha256: "b".repeat(64), role: "activity_artwork", slot: "oldschool-page-image" };
+const font = { assetId: "10000000-0000-4000-8000-000000000003", checksumSha256: "c".repeat(64), role: "activity_font", slot: "font-10000000000040008000000000000003" };
+const choiceBackground = { assetId: "10000000-0000-4000-8000-000000000004", checksumSha256: "d".repeat(64), role: "activity_artwork", slot: "oldschool-choice-background" };
 
 function completePair() {
   const definition = resolveNativeActivityKind("oldschool-listening");
@@ -42,7 +47,120 @@ test("Oldschool Listening is a distinct registered kind with blank paired docume
   const teacherDocument = definition.createBlankTeacher({ activityId: "blank-oldschool" });
   assert.equal(publicDocument.kind, "oldschool-listening");
   assert.equal(publicDocument.parts[0].interaction.panels[1].kind, "synchronized-page");
-  assert.deepEqual(teacherDocument.parts[0].solution, { kind: "oldschool-listening", modelAnswers: [] });
+  assert.equal(publicDocument.parts[0].interaction.questionMode, "open-response");
+  assert.deepEqual(teacherDocument.parts[0].solution, { kind: "oldschool-listening", questionMode: "open-response", modelAnswers: [] });
+});
+
+test("legacy Oldschool Listening documents without a discriminator normalize deterministically as Open Response", () => {
+  const { definition, publicDocument, teacherDocument } = completePair();
+  delete publicDocument.parts[0].interaction.questionMode;
+  delete teacherDocument.parts[0].solution.questionMode;
+  const normalized = definition.normalizePublic(publicDocument);
+  const normalizedTeacher = definition.normalizeTeacher(teacherDocument);
+  assert.equal(normalized.parts[0].interaction.questionMode, "open-response");
+  assert.equal(normalizedTeacher.parts[0].solution.questionMode, "open-response");
+  assert.equal(definition.validatePair(normalized, normalizedTeacher), true);
+});
+
+test("Oldschool Listening canonical Single Choice mode round-trips with private answers", () => {
+  const { definition, publicDocument, teacherDocument } = completePair();
+  const interaction = publicDocument.parts[0].interaction;
+  const questionId = id("q", 21);
+  const optionIds = [id("opt", 22), id("opt", 23), id("opt", 24)];
+  interaction.questionMode = "single-choice";
+  delete interaction.artwork;
+  interaction.questions = [createNativeSingleChoiceQuestion(questionId, optionIds)];
+  interaction.questions[0].prompt = "Which details are stated?";
+  interaction.questions[0].selectionMode = "multiple";
+  interaction.questions[0].options.forEach((option, index) => { option.text = `Option ${index + 1}`; });
+  teacherDocument.parts[0].solution = { kind: "oldschool-listening", questionMode: "single-choice", correctAnswers: [{ questionId, correctOptionIds: [optionIds[0], optionIds[2]] }] };
+  const normalized = definition.normalizePublic(publicDocument);
+  const normalizedTeacher = definition.normalizeTeacher(teacherDocument);
+  assert.equal(normalized.parts[0].interaction.questionMode, "single-choice");
+  assert.deepEqual(normalizedTeacher.parts[0].solution.correctAnswers[0].correctOptionIds, [optionIds[0], optionIds[2]]);
+  assert.equal(definition.validatePair(normalized, normalizedTeacher), true);
+  assert.equal(JSON.stringify(normalized).includes("correctOption"), false);
+  assert.deepEqual(parseNativeOldschoolListeningJson(serializeNativeOldschoolListeningJson(normalized.parts[0].interaction, { assets: normalized.assets }), { assets: normalized.assets }), normalized.parts[0].interaction);
+});
+
+test("Oldschool question modes retain only valid, used canonical managed assets", () => {
+  const openResponse = completePair();
+  openResponse.publicDocument.assets.push(font);
+  openResponse.publicDocument.parts[0].interaction.questions[0].responseRegion.presentation.answerFontAssetSlot = font.slot;
+  const normalizedOpenResponse = openResponse.definition.normalizePublic(openResponse.publicDocument);
+  assert.ok(nativeOldschoolListeningAssetRequirements(normalizedOpenResponse).some((requirement) => requirement.slot === font.slot && requirement.mediaType === "font/ttf"));
+  const wrongFont = structuredClone(openResponse.publicDocument); wrongFont.assets.find((asset) => asset.slot === font.slot).role = "activity_artwork";
+  assert.throws(() => openResponse.definition.normalizePublic(wrongFont), /component font/);
+  const unusedFont = structuredClone(openResponse.publicDocument); delete unusedFont.parts[0].interaction.questions[0].responseRegion.presentation.answerFontAssetSlot;
+  assert.throws(() => openResponse.definition.normalizePublic(unusedFont), /managed asset must be used/);
+
+  const singleChoice = completePair();
+  switchNativeOldschoolListeningQuestionMode(singleChoice.publicDocument, singleChoice.teacherDocument, "single-choice");
+  const questionId = id("q", 31); const options = [id("opt", 32), id("opt", 33)];
+  singleChoice.publicDocument.assets.push(choiceBackground);
+  singleChoice.publicDocument.parts[0].interaction.questions = [createNativeSingleChoiceQuestion(questionId, options)];
+  singleChoice.publicDocument.parts[0].interaction.questions[0].prompt = "Choose one.";
+  singleChoice.publicDocument.parts[0].interaction.questions[0].options[0].text = "First";
+  singleChoice.publicDocument.parts[0].interaction.questions[0].options[1].text = "Second";
+  singleChoice.publicDocument.parts[0].interaction.presentation = { kind: "image-hotspot", panels: [{ id: id("panel", 34), backgroundAssetSlot: choiceBackground.slot, sourceWidth: 1024, sourceHeight: 582, hotspots: options.map((optionId, index) => ({ id: id("hot", 35 + index), questionId, optionId, area: { x: 100 + index * 300, y: 200, width: 200, height: 80 } })) }] };
+  singleChoice.teacherDocument.parts[0].solution.correctAnswers = [{ questionId, correctOptionId: options[0] }];
+  const normalizedChoice = singleChoice.definition.normalizePublic(singleChoice.publicDocument);
+  assert.deepEqual(nativeOldschoolListeningAssetRequirements(normalizedChoice).at(-1), { slot: choiceBackground.slot, width: 1024, height: 582 });
+  assert.equal(singleChoice.definition.validatePair(normalizedChoice, singleChoice.definition.normalizeTeacher(singleChoice.teacherDocument)), true);
+});
+
+test("Oldschool public documents reject teacher-only answer fields", () => {
+  const { definition, publicDocument } = completePair();
+  publicDocument.parts[0].interaction.correctAnswers = [];
+  assert.throws(() => definition.normalizePublic(publicDocument), /unknown fields/);
+});
+
+test("Oldschool authoring composes canonical Open Response and shared Single Choice controls", async () => {
+  const [editor, openResponsePanel, singleChoicePanel, canonicalSingleChoice] = await Promise.all([
+    readFile(new URL("../src/apps/book-builder/hosted/NativeListeningEditor.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/book-builder/hosted/NativeListeningQuestionAuthoring.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/book-builder/hosted/NativeSingleChoiceQuestionAuthoring.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/book-builder/hosted/NativeSingleChoiceEditor.jsx", import.meta.url), "utf8"),
+  ]);
+  assert.match(editor, /Panel 1 activity type/);
+  assert.match(openResponsePanel, /NativeOpenResponseResponseControls/);
+  assert.match(openResponsePanel, /useNativeListeningResponseFonts/);
+  assert.match(openResponsePanel, /NativeBulkGenerator/);
+  assert.match(openResponsePanel, /target\.promptStyle\.fontSize/);
+  assert.match(openResponsePanel, /target\.promptStyle\.align/);
+  assert.match(editor, /NativeSingleChoiceQuestionAuthoring/);
+  assert.match(editor, /NativeSingleChoiceVisualAuthoring/);
+  assert.match(singleChoicePanel, /NativeBulkGenerator/);
+  assert.match(canonicalSingleChoice, /NativeSingleChoiceQuestionAuthoring/);
+});
+
+test("Oldschool Listening rejects unknown modes and incompatible public/Teacher modes", () => {
+  const { definition, publicDocument, teacherDocument } = completePair();
+  publicDocument.parts[0].interaction.questionMode = "essay";
+  assert.throws(() => definition.normalizePublic(publicDocument), /question mode/i);
+  publicDocument.parts[0].interaction.questionMode = "open-response";
+  teacherDocument.parts[0].solution = { kind: "oldschool-listening", questionMode: "single-choice", correctAnswers: [] };
+  assert.throws(() => definition.validatePair(publicDocument, teacherDocument), /question mode/i);
+});
+
+test("switching Oldschool question mode resets only incompatible Panel 1 state", () => {
+  const { publicDocument, teacherDocument } = completePair();
+  publicDocument.assets.push(font); publicDocument.parts[0].interaction.questions[0].responseRegion.presentation.answerFontAssetSlot = font.slot;
+  publicDocument.readableText = { kind: "image", assetSlot: page.slot, sourceWidth: 1000, sourceHeight: 1800, altText: "Readable page" };
+  const beforePanelTwo = structuredClone(publicDocument.parts[0].interaction.panels[1]);
+  const beforeCues = structuredClone(publicDocument.parts[0].interaction.cues);
+  const beforeSnippets = structuredClone(publicDocument.parts[0].interaction.snippetHotspots);
+  switchNativeOldschoolListeningQuestionMode(publicDocument, teacherDocument, "single-choice");
+  const interaction = publicDocument.parts[0].interaction;
+  assert.equal(interaction.questionMode, "single-choice");
+  assert.deepEqual(interaction.questions, []);
+  assert.equal(Object.hasOwn(interaction, "artwork"), false);
+  assert.deepEqual(interaction.panels[1], beforePanelTwo);
+  assert.deepEqual(interaction.cues, beforeCues);
+  assert.deepEqual(interaction.snippetHotspots, beforeSnippets);
+  assert.equal(publicDocument.readableText.altText, "Readable page");
+  assert.equal(publicDocument.assets.some((asset) => asset.slot === font.slot), false);
+  assert.deepEqual(teacherDocument.parts[0].solution, { kind: "oldschool-listening", questionMode: "single-choice", correctAnswers: [] });
 });
 
 test("Oldschool Listening normalizes multiple source-pixel highlight regions and paired Teacher answers", () => {

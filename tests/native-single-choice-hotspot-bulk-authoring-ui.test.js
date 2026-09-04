@@ -32,10 +32,11 @@ test("Multiple Choice hotspot importer exposes the strict format, prerequisites,
 });
 
 test("importer remains separate from semantic generation and owns no persistence or Teacher data", async () => {
-  const [component, semantic, editor] = await Promise.all([
+  const [component, semantic, editor, visualAuthoring] = await Promise.all([
     readFile(new URL("../src/apps/book-builder/hosted/NativeSingleChoiceHotspotBulkImporter.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/apps/book-builder/hosted/NativeBulkGenerator.jsx", import.meta.url), "utf8"),
     readFile(new URL("../src/apps/book-builder/hosted/NativeSingleChoiceEditor.jsx", import.meta.url), "utf8"),
+    readFile(new URL("../src/apps/book-builder/hosted/NativeSingleChoiceVisualAuthoring.jsx", import.meta.url), "utf8"),
   ]);
   assert.doesNotMatch(semantic, /Bulk import hotspots|HotspotBulkImporter|SOURCE 1024x582/);
   assert.doesNotMatch(component, /fetch\(|saveNativeActivity|uploadNativeActivity|teacherDocument|teacherDraft|correctOption|correctAnswers|dangerouslySetInnerHTML/);
@@ -49,5 +50,6 @@ test("importer remains separate from semantic generation and owns no persistence
   assert.match(integration, /setSelectedHotspotId\(result\.selection\.hotspotId\)/);
   assert.match(integration, /changed\(\)/);
   assert.doesNotMatch(integration, /setTeacherDraft|saveNativeActivity|fetch\(/);
-  assert.match(editor, /presentation \? <><NativeSingleChoiceHotspotBulkImporter/);
+  assert.match(editor, /NativeSingleChoiceVisualAuthoring/);
+  assert.match(visualAuthoring, /presentation \? <><NativeSingleChoiceHotspotBulkImporter/);
 });

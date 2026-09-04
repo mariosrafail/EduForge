@@ -64,16 +64,17 @@ test("the four target native kinds persist canonical multiline pedagogical field
 });
 
 test("multiline domain fields use multiline controls and every relevant runtime has safe wrapping rules", async () => {
-  const [choiceEditor, dragEditor, choiceCss, openCss, dragCss, runnerCss] = await Promise.all([
+  const [choiceEditor, choiceQuestions, dragEditor, choiceCss, openCss, dragCss, runnerCss] = await Promise.all([
     readFile("src/apps/book-builder/hosted/NativeSingleChoiceEditor.jsx", "utf8"),
+    readFile("src/apps/book-builder/hosted/NativeSingleChoiceQuestionAuthoring.jsx", "utf8"),
     readFile("src/apps/book-builder/hosted/NativeDragDropEditor.jsx", "utf8"),
     readFile("src/components/native-single-choice/nativeSingleChoice.css", "utf8"),
     readFile("src/components/native-open-response/nativeOpenResponseSurface.css", "utf8"),
     readFile("src/components/native-drag-drop/nativeDragDrop.css", "utf8"),
     readFile("src/components/lms/activities/ultimate-b2/nativeActivityText.css", "utf8"),
   ]);
-  assert.match(choiceEditor, /<textarea rows=\{2\} aria-label=\{`Option/);
+  assert.match(choiceQuestions, /<textarea rows=\{2\} aria-label=\{`Option/);
   assert.match(dragEditor, /<textarea rows=\{2\} aria-label=\{`Word/);
   for (const source of [choiceCss, openCss, dragCss, runnerCss]) assert.match(source, /white-space:\s*pre-wrap/);
-  for (const source of [choiceEditor, dragEditor]) assert.doesNotMatch(source, /dangerouslySetInnerHTML/);
+  for (const source of [choiceEditor, choiceQuestions, dragEditor]) assert.doesNotMatch(source, /dangerouslySetInnerHTML/);
 });

@@ -26,6 +26,9 @@ export async function exerciseDragDropExtensions(page, { dragDropId, savedDragDr
   await extendedMappings.nth(1).selectOption({ label: "repeated · word 2 · reusable" });
   await page.getByRole("tab", { name: "Local Preview" }).click();
   await page.locator(".studio-preview-panel").getByRole("button", { name: "Student Preview", exact: true }).click();
+  await page.locator(".b2-hosted-activity-preview").focus();
+  await page.waitForFunction(() => document.querySelector(".b2-hosted-activity-layout")?.dataset.navigationExpanded === "false");
+  await page.waitForTimeout(250);
 
   const extendedPreview = page.locator(".studio-preview-panel .native-drag-drop");
   const extendedInteraction = savedDragDrop.publicDocument.parts[0].interaction;
@@ -111,6 +114,12 @@ export async function exerciseDragDropExtensions(page, { dragDropId, savedDragDr
   const textBankWord = textPreview.locator(`[data-drag-drop-word-id="${reusableWordId}"]`);
   assert.match(await textBankWord.textContent(), /B\. repeated/);
   await page.waitForFunction((surface) => surface.querySelector(".native-drag-drop-bank-items")?.dataset.fitScale, await textPreview.elementHandle());
+  await page.waitForFunction((surface) => {
+    const bankItems = surface.querySelector(".native-drag-drop-bank-items");
+    if (!bankItems || bankItems.scrollHeight > bankItems.clientHeight + 1 || bankItems.scrollWidth > bankItems.clientWidth + 1) return false;
+    const itemsRect = bankItems.getBoundingClientRect();
+    return [...bankItems.children].every((entry) => { const box = entry.getBoundingClientRect(); return box.left >= itemsRect.left - 1 && box.right <= itemsRect.right + 1 && box.top >= itemsRect.top - 1 && box.bottom <= itemsRect.bottom + 1; });
+  }, await textPreview.elementHandle());
   const textModeLayout = await textPreview.evaluate((surface) => {
     const bank = surface.querySelector(".native-drag-drop-bank");
     const bankItems = surface.querySelector(".native-drag-drop-bank-items");

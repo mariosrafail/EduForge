@@ -7,7 +7,7 @@ import { NativeCompleteSentencesTeacherSurface } from "../../../native-complete-
 import { NativeReadableTextPresentation } from "../../../native-readable-text/NativeReadableTextPresentation.jsx";
 import "./nativeActivityText.css";
 import { NativeListeningTeacherSurface } from "../../../native-listening/NativeListeningSurface.jsx";
-import { NativeOldschoolListeningTeacherSurface } from "../../../native-oldschool-listening/NativeOldschoolListeningSurface.jsx";
+import { NativeOldschoolListeningTeacherSurface } from "../../../native-oldschool-listening/NativeOldschoolListeningTeacherSurface.jsx";
 import { NativeDragDropTeacherSurface } from "../../../native-drag-drop/NativeDragDropTeacherSurface.jsx";
 import { loadPublishedNativeTeacherDocument, publishedNativeAssetUrl } from "virtual:component-publication";
 

@@ -131,6 +131,11 @@ function normalizeTextResponses(publicDocument, rawEnvelope, responseKind) {
 function normalizeOpenResponse(publicDocument, rawEnvelope) { return normalizeTextResponses(publicDocument, rawEnvelope, "open-response"); }
 function normalizeListening(publicDocument, rawEnvelope) { return normalizeTextResponses(publicDocument, rawEnvelope, "listening"); }
 function normalizeOldschoolListening(publicDocument, rawEnvelope) { return normalizeTextResponses(publicDocument, rawEnvelope, "oldschool-listening"); }
+function normalizeOldschoolSingleChoice(publicDocument, rawEnvelope) {
+  const normalized = normalizeSingleChoice(publicDocument, rawEnvelope);
+  if (normalized.error) return normalized;
+  return { ...normalized, payload: { ...normalized.payload, kind: "oldschool-listening" } };
+}
 
 function openResponseReview(publicDocument, teacherDocument, payload = {}) {
   const responses = new Map((payload.items || []).map((item) => [String(item.id), String(item.value ?? "")]));
@@ -334,6 +339,9 @@ export function nativeAssignmentCapability(kind, publicDocument = null) {
   const capability = capabilities[String(kind || "")] || null;
   if (kind === "complete-sentences" && publicDocument?.parts?.[0]?.interaction?.evaluationMode === NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE) {
     return Object.freeze({ ...capability, reviewMode: "auto-scored", evaluateResponse: scoreCompleteSentences });
+  }
+  if (kind === "oldschool-listening" && publicDocument?.parts?.[0]?.interaction?.questionMode === "single-choice") {
+    return Object.freeze({ ...capability, reviewMode: "auto-scored", normalizeResponse: normalizeOldschoolSingleChoice, evaluateResponse: scoreSingleChoice, teacherReviewProjection: singleChoiceReview });
   }
   return capability;
 }

@@ -32,7 +32,11 @@ test("all four existing native editors apply generated candidates in memory and 
   ];
   for (const [filename, kind, dirtyCall] of editors) {
     const source = await readFile(new URL(`../src/apps/book-builder/hosted/${filename}`, import.meta.url), "utf8");
-    assert.match(source, new RegExp(`NativeBulkGenerator kind=["']${kind}["']`));
+    if (filename === "NativeSingleChoiceEditor.jsx") {
+      const shared = await readFile(new URL("../src/apps/book-builder/hosted/NativeSingleChoiceQuestionAuthoring.jsx", import.meta.url), "utf8");
+      assert.match(source, /NativeSingleChoiceQuestionAuthoring/);
+      assert.match(shared, /NativeBulkGenerator kind="single-choice"/);
+    } else assert.match(source, new RegExp(`NativeBulkGenerator kind=["']${kind}["']`));
     const generator = source.slice(source.indexOf("const generateBulk"), source.indexOf("const generateBulk") + 900);
     assert.match(generator, /generateNativeBulkCandidate/);
     assert.match(generator, /setPublicDraft\(result\.publicDocument\)/);

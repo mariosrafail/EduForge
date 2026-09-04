@@ -62,7 +62,8 @@ test("all Activity Builder editors omit generic instruction controls and preserv
   }
   assert.match(editors[0], /Prompt|Private model answer/);
   assert.match(editors[1], /Content|Alt text/);
-  assert.match(editors[2], /Prompt|Options and private correct answer/);
+  const singleChoiceQuestions = await readFile("src/apps/book-builder/hosted/NativeSingleChoiceQuestionAuthoring.jsx", "utf8");
+  assert.match(`${editors[2]}\n${singleChoiceQuestions}`, /Prompt|Options and private correct answer/);
   assert.match(editors[3], /Full sentence with one marked answer|parseNativeCompleteSentencesMarkedSentence/);
   assert.doesNotMatch(editors[3], /Private correct word or phrase/);
   const listeningHelpers = await Promise.all([
