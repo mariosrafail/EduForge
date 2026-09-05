@@ -133,9 +133,10 @@ test("migration 056 adds isolated idempotent B1/B1+ shells and preserves the exa
   });
 
   const migrations = await loadProductionMigrationManifest();
-  assert.equal(migrations.at(-1).filename, "056_ultimate_b1_managed_package_shells.sql");
-  const migration056 = migrations.at(-1);
-  await applyMigrations(pool, migrations.slice(0, -1));
+  const migrationIndex = migrations.findIndex(({ filename }) => filename === "056_ultimate_b1_managed_package_shells.sql");
+  assert.ok(migrationIndex > 0, "The canonical manifest must contain migration 056 and its prerequisites");
+  const migration056 = migrations[migrationIndex];
+  await applyMigrations(pool, migrations.slice(0, migrationIndex));
 
   const packagesBefore = identityMap((await pool.query(
     "select slug,id from book_packages where slug in ('ultimate-b1','ultimate-b1-plus') order by slug",
