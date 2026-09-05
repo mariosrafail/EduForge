@@ -3,7 +3,7 @@ import { Boxes, ChevronDown, ChevronLeft, ChevronRight, FileImage, ListChecks, M
 
 import { nativeActivityKindLabels } from "../../../data/native-activities/nativeActivityKinds.js";
 import { BuilderModal } from "./BuilderModal.jsx";
-import { createNativeActivity, deleteNativeActivity, getActivityLifecycle, getNativeActivityCatalogResult, moveActivity, retireCanonicalActivity } from "./builderNativeActivityApi.js";
+import { createNativeActivity, deleteNativeActivity, getActivityLifecycle, getActivityOrder, reorderActivity, getNativeActivityCatalogResult, moveActivity, retireCanonicalActivity } from "./builderNativeActivityApi.js";
 import { NativeActivityFoundationEditor } from "./NativeActivityFoundationEditor.jsx";
 import { getBuilderPages } from "./builderPagesApi.js";
 import { pageLibraryReviewNavigation } from "./pageLibraryReviewModel.js";
@@ -67,6 +67,8 @@ export function HostedActivityWorkspace({
   const [catalogDiagnostics, setCatalogDiagnostics] = useState([]);
   const [catalogReload, setCatalogReload] = useState(0);
   const [lifecycle, setLifecycle] = useState({ schemaVersion: "1.0", activities: {} });
+  const [activityOrder, setActivityOrder] = useState(null);
+  const [reorderState, setReorderState] = useState({ busy: false, error: "" });
   const [catalogState, setCatalogState] = useState({ status: "loading", error: "" });
   const [addOpen, setAddOpen] = useState(false);
   const [deleteState, setDeleteState] = useState({ open: false, saving: false, error: "" });
@@ -89,7 +91,7 @@ export function HostedActivityWorkspace({
   const navigationCloseTimerRef = useRef(null);
   const manualNavigationCollapseRef = useRef(false);
   const scopeGenerationRef = useRef(0);
-  const model = useMemo(() => buildActivityBuilderNavigation({ units: canonicalUnits, nativeActivities: nativeCatalog, placements: nativePlacements, lifecycle, activePageIds, isEditable: managed ? neverEditable : isCanonicalEditable }), [activePageIds, canonicalUnits, isCanonicalEditable, lifecycle, managed, nativeCatalog, nativePlacements]);
+  const model = useMemo(() => buildActivityBuilderNavigation({ units: canonicalUnits, nativeActivities: nativeCatalog, placements: nativePlacements, lifecycle, activePageIds, activityOrder: activityOrder?.pages, isEditable: managed ? neverEditable : isCanonicalEditable }), [activityOrder, activePageIds, canonicalUnits, isCanonicalEditable, lifecycle, managed, nativeCatalog, nativePlacements]);
   const filtered = useMemo(() => filterActivityBuilderNavigation(model, { query, access, type }), [access, model, query, type]);
   const selection = findActivityBuilderItem(model, selectedId);
   const filteredSelection = findActivityBuilderItem(filtered, selectedId);
@@ -103,10 +105,11 @@ export function HostedActivityWorkspace({
     registerToolContext("activities", { view: "activity", activityId: selectedId, ...(nativeSelectedPlacement ? { pageId: nativeSelectedPlacement.pageId, unitNumber: nativeSelectedPlacement.unitNumber } : {}), dirty, refreshKey: viewerRefresh, release: null });
   }, [dirty, nativeSelectedPlacement, registerToolContext, selectedId, viewerRefresh]);
   const loadCatalogs = useCallback(async (signal, generation = scopeGenerationRef.current, requestedScope = scopeKey) => {
-    const [nativeResult, currentLifecycle, pageLibrary] = await Promise.all([
+    const [nativeResult, currentLifecycle, pageLibrary, currentOrder] = await Promise.all([
       getNativeActivityCatalogResult({ bookSlug, componentSlug }, { signal }),
       getActivityLifecycle({ bookSlug, componentSlug }, { signal }),
       getBuilderPages({ bookSlug, componentSlug }, { signal }),
+      getActivityOrder({ bookSlug, componentSlug }, { signal }),
     ]);
     if (signal?.aborted || generation !== scopeGenerationRef.current || requestedScope !== scopeKey) return null;
     if (pageLibrary) {
@@ -115,6 +118,7 @@ export function HostedActivityWorkspace({
       setActivePageIds(pageLibrary.pages.map((page) => page.id));
     }
     setNativeCatalog(nativeResult.activities); setCatalogDiagnostics(nativeResult.invalidActivities);
+    setActivityOrder(currentOrder);
     setLifecycle(currentLifecycle.document); return { native: nativeResult.activities, lifecycle: currentLifecycle.document };
   }, [bookSlug, componentSlug, managed, scopeKey]);
   useEffect(() => {
@@ -122,7 +126,7 @@ export function HostedActivityWorkspace({
     const generation = scopeGenerationRef.current + 1;
     scopeGenerationRef.current = generation;
     setManagedNavigation({ units: [], placements: [] }); setActivePageIds(null);
-    setNativeCatalog([]); setCatalogDiagnostics([]); setLifecycle({ schemaVersion: "1.0", activities: {} }); setSelectedId(firstId);
+    setNativeCatalog([]); setCatalogDiagnostics([]); setActivityOrder(null); setReorderState({ busy: false, error: "" }); setLifecycle({ schemaVersion: "1.0", activities: {} }); setSelectedId(firstId);
     setDirty(false); setViewerRefresh(0); setAddOpen(false); setDeleteState({ open: false, saving: false, error: "" });
     setMoveState({ open: false, pageId: "", saving: false, error: "", placementRequired: false }); setSwitchTarget("");
     setQuery(""); setAccess("all"); setType("all"); setExpandedUnits(new Set(managed ? [] : [configuredCanonicalUnits[0]?.id]));
@@ -223,6 +227,18 @@ export function HostedActivityWorkspace({
   };
   const toggleSet = (setter, id) => setter((current) => { const next = new Set(current); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   const typeOptions = activityBuilderTypeOptions(model);
+  const changeActivityOrder = async (activity, direction) => {
+    if (!activityOrder || dirty || reorderState.busy) return;
+    setReorderState({ busy: true, error: "" });
+    try {
+      await reorderActivity({ bookSlug, componentSlug, activityId: activity.id, pageId: activity.placement.pageId, direction, expectedIndexRevision: activityOrder.indexRevision, expectedLifecycleRevision: activityOrder.lifecycleRevision });
+      await loadCatalogs(); setViewerRefresh((value) => value + 1);
+      setReorderState({ busy: false, error: "" });
+    } catch (error) {
+      setReorderState({ busy: false, error: error.message });
+      try { await loadCatalogs(); } catch { setCatalogState({ status: "error", error: "Activity order could not be reloaded." }); }
+    }
+  };
   const revealNavigation = () => { manualNavigationCollapseRef.current = false; globalThis.clearTimeout(navigationCloseTimerRef.current); setNavigationExpanded(true); };
   const revealNavigationFromPointer = () => {
     if (manualNavigationCollapseRef.current) return;
@@ -264,7 +280,8 @@ export function HostedActivityWorkspace({
       <aside id="activity-builder-book-navigation" className="activity-builder-sidebar" aria-label="Activity Builder book navigation">
         <div className="activity-builder-search"><label><span className="sr-only">Search activities</span><Search aria-hidden="true" /><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search title, type, or ID" /></label><div><label><span>Access</span><select value={access} onChange={(event) => setAccess(event.target.value)}><option value="all">All</option><option value="editable">Editable</option><option value="native">Native</option><option value="read-only">Read-only</option></select></label><label><span>Type</span><select value={type} onChange={(event) => setType(event.target.value)}><option value="all">All types</option>{typeOptions.map((value) => <option key={value} value={value}>{nativeActivityKindLabels[value] || value.replaceAll("-", " ")}</option>)}</select></label></div></div>
         {!filteredSelection && selection ? <p className="activity-filter-notice" role="status">The selected activity is hidden by the current filters. It remains open for editing.</p> : null}
-        <ActivityTree {...{ filtered, expandedUnits, expandedPages, selectedId, selectActivity, toggleSet, setExpandedUnits, setExpandedPages }} allowExtras={!managed} onOpenExtras={(nextUnit, category, trigger) => { extrasTriggerRef.current = trigger; setExtrasUnit({ unit: nextUnit, category }); }} />
+        {reorderState.error ? <p role="alert">{reorderState.error}</p> : null}
+        <ActivityTree {...{ filtered, expandedUnits, expandedPages, selectedId, selectActivity, toggleSet, setExpandedUnits, setExpandedPages }} order={activityOrder?.pages} reorderDisabled={dirty || reorderState.busy} onReorder={changeActivityOrder} allowExtras={!managed} onOpenExtras={(nextUnit, category, trigger) => { extrasTriggerRef.current = trigger; setExtrasUnit({ unit: nextUnit, category }); }} />
       </aside>
       <button className="activity-builder-navigation-toggle" type="button" aria-controls="activity-builder-book-navigation" aria-expanded={navigationExpanded} aria-label={navigationExpanded ? "Collapse activity navigation" : "Show activity navigation"} title={navigationExpanded ? "Collapse navigation" : "Show navigation"} onFocus={revealNavigation} onClick={toggleNavigation}>{navigationExpanded ? <ChevronLeft aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}</button>
       </div>
@@ -277,8 +294,11 @@ export function HostedActivityWorkspace({
   </main>;
 }
 
-function ActivityTree({ filtered, expandedUnits, expandedPages, selectedId, selectActivity, toggleSet, setExpandedUnits, setExpandedPages, allowExtras = true, onOpenExtras }) {
-  const itemButton = (activity) => <button type="button" key={activity.id} aria-current={selectedId === activity.id ? "true" : undefined} title={activity.id} onClick={() => selectActivity(activity.id)}><strong>{activity.title}</strong><small>{activity.native ? "Native" : activity.editable ? "Editable" : "Read-only"} · {nativeActivityKindLabels[activity.kind] || activity.kind.replaceAll("-", " ")}</small><code>{activity.id}</code></button>;
+function ActivityTree({ filtered, expandedUnits, expandedPages, selectedId, selectActivity, toggleSet, setExpandedUnits, setExpandedPages, allowExtras = true, onOpenExtras, order, reorderDisabled, onReorder }) {
+  const itemButton = (activity) => {
+    const ids = order?.[activity.placement?.pageId] || []; const index = ids.indexOf(activity.id);
+    return <div key={activity.id} className="activity-tree-item-row"><button type="button" aria-current={selectedId === activity.id ? "true" : undefined} title={activity.id} onClick={() => selectActivity(activity.id)}><strong>{activity.title}</strong><small>{activity.native ? "Native" : activity.editable ? "Editable" : "Read-only"} · {nativeActivityKindLabels[activity.kind] || activity.kind.replaceAll("-", " ")}</small><code>{activity.id}</code></button><div role="group" aria-label={`Order ${activity.title}`}><button type="button" aria-label={`Move Up: ${activity.title}`} disabled={reorderDisabled || activity.assignment?.state === "unassigned" || index <= 0} onClick={() => onReorder(activity, "up")}>Move Up</button><button type="button" aria-label={`Move Down: ${activity.title}`} disabled={reorderDisabled || activity.assignment?.state === "unassigned" || index < 0 || index === ids.length - 1} onClick={() => onReorder(activity, "down")}>Move Down</button></div></div>;
+  };
   return <div className="activity-navigation-tree">{filtered.units.map((unit) => { const unitOpen = expandedUnits.has(unit.id); return <section key={unit.id}><div className="activity-tree-unit-row"><button className="activity-tree-toggle" type="button" aria-expanded={unitOpen} onClick={() => toggleSet(setExpandedUnits, unit.id)}>{unitOpen ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}<strong>{unit.title}</strong><span>{unit.pages.reduce((count, page) => count + page.activities.length, 0)}</span></button>{allowExtras ? <details className="activity-tree-extras"><summary aria-label={`Add extras to ${unit.title}`} title={`Add extras to ${unit.title}`}><Plus aria-hidden="true" /></summary><div><strong>Add Extras</strong><button type="button" onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); onOpenExtras(unit, "videos", event.currentTarget); }}><Video aria-hidden="true" /> Videos</button><button type="button" onClick={(event) => { event.currentTarget.closest("details")?.removeAttribute("open"); onOpenExtras(unit, "audios", event.currentTarget); }}><Music aria-hidden="true" /> Audio</button></div></details> : null}</div>{unitOpen ? unit.pages.map((page) => { const pageOpen = expandedPages.has(page.id); return <div className="activity-tree-page" key={page.id}><button className="activity-tree-toggle" type="button" aria-expanded={pageOpen} onClick={() => toggleSet(setExpandedPages, page.id)}>{pageOpen ? <ChevronDown aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}<span><strong>{page.title}</strong><small>{page.pageLabel}</small></span><span>{page.activities.length}</span></button>{pageOpen ? <div className="activity-tree-items">{page.activities.map(itemButton)}</div> : null}</div>; }) : null}</section>; })}{filtered.unassigned?.length ? <section><h2>Unassigned</h2><p className="activity-filter-notice">These activities are preserved but cannot launch until moved to an active page.</p>{filtered.unassigned.map(itemButton)}</section> : null}</div>;
 }
 

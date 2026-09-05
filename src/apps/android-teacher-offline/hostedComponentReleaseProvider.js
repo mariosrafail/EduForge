@@ -7,6 +7,7 @@ import { findStudentsBookImplementation } from "../../data/ultimate-b2/studentsB
 import { getUltimateB2StudentsBookHotspotActions, getUltimateB2StudentsBookHotspotActionsFromManifest } from "../../data/ultimate-b2/studentsBookHotspots.js";
 import { normalizePublishedUltimateB2UnitExtras } from "../../data/ultimate-b2/unitExtras.js";
 import { authorizedHostedPreviewPath, HOSTED_VIEWER_RUNTIME_MODES, hostedReleasePath, resolveHostedViewerRuntimeContext } from "./hostedReleasePreview.js";
+import { normalizeComponentActivityOrder } from "../../data/native-activities/nativeActivityOrder.js";
 
 const cached = new Map();
 const pending = new Map();
@@ -15,8 +16,15 @@ export function clearPublishedComponentReleaseCache() { cached.clear(); pending.
 
 async function loadRelease(signal, runtimeContext, identity) {
   const context = runtimeContext || resolveHostedViewerRuntimeContext();
-  if (context.kind === HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW && identity.bookSlug === "ultimate-b2" && identity.componentSlug === "ultimate-b2-students-book") {
-    return loadHostedDraftUnitExtras({ signal, context, identity });
+  if (context.kind === HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW) {
+    const [extras, response] = await Promise.all([
+      loadHostedDraftUnitExtras({ signal, context, identity }),
+      fetch(authorizedHostedPreviewPath(`/preview/native-activities/books/${identity.bookSlug}/components/${identity.componentSlug}/order`, context.authorization), { credentials: "omit", cache: "no-store", signal }),
+    ]);
+    if (!response.ok) throw new Error("Saved activity order is unavailable.");
+    const value = await response.json();
+    if (value.bookSlug !== identity.bookSlug || value.componentSlug !== identity.componentSlug) throw new Error("Saved activity order identity is invalid.");
+    return { ...extras, kind: "draft", projection: { ...extras.projection, activityOrder: normalizeComponentActivityOrder(value.pages) }, runtimeContext: context, identity };
   }
   if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.RELEASE_PREVIEW) return { kind: "none" };
   const response = await fetch(hostedReleasePath(context, identity, "public"), { method: "GET", credentials: "omit", cache: "no-store", signal });
@@ -76,7 +84,7 @@ export function publishedNativeAssetUrl(publication, reference) {
 
 export function publishedUnitExtraVideoUrl(publication, reference) {
   if (publication.kind === "draft" && reference) {
-    for (const unit of publication.projection.unitExtras.units) {
+    for (const unit of (publication.projection.unitExtras?.units || [])) {
       const video = unit.categories.videos.find((entry) => entry.video.asset.assetId === reference.assetId && entry.video.asset.checksumSha256 === reference.checksumSha256);
       if (video) return authorizedHostedPreviewPath(`/preview/unit-extras/books/${publication.identity.bookSlug}/components/${publication.identity.componentSlug}/units/${unit.unitId}/videos/${video.id}/assets/${reference.assetId}/preview`, publication.runtimeContext.authorization);
     }
@@ -87,7 +95,7 @@ export function publishedUnitExtraVideoUrl(publication, reference) {
 
 export function publishedUnitExtraAudioUrl(publication, reference) {
   if (publication.kind === "draft" && reference) {
-    for (const unit of publication.projection.unitExtras.units) {
+    for (const unit of (publication.projection.unitExtras?.units || [])) {
       const audio = unit.categories.audios.find((entry) => entry.audio.asset.assetId === reference.assetId && entry.audio.asset.checksumSha256 === reference.checksumSha256);
       if (audio) return authorizedHostedPreviewPath(`/preview/unit-extras/books/${publication.identity.bookSlug}/components/${publication.identity.componentSlug}/units/${unit.unitId}/audios/${audio.id}/assets/${reference.assetId}/preview`, publication.runtimeContext.authorization);
     }

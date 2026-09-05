@@ -9,6 +9,7 @@ export default function TeacherBookNavigationCore({
   onNext = noOp,
   previousDisabled = true,
   nextDisabled = true,
+  navigationMode = "page",
   contextAction = null,
   contextActions = null,
   internalNavigation = null,
@@ -23,8 +24,8 @@ export default function TeacherBookNavigationCore({
     <nav className="teacher-book-navigation" aria-label="Book navigation" data-teacher-book-navigation="">
       <button type="button" onClick={onHome} aria-label="Home" title="Home">{renderIcon("home")}</button>
       <button type="button" onClick={onBack} aria-label="Back" title="Back">{renderIcon("back")}</button>
-      <button type="button" disabled={previousDisabled} onClick={onPrevious} aria-label="Previous page" title="Previous page">{renderIcon("previous")}</button>
-      <button type="button" disabled={nextDisabled} onClick={onNext} aria-label="Next page" title="Next page">{renderIcon("next")}</button>
+      <button type="button" disabled={previousDisabled} onClick={onPrevious} aria-label={`Previous ${navigationMode}`} title={`Previous ${navigationMode}`}>{renderIcon("previous")}</button>
+      <button type="button" disabled={nextDisabled} onClick={onNext} aria-label={`Next ${navigationMode}`} title={`Next ${navigationMode}`}>{renderIcon("next")}</button>
       {internalNavigation && <>
         <button type="button" className="teacher-book-navigation-internal" disabled={internalNavigation.previousDisabled} onClick={internalNavigation.onPrevious} aria-label="Previous activity part" title="Previous activity part">{renderIcon(internalNavigation.previousDisabled ? "previousInternalDisabled" : "previousInternal")}</button>
         <button type="button" className="teacher-book-navigation-internal" disabled={internalNavigation.nextDisabled} onClick={internalNavigation.onNext} aria-label="Next activity part" title="Next activity part">{renderIcon(internalNavigation.nextDisabled ? "nextInternalDisabled" : "nextInternal")}</button>

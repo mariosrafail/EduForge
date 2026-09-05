@@ -58,6 +58,7 @@ Apply production migrations in this exact order:
 54. `054_builder_component_font_library.sql`
 55. `055_builder_unit_extra_audio.sql`
 56. `056_ultimate_b1_managed_package_shells.sql`
+57. `057_builder_activity_order.sql`
 
 The two `010` files are historical, already-deployed migrations. Their duplicate number is resolved by this manifest rather than renaming applied files. New migrations must use a unique, increasing number.
 

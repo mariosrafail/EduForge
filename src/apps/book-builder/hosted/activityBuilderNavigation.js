@@ -1,17 +1,16 @@
 const normalized = (value) => String(value || "").trim().toLocaleLowerCase();
 
-const stable = (left, right) => (left.sortOrder ?? Number.MAX_SAFE_INTEGER) - (right.sortOrder ?? Number.MAX_SAFE_INTEGER)
-  || String(left.title || left.id).localeCompare(String(right.title || right.id))
-  || String(left.id).localeCompare(String(right.id));
+import { compareNativeActivityOrder as stable } from "../../../data/native-activities/nativeActivityOrder.js";
 
-export function buildActivityBuilderNavigation({ units = [], nativeActivities = [], placements = [], lifecycle = null, activePageIds = null, isEditable = () => false } = {}) {
+export function buildActivityBuilderNavigation({ units = [], nativeActivities = [], placements = [], lifecycle = null, activePageIds = null, activityOrder = null, isEditable = () => false } = {}) {
   const placementByPage = new Map(placements.map((placement) => [placement.pageId, placement]));
   const lifecycleEntries = lifecycle?.activities && typeof lifecycle.activities === "object" ? lifecycle.activities : {};
   const pageById = new Map();
   const model = units.map((unit, unitIndex) => {
     const pages = (unit.lessons || []).map((lesson, pageIndex) => {
       const unitNumber = unit.unitNumber || unit.number || unitIndex + 1;
-      const pageId = lesson.pageId || placements.find((placement) => placement.unitNumber === unitNumber && placement.pageLabel === lesson.pageLabel)?.pageId || lesson.id;
+      const matchingPlacements = placements.filter((placement) => placement.unitNumber === unitNumber && placement.pageLabel === lesson.pageLabel);
+      const pageId = lesson.pageId || (matchingPlacements.length === 1 ? matchingPlacements[0].pageId : lesson.id);
       const page = {
         id: pageId,
         title: lesson.sectionTitle || lesson.title || lesson.pageLabel || pageId,
@@ -32,7 +31,7 @@ export function buildActivityBuilderNavigation({ units = [], nativeActivities = 
           movable: true,
           placement: { pageId: override?.pageId || pageId },
           ready: true,
-          sortOrder: activityIndex,
+          sortOrder: override?.sortOrder ?? activityIndex,
           }];
         }),
       };
@@ -91,7 +90,13 @@ export function buildActivityBuilderNavigation({ units = [], nativeActivities = 
     if (assigned) target.activities.push(item);
     else unassigned.push({ ...item, assignment: { state: "unassigned", reason: item.assignment.reason || "page-unavailable" } });
   }
-  for (const unit of model) for (const page of unit.pages) page.activities.sort(stable);
+  for (const unit of model) for (const page of unit.pages) {
+    const ids = activityOrder?.[page.id];
+    const ranks = ids && new Map(ids.map((id, index) => [id, index]));
+    page.activities.sort((left, right) => ranks
+      ? (ranks.get(left.id) ?? Number.MAX_SAFE_INTEGER) - (ranks.get(right.id) ?? Number.MAX_SAFE_INTEGER) || stable(left, right)
+      : stable(left, right));
+  }
   unassigned.sort(stable);
   return { units: model, unassigned };
 }

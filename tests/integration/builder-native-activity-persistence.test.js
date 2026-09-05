@@ -12,11 +12,41 @@ import { claimBuilderNativeAssetUpload, completeBuilderNativeAssetUpload, create
 import { collectUltimateB2PublicationSources } from "../../netlify-sites/ultimate-b2-builder/server/_builder-publication-store.js";
 import { ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS } from "../../src/data/ultimate-b2/openResponseActivityRegistry.js";
 import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
+import { loadBuilderActivityOrder, saveBuilderActivityOrder } from "../../netlify-sites/ultimate-b2-builder/server/_builder-activity-order.js";
+import { loadBuilderComponentDocument } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-store.js";
 
 const { Pool } = pg;
 const testDatabaseUrl = process.env.TEST_DATABASE_URL || "";
 const enabled = Boolean(testDatabaseUrl) && process.env.TEST_DATABASE_CONFIRMATION === "isolated-test-database";
 const actor = "10000000-0000-4000-8000-000000000001";
+
+test("isolated PostgreSQL reorders mixed activities atomically and rejects concurrent revisions", { skip: !enabled }, async (t) => {
+  const schema = `builder_native_${randomBytes(8).toString("hex")}`;
+  const admin = new Pool({ connectionString: testDatabaseUrl, max: 1 }); await admin.query(`create schema "${schema}"`);
+  const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 5 });
+  t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
+  await applyCanonicalProductionMigrations(pool);
+  await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Order Actor','order@example.test','not-a-login-hash')", [actor]);
+  const sql = tag(pool); const identity = { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book" };
+  const dependencies = { resolveResource: resolveBuilderContentResource, loadDocument: loadBuilderComponentDocument };
+  const handler = createBuilderNativeActivitiesHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: console });
+  const response = await handler(event({ kind: "image" })); assert.equal(response.statusCode, 200, response.body);
+  const activityId = JSON.parse(response.body).activityId;
+  const pageId = "ub2-sb-unit-1-part-1";
+  const original = await pool.query("select document_type,payload from builder_component_documents where document_key=$1 order by document_type", [activityId]);
+  const current = await loadBuilderActivityOrder(dependencies, sql, identity);
+  const input = { pageId, activityId, direction: "up", expectedIndexRevision: current.indexRevision, expectedLifecycleRevision: current.lifecycleRevision, clientMutationId: randomUUID() };
+  const request = (body) => ({ ...event(), path: "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/reorder", body: JSON.stringify(body) });
+  const concurrent = await Promise.all([handler(request(input)), handler(request({ ...input, clientMutationId: randomUUID() }))]);
+  assert.deepEqual(concurrent.map((entry) => entry.statusCode).sort(), [200, 409], JSON.stringify(concurrent));
+  const saved = await loadBuilderActivityOrder(dependencies, sql, identity);
+  assert.equal(saved.pages[pageId].indexOf(activityId), current.pages[pageId].indexOf(activityId) - 1);
+  assert.deepEqual((await pool.query("select document_type,payload from builder_component_documents where document_key=$1 order by document_type", [activityId])).rows, original.rows);
+  const rejected = await saveBuilderActivityOrder(sql, identity, saved, { ...input, direction: "down", expectedIndexRevision: saved.indexRevision, expectedLifecycleRevision: saved.lifecycleRevision - 1, clientMutationId: randomUUID() }, actor);
+  assert.equal(rejected.outcome, "revision_conflict");
+  const unchanged = await loadBuilderActivityOrder(dependencies, sql, identity);
+  assert.deepEqual(unchanged, saved, "a second-document conflict rolls back the first save and its immutable revision");
+});
 
 function scoped(base, schema) { const url = new URL(base); url.searchParams.set("options", `-c search_path=${schema}`); return url.toString(); }
 function tag(pool) { return async (strings, ...values) => { let text = strings[0]; for (let index = 0; index < values.length; index += 1) text += `$${index + 1}${strings[index + 1]}`; return (await pool.query(text, values)).rows; }; }

@@ -58,6 +58,7 @@ import {
 import { resolveNativeActivityKind, validateNativeActivityPair } from "./_native-activity-registry.js";
 import { collectBuilderNativeActivityCatalogSources, loadBuilderNativeActivityCatalogAssets, normalizeStoredBuilderDocument } from "./_builder-publication-store.js";
 import { serveBuilderPrivateFont } from "./_builder-private-font-response.js";
+import { loadBuilderActivityOrder, saveBuilderActivityOrder } from "./_builder-activity-order.js";
 
 const exact = (value, keys) => value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).sort().join("\0") === [...keys].sort().join("\0");
 const sha256 = (value) => createHash("sha256").update(value).digest("hex");
@@ -79,6 +80,8 @@ function route(event) {
   const suffix = pathname.slice(prefix.index + prefix[0].length).replace(/^\/+|\/+$/g, "");
   if (suffix === "catalog") return { ...scope, action: "catalog" };
   if (suffix === "lifecycle") return { ...scope, action: "lifecycle" };
+  if (suffix === "order") return { ...scope, action: "order" };
+  if (suffix === "reorder") return { ...scope, action: "reorder" };
   if (suffix === "create") return { ...scope, action: "create" };
   if (suffix === "fonts") return { ...scope, action: "font-list" };
   let match = suffix.match(/^fonts\/(prepare|finalize)$/);
@@ -824,6 +827,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
     randomUuid: overrides.randomUuid || randomUUID,
     now: overrides.now || (() => Date.now()),
     logger: overrides.logger || console,
+    saveOrder: overrides.saveOrder || saveBuilderActivityOrder,
   };
   return async function handler(event) {
     try {
@@ -835,6 +839,11 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
       if (!dependencies.resolveAdapter(parsedRoute.bookSlug, parsedRoute.componentSlug)) return json(404, { error: "native_activity_component_not_found" });
       if (parsedRoute.action === "catalog") return event.httpMethod === "GET" ? await nativeCatalog(dependencies, sql, parsedRoute) : json(405, { error: "method_not_allowed" });
       if (parsedRoute.action === "lifecycle") return event.httpMethod === "GET" ? activityLifecycleCatalog(dependencies, sql, parsedRoute) : json(405, { error: "method_not_allowed" });
+      if (parsedRoute.action === "order") {
+        if (event.httpMethod !== "GET") return json(405, { error: "method_not_allowed" });
+        const current = await loadBuilderActivityOrder(dependencies, sql, parsedRoute);
+        return current ? json(200, { pages: current.pages, indexRevision: current.indexRevision, lifecycleRevision: current.lifecycleRevision }) : json(404, { error: "native_activity_component_not_found" });
+      }
       if (parsedRoute.action === "font-list") return event.httpMethod === "GET" ? fontList(dependencies, sql, parsedRoute) : json(405, { error: "method_not_allowed" });
       if (parsedRoute.action === "font-preview") {
         if (!["GET", "HEAD"].includes(event.httpMethod)) return json(405, { error: "method_not_allowed" });
@@ -852,6 +861,21 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
       }
       if (event.httpMethod !== "POST") return json(405, { error: "method_not_allowed" });
       const originError = requireBuilderOrigin(event); if (originError) return originError;
+      if (parsedRoute.action === "reorder") {
+        const parsed = parseJson(event, ["pageId", "activityId", "direction", "expectedIndexRevision", "expectedLifecycleRevision", "clientMutationId"]);
+        if (parsed.error) return parsed.error;
+        const input = parsed.value;
+        if (![input.pageId, input.activityId].every((id) => typeof id === "string" && safeId.test(id)) || !["up", "down"].includes(input.direction) || ![input.expectedIndexRevision, input.expectedLifecycleRevision].every((value) => Number.isSafeInteger(value) && value >= 0) || !builderClientMutationIdPattern.test(String(input.clientMutationId || ""))) return json(400, { error: "invalid_request" });
+        const current = await loadBuilderActivityOrder(dependencies, sql, parsedRoute);
+        if (!current) return json(404, { error: "native_activity_component_not_found" });
+        if (current.indexRevision !== input.expectedIndexRevision || current.lifecycleRevision !== input.expectedLifecycleRevision) return json(409, { error: "revision_conflict" });
+        const ids = current.pages[input.pageId] || []; const position = ids.indexOf(input.activityId);
+        if (position < 0 || (input.direction === "up" ? position === 0 : position === ids.length - 1)) return json(400, { error: "activity_order_boundary" });
+        try { const adapter = dependencies.resolveAdapter(parsedRoute.bookSlug, parsedRoute.componentSlug); await (adapter.normalizeDestinationPlacement || adapter.normalizePlacement)({ pageId: input.pageId }, { sql, ...parsedRoute }); }
+        catch { return json(400, { error: "invalid_native_activity_placement" }); }
+        const result = await dependencies.saveOrder(sql, parsedRoute, current, input, auth.builderUser.id);
+        return result?.outcome === "saved" ? json(200, result) : json(409, { error: result?.outcome || "revision_conflict" });
+      }
       if (parsedRoute.action === "create") return createActivity(dependencies, sql, auth, parsedRoute, event);
       if (parsedRoute.action === "font-prepare") return prepareFont(dependencies, sql, auth, parsedRoute, event);
       if (parsedRoute.action === "font-finalize") return finalizeFont(dependencies, sql, auth, parsedRoute, event);

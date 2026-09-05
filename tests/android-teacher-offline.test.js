@@ -304,14 +304,14 @@ test("Teacher book screens use one canonical navigation row with code-controlled
     readFile("src/apps/android-teacher-offline/teacherFixedStage.css", "utf8"),
     readFile("src/apps/android-teacher-offline/legacyTeacherToolbar.css", "utf8"),
   ]);
-  const orderedLabels = ["Home", "Back", "Previous page", "Next page"];
+  const orderedLabels = ['aria-label="Home"', 'aria-label="Back"', 'aria-label={`Previous ${navigationMode}`}', 'aria-label={`Next ${navigationMode}`}'];
   let previousIndex = -1;
   for (const label of orderedLabels) {
-    const currentIndex = navigationCore.indexOf(`aria-label="${label}"`);
+    const currentIndex = navigationCore.indexOf(label);
     assert.ok(currentIndex > previousIndex, `${label} follows the canonical order`);
     previousIndex = currentIndex;
   }
-  assert.ok(navigationCore.indexOf("internalNavigation &&") > navigationCore.indexOf('aria-label="Next page"'));
+  assert.ok(navigationCore.indexOf("internalNavigation &&") > previousIndex);
   assert.ok(navigationCore.indexOf("actions.map") < navigationCore.indexOf("bookSwitches.map"));
   assert.match(navigationCore, /previousDisabled = true/);
   assert.match(navigationCore, /nextDisabled = true/);
@@ -343,8 +343,8 @@ test("Teacher book screens use one canonical navigation row with code-controlled
   assert.doesNotMatch(book, /TeacherUnitSwitch|teacher-offline-view-tabs|Contents and exercises/);
   assert.match(pages, /<TeacherBookNavigation/);
   assert.match(pages, /onBack=\{activityActive \? onCloseActivity : \(\) => onSelectPage\(""\)\}/);
-  assert.match(pages, /previousDisabled=\{activityActive \|\| selectedIndex <= 0\}/);
-  assert.match(pages, /nextDisabled=\{activityActive \|\| selectedIndex < 0 \|\| selectedIndex >= pages\.length - 1\}/);
+  assert.match(pages, /previousDisabled=\{activityActive \? activeIndex <= 0 : selectedIndex <= 0\}/);
+  assert.match(pages, /nextDisabled=\{activityActive \? activeIndex < 0 \|\| activeIndex >= pageActivityIds\.length - 1 : selectedIndex < 0 \|\| selectedIndex >= pages\.length - 1\}/);
   assert.match(pages, /id: "video"[\s\S]*iconName: "video"/);
   assert.match(pages, /id: "show-text"[\s\S]*label: "Show Text"[\s\S]*iconName: "showText"/);
   assert.match(pages, /contextActions=\{contextActions\}/);

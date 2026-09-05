@@ -220,6 +220,14 @@ export default function TeacherOfflinePages({
   const fallbackExtraVideoActions = useMemo(() => publication.kind !== "none" || pageExtraVideos.length ? [] : actions.filter((action) => (
     action.classification === "video" && /\bextra video\b/i.test(action.label)
   )), [actions, pageExtraVideos.length, publication.kind]);
+  const pageActivityIds = ["loading", "error"].includes(publication.kind) ? [] : publication.projection?.activityOrder
+    ? publication.projection.activityOrder[page?.id] || []
+    : [...new Set([...enabledActivities(page).map((activity) => activity.stableActivityId || activity.id || activity.activityKey), ...actions.filter((action) => !action.logicalKey).map((action) => activityIdForAction(page, action, getAuthoredActivityKey))].filter(Boolean))];
+  const activeIndex = pageActivityIds.indexOf(embeddedActivityId);
+  const navigateActivity = (delta) => {
+    const id = activeIndex < 0 ? null : pageActivityIds[activeIndex + delta];
+    if (id) onOpenActivity(id);
+  };
 
   const image = page?.images?.[0] || null;
   const openAction = (action) => {
@@ -515,10 +523,11 @@ export default function TeacherOfflinePages({
       <TeacherBookNavigation
         onHome={onBackToLibrary}
         onBack={activityActive ? onCloseActivity : () => onSelectPage("")}
-        onPrevious={() => onSelectPage(pages[selectedIndex - 1].id)}
-        onNext={() => onSelectPage(pages[selectedIndex + 1].id)}
-        previousDisabled={activityActive || selectedIndex <= 0}
-        nextDisabled={activityActive || selectedIndex < 0 || selectedIndex >= pages.length - 1}
+        navigationMode={activityActive ? "activity" : "page"}
+        onPrevious={() => activityActive ? navigateActivity(-1) : onSelectPage(pages[selectedIndex - 1].id)}
+        onNext={() => activityActive ? navigateActivity(1) : onSelectPage(pages[selectedIndex + 1].id)}
+        previousDisabled={activityActive ? activeIndex <= 0 : selectedIndex <= 0}
+        nextDisabled={activityActive ? activeIndex < 0 || activeIndex >= pageActivityIds.length - 1 : selectedIndex < 0 || selectedIndex >= pages.length - 1}
         contextActions={contextActions}
         internalNavigation={internalNavigation}
         selectedBookId={selectedBookId}

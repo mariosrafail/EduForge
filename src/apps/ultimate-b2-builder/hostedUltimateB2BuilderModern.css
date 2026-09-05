@@ -54,9 +54,9 @@
 .activity-tree-toggle small { overflow: hidden; color: var(--b-muted); font-size: .67rem; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
 .activity-tree-page { margin-left: 14px; border-left: 1px solid var(--b-border); padding-left: 5px; }
 .activity-tree-items { display: grid; gap: 4px; margin: 2px 0 7px 26px; }
-.activity-tree-items > button, .activity-navigation-tree > section > button:not(.activity-tree-toggle) { display: grid; gap: 3px; width: 100%; padding: 9px 10px; overflow: hidden; border: 1px solid transparent; border-radius: 9px; color: var(--b-text-soft); background: transparent; text-align: left; }
-.activity-tree-items > button:hover { border-color: var(--b-border); background: #f8fafc; }
-.activity-tree-items > button[aria-current="true"] { border-color: #b7cff5; color: #0b4bb3; background: #eff6ff; box-shadow: inset 3px 0 var(--b-primary); }
+.activity-tree-item-row > button, .activity-navigation-tree > section > .activity-tree-item-row > button { display: grid; gap: 3px; width: 100%; padding: 9px 10px; overflow: hidden; border: 1px solid transparent; border-radius: 9px; color: var(--b-text-soft); background: transparent; text-align: left; }
+.activity-tree-item-row > button:hover { border-color: var(--b-border); background: #f8fafc; }
+.activity-tree-item-row > button[aria-current="true"] { border-color: #b7cff5; color: #0b4bb3; background: #eff6ff; box-shadow: inset 3px 0 var(--b-primary); }
 .activity-tree-items button strong { overflow: hidden; font-size: .79rem; text-overflow: ellipsis; white-space: nowrap; }
 .activity-tree-items button small { color: var(--b-muted); font-size: .66rem; }
 .activity-tree-items button code { overflow: hidden; color: #98a2b3; font-size: .58rem; text-overflow: ellipsis; white-space: nowrap; }
@@ -198,3 +198,8 @@
 .unit-extra-page-visibility label em { font-size:.72rem; font-style:normal; color:#475569; }
 @media (max-width:760px) { .builder-modal-backdrop:has(.builder-modal--unit-extras) { padding:12px; } .builder-modal.builder-modal--unit-extras { width:100%; max-height:calc(100dvh - 24px); padding:16px; } .unit-extras-editor > header { align-items:flex-start; } .unit-extra-page-visibility > div { grid-template-columns:1fr; } .unit-extra-video-card { grid-template-columns:1fr; } .unit-extra-video-card > * { grid-column:1; } .unit-extra-video-order { flex-direction:row; } }
 @media (max-width:520px) { .unit-extras-editor > header,.unit-extras-editor > footer { align-items:stretch; flex-direction:column; } .unit-extras-editor > footer button { width:100%; } .unit-extra-page-visibility label { grid-template-columns:auto minmax(0,1fr); } .unit-extra-page-visibility label em { grid-column:2; } }
+
+.activity-tree-item-row { min-width: 0; }
+.activity-tree-item-row > [role="group"] { display: flex; gap: 5px; padding: 0 10px 5px; }
+.activity-tree-item-row > [role="group"] button { padding: 3px 7px; border: 1px solid var(--b-border); border-radius: 5px; background: #fff; font-size: .66rem; }
+.activity-tree-item-row > [role="group"] button:disabled { opacity: .45; cursor: default; }

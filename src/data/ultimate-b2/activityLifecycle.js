@@ -23,9 +23,13 @@ export function normalizeUltimateB2ActivityLifecycle(input) {
     safeId(activityId, "Activity lifecycle identity");
     const entry = input.activities[activityId];
     if (!entry || typeof entry !== "object" || Array.isArray(entry)
-      || Object.keys(entry).sort().join("\0") !== "pageId\0status"
+      || Object.keys(entry).sort().join("\0") !== (Object.hasOwn(entry, "sortOrder") ? "pageId\0sortOrder\0status" : "pageId\0status")
       || !["active", "retired"].includes(entry.status)) throw new Error("Activity lifecycle entry is invalid.");
     activities[activityId] = { status: entry.status, pageId: safeId(entry.pageId, "Activity lifecycle page") };
+    if (Object.hasOwn(entry, "sortOrder")) {
+      if (!Number.isSafeInteger(entry.sortOrder) || entry.sortOrder < 0) throw new Error("Activity lifecycle order is invalid.");
+      activities[activityId].sortOrder = entry.sortOrder;
+    }
   }
   return { schemaVersion: ULTIMATE_B2_ACTIVITY_LIFECYCLE_SCHEMA_VERSION, activities };
 }

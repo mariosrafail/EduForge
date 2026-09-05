@@ -167,3 +167,22 @@ test("native draft endpoint fails closed for missing and inconsistent authoritat
   assert.doesNotMatch(invalidChoiceResponse.body, /correctAnswers|correctOptionId/);
   assert.equal((await harness()(request(publicationV2Fixture.openResponseId, "public", tokenFor(), "POST"))).statusCode, 405);
 });
+
+
+test("saved order respects library, page and single-activity authorization scopes", async () => {
+  const handler = harness();
+  const query = (token) => ({ httpMethod: "GET", path: root.replace(/\/activities$/, "/order"), headers: {}, queryStringParameters: { previewAuthorization: token } });
+  const library = await handler(query(tokenFor({ view: "library", pageId: null })));
+  assert.equal(library.statusCode, 200);
+  assert.ok(Object.keys(JSON.parse(library.body).pages).length > 1);
+  const page = await handler(query(tokenFor()));
+  assert.equal(page.statusCode, 200);
+  assert.deepEqual(Object.keys(JSON.parse(page.body).pages), [publicationV2Fixture.pageId]);
+  assert.ok(JSON.parse(page.body).pages[publicationV2Fixture.pageId].includes(publicationV2Fixture.imageId));
+  const single = await handler(query(tokenFor({ view: "activity", pageId: null, activityId: publicationV2Fixture.imageId })));
+  assert.equal(single.statusCode, 200);
+  assert.deepEqual(Object.values(JSON.parse(single.body).pages).flat(), [publicationV2Fixture.imageId]);
+  assert.equal((await handler(query("malformed"))).statusCode, 401);
+  assert.equal((await handler(query(tokenFor({ componentSlug: "ultimate-b2-workbook" })))).statusCode, 401);
+  assert.doesNotMatch(library.body, /modelAnswers|TEACHER_SENTINEL|correctAnswers/);
+});

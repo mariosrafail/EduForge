@@ -7,6 +7,7 @@ import { isBuilderNativeDraftAssetRecord, loadBuilderFontAsset, loadBuilderNativ
 import { inspectBuilderPreviewAuthorizationScope } from "./_builder-preview-authorization.js";
 import { validateNativeActivityPair } from "./_native-activity-registry.js";
 import { serveBuilderPrivateFont } from "./_builder-private-font-response.js";
+import { loadBuilderActivityOrder } from "./_builder-activity-order.js";
 
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -17,6 +18,8 @@ function decode(value) { try { return decodeURIComponent(value); } catch { retur
 
 function route(event) {
   const pathname = String(event?.path || "").split("?")[0];
+  const order = pathname.match(/^(?:\/builder\/preview\/native-activities|\/\.netlify\/functions\/builder-native-preview)\/books\/([a-z0-9-]+)\/components\/([a-z0-9-]+)\/order$/);
+  if (order) return { bookSlug: order[1], componentSlug: order[2], action: "order" };
   const root = /^(?:\/builder\/preview\/native-activities|\/\.netlify\/functions\/builder-native-preview)\/books\/([^/]+)\/components\/([^/]+)\/activities\/([^/]+)/;
   const prefix = pathname.match(root);
   if (!prefix) return null;
@@ -91,6 +94,21 @@ export function createBuilderNativePreviewHandler(overrides = {}) {
       const decision = dependencies.inspectAuthorization(event, { action: requestedAction, bookSlug: parsed.bookSlug, componentSlug: parsed.componentSlug, activityId: parsed.activityId });
       if (!decision.authorized) return privateJson(401, { error: "Unauthorized" });
       const sql = dependencies.getDatabase();
+      if (parsed.action === "order") {
+        const scope = decision.scope;
+        if (scope?.version !== 2 || scope.releaseId !== null
+          || !(scope.view === "library" && scope.pageId === null && scope.activityId === null
+            || scope.view === "page" && typeof scope.pageId === "string" && scope.activityId === null
+            || scope.view === "activity" && scope.pageId === null && typeof scope.activityId === "string")) return privateJson(401, { error: "Unauthorized" });
+        const current = await loadBuilderActivityOrder(dependencies, sql, parsed);
+        if (!current) return privateJson(404, { error: "native_draft_not_found" });
+        const pages = Object.fromEntries(Object.entries(current.pages).flatMap(([pageId, ids]) => {
+          if (scope.view === "page" && scope.pageId !== pageId) return [];
+          const allowed = scope.view === "activity" ? ids.filter((id) => id === scope.activityId) : ids;
+          return allowed.length ? [[pageId, allowed]] : [];
+        }));
+        return privateJson(200, { bookSlug: parsed.bookSlug, componentSlug: parsed.componentSlug, pages });
+      }
       const publicState = await loadPublicContext(dependencies, sql, parsed);
       if (!publicState) return privateJson(404, { error: "native_draft_not_found" });
       if (!matchesAuthorizedDraftScope(decision.scope, parsed, publicState.document)) return privateJson(401, { error: "Unauthorized" });

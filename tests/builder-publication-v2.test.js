@@ -1,3 +1,5 @@
+import { ultimateB2StudentsBookAuthoringActivities } from "../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
+import { reorderComponentActivity } from "../src/data/native-activities/nativeActivityOrder.js";
 import assert from "node:assert/strict";
 import test from "node:test";
 
@@ -229,4 +231,24 @@ test("v2 publication rejects a future native kind at its frozen capability bound
       && error.code === "native_activity_pair_invalid"
       && error.issues.every((issue) => !issue.includes("TEACHER_SENTINEL")),
   );
+});
+
+
+test("mixed reorder changes release identity and source fingerprint without changing activity payloads", () => {
+  const input = sources();
+  const before = compileUltimateB2ComponentReleaseV2(input);
+  const order = before.publicProjection.activityOrder[pageId];
+  const movingId = order.at(-1);
+  const changed = reorderComponentActivity({ canonical: ultimateB2StudentsBookAuthoringActivities, index: input.native.index.payload,
+    lifecycle: input.documents.activityLifecycle?.payload || { schemaVersion: "1.0", activities: {} }, pageId, activityId: movingId, direction: "up" });
+  input.native.index = source(changed.index, input.native.index.revision + 1);
+  for (const entry of changed.index.activities) input.native.activities[entry.activityId].index = entry;
+  input.documents.activityLifecycle = source(changed.lifecycle);
+  const after = compileUltimateB2ComponentReleaseV2(input);
+  assert.deepEqual(after.publicProjection.activityOrder[pageId], changed.activityIds);
+  assert.notEqual(after.releaseSha256, before.releaseSha256);
+  assert.notEqual(after.sourceSnapshotSha256, before.sourceSnapshotSha256);
+  assert.deepEqual(after.publicProjection.nativeActivities, before.publicProjection.nativeActivities);
+  assert.deepEqual(after.teacherProjection, before.teacherProjection);
+  assert.deepEqual(before.publicProjection.activityOrder[pageId], order);
 });

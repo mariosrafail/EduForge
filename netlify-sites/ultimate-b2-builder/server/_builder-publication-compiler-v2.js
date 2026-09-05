@@ -331,6 +331,7 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     hotspots: hotspotSource ? { revision: hotspotSource.revision, sha256: hotspotSource.sha256 } : { revision: 0, sha256: builderDocumentSha256(validateAndNormalizeUltimateB2HotspotManifest(structuredClone(repositoryHotspots))) },
     openResponse: legacy.sourceSnapshot.openResponse,
     teacherUi: legacy.sourceSnapshot.teacherUi,
+    activityLifecycle: sources.documents?.activityLifecycle ? { revision: sources.documents.activityLifecycle.revision, sha256: sources.documents.activityLifecycle.sha256 } : { revision: 0, sha256: builderDocumentSha256(createEmptyUltimateB2ActivityLifecycle()) },
     nativeIndex: sources.native?.index ? { revision: sources.native.index.revision, sha256: sources.native.index.sha256 } : { revision: 0, sha256: builderDocumentSha256(createEmptyNativeActivityIndex()) },
     nativeActivities: Object.fromEntries(selectedNative.map(([activityId, entry]) => [activityId, {
       kind: entry.publicDocument.kind,
@@ -347,6 +348,7 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     compatibility,
     hotspots,
     activities: legacy.publicProjection.activities,
+    activityOrder: projectComponentActivityOrder(componentActivityOrderEntries(ultimateB2StudentsBookAuthoringActivities, { activities: Object.values(nativeActivities).map((entry) => entry.index) }, activityLifecycle).filter((entry) => activePageIds.includes(entry.pageId)), new Set([...ultimateB2StudentsBookAuthoringActivities.map((entry) => entry.activityKey), ...selectedNative.map(([id]) => id)])),
     nativeActivities: Object.fromEntries(selectedNative.map(([activityId, entry]) => [activityId, { kind: entry.publicDocument.kind, document: entry.publicDocument }])),
     unitExtras,
     activePageIds,
@@ -386,3 +388,4 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     stableJson: stableBuilderJson({ compatibility, sourceSnapshot, publicProjection, teacherProjection }),
   };
 }
+import { componentActivityOrderEntries, projectComponentActivityOrder } from "../../../src/data/native-activities/nativeActivityOrder.js";

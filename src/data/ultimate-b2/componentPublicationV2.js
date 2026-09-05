@@ -108,7 +108,7 @@ function normalizeAsset(value, label) {
 const assetIdentity = (asset) => `${asset.sha256}.${asset.extension}.${asset.role}`;
 
 export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeedsById, { allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS, includeUnitExtras = Object.hasOwn(value || {}, "unitExtras"), includePageLifecycle = Object.hasOwn(value || {}, "pageLibrary") } = {}) {
-  exactObject(value, ["schemaVersion", "hotspots", "openResponse", "teacherUi", "nativeIndex", "nativeActivities", ...(includeUnitExtras ? ["unitExtras"] : []), ...(includePageLifecycle ? ["pageLibrary"] : [])], "Release v2 source snapshot");
+  exactObject(value, ["schemaVersion", "hotspots", "openResponse", "teacherUi", "nativeIndex", "nativeActivities", ...(includeUnitExtras ? ["unitExtras"] : []), ...(includePageLifecycle ? ["pageLibrary"] : []), ...(Object.hasOwn(value, "activityLifecycle") ? ["activityLifecycle"] : [])], "Release v2 source snapshot");
   if (value.schemaVersion !== ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION) throw new Error("Release v2 source snapshot version is invalid.");
   const legacy = normalizeUltimateB2ReleaseSourceSnapshot({
     schemaVersion: "1.0",
@@ -135,6 +135,7 @@ export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeeds
     openResponse: legacy.openResponse,
     teacherUi: legacy.teacherUi,
     nativeIndex: sourceIdentity(value.nativeIndex, "Release v2 native index"),
+    ...(Object.hasOwn(value, "activityLifecycle") ? { activityLifecycle: sourceIdentity(value.activityLifecycle, "Release v2 activity lifecycle") } : {}),
     nativeActivities,
     ...(includeUnitExtras ? { unitExtras: sourceIdentity(value.unitExtras, "Release v2 Unit Extras") } : {}),
     ...(includePageLifecycle ? { pageLibrary: sourceIdentity(value.pageLibrary, "Release v2 page library") } : {}),
@@ -173,7 +174,7 @@ export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSee
   includeUnitExtras = Object.hasOwn(value || {}, "unitExtras"),
   includePageLifecycle = Object.hasOwn(value || {}, "activePageIds"),
 } = {}) {
-  exactObject(value, ["schemaVersion", "bookSlug", "componentSlug", "compatibility", "hotspots", "activities", "nativeActivities", "assets", ...(includeUnitExtras ? ["unitExtras"] : []), ...(includePageLifecycle ? ["activePageIds"] : [])], "Public release v2");
+  exactObject(value, ["schemaVersion", "bookSlug", "componentSlug", "compatibility", "hotspots", "activities", "nativeActivities", "assets", ...(includeUnitExtras ? ["unitExtras"] : []), ...(includePageLifecycle ? ["activePageIds"] : []), ...(Object.hasOwn(value, "activityOrder") ? ["activityOrder"] : [])], "Public release v2");
   if (value.schemaVersion !== ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION || value.bookSlug !== "ultimate-b2" || value.componentSlug !== "ultimate-b2-students-book" || !SHA256.test(String(value.compatibility || "")) || (expectedCompatibility !== null && value.compatibility !== expectedCompatibility)) throw new Error("Public release v2 identity is invalid.");
   const nativeActivities = normalizeNativePublicMap(value.nativeActivities, allowedNativeKinds);
   const hotspots = validateAndNormalizeUltimateB2HotspotManifest(value.hotspots, hotspotCatalog(nativeActivities));
@@ -211,6 +212,11 @@ export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSee
     compatibility: value.compatibility,
     hotspots,
     activities: legacy.activities,
+    ...(Object.hasOwn(value, "activityOrder") ? { activityOrder: normalizeComponentActivityOrder(value.activityOrder, {
+      pageIds: activePageIds ? new Set(activePageIds) : null,
+      activityIds: new Set([...ultimateB2StudentsBookAuthoringActivities.map((entry) => entry.activityKey), ...Object.keys(nativeActivities)]),
+      nativeActivities,
+    }) } : {}),
     nativeActivities,
     ...(unitExtras ? { unitExtras } : {}),
     ...(activePageIds ? { activePageIds } : {}),
@@ -239,3 +245,4 @@ export function normalizeUltimateB2TeacherReleaseV2Projection(value, canonicalSe
   if (publicProjection && Object.keys(nativeActivities).sort().join("\0") !== Object.keys(publicProjection.nativeActivities).sort().join("\0")) throw new Error("Teacher release v2 native topology is incomplete.");
   return { schemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION, bookSlug: value.bookSlug, componentSlug: value.componentSlug, solutions: legacy.solutions, ui: legacy.ui, nativeActivities };
 }
+import { normalizeComponentActivityOrder } from "../native-activities/nativeActivityOrder.js";

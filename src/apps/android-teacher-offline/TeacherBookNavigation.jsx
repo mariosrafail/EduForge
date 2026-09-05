@@ -10,6 +10,7 @@ export default function TeacherBookNavigation({
   onNext = noOp,
   previousDisabled = true,
   nextDisabled = true,
+  navigationMode = "page",
   contextAction = null,
   contextActions = null,
   internalNavigation = null,
@@ -19,6 +20,7 @@ export default function TeacherBookNavigation({
 }) {
   const runtimeUiAssets = useTeacherRuntimeUiAssets();
   return <TeacherBookNavigationCore
+    navigationMode={navigationMode}
     {...{ onHome, onBack, onPrevious, onNext, previousDisabled, nextDisabled, contextAction, contextActions, internalNavigation, selectedBookId, onBookSwitch, unavailableBookIds }}
     bookSwitches={runtimeUiAssets.classroom.bookSwitches}
     renderIcon={(name) => <LegacyClassroomIcon name={name} />}

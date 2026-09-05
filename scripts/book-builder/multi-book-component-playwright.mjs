@@ -1,3 +1,7 @@
+import { fulfillManagedWorkerResponse } from "./multi-book-component-worker-response.mjs";
+import { createBuilderNativePreviewHandler } from "../../netlify-sites/ultimate-b2-builder/server/_builder-native-preview.js";
+import { ultimateB2StudentsBookAuthoringActivities } from "../../src/data/ultimate-b2/studentsBookAuthoringCatalog.js";
+import { componentActivityOrderEntries, projectComponentActivityOrder } from "../../src/data/native-activities/nativeActivityOrder.js";
 import { managedHotspots } from "./hosted-native-activity-document-fixtures.mjs";
 import { exerciseMarkWordsAuthoring } from "./hosted-native-activity-mark-words.mjs";
 import assert from "node:assert/strict";
@@ -348,25 +352,12 @@ const publicBucket = {
   },
 };
 
+const nativePreviewHandler = createBuilderNativePreviewHandler({ getDatabase: () => managedPreviewSql, loadDocument: loadNativeDocument, inspectAuthorization: (event, scope) => inspectBuilderPreviewAuthorizationScope(event, scope, { environment: previewEnvironment, now: previewNow }) });
 const builderWorker = createBuilderWorker({
-  handlers: { pages: builderPagesHandler, previewAuthorization: builderAuthorizationHandler, preview: builderPreviewHandler, unitExtraAssets: builderUnitExtraAssetsHandler },
+  handlers: { nativePreview: nativePreviewHandler, pages: builderPagesHandler, previewAuthorization: builderAuthorizationHandler, preview: builderPreviewHandler, unitExtraAssets: builderUnitExtraAssetsHandler },
 });
 
-async function fulfillWorkerResponse(route, response) {
-  const location = response.headers.get("Location");
-  if (response.status === 302 && location === `${managedStorageOrigin}/__draft-unit-extra.mp4`) {
-    return route.fulfill({ status: 200, contentType: "video/mp4", body: draftUnitExtraBytes });
-  }
-  if (response.status === 302 && location?.startsWith(`${managedStorageOrigin}/__managed-page-storage/`)) {
-    const objectKey = decodeURIComponent(new URL(location).pathname.slice("/__managed-page-storage/".length));
-    managedStorageObjectRequests.push(objectKey);
-    return route.fulfill(managedStorageObjects.has(objectKey)
-      ? { status: 200, contentType: "image/png", body: managedStorageObjects.get(objectKey) }
-      : { status: 404, contentType: "text/plain", body: "Not found" });
-  }
-  const body = response.body ? Buffer.from(await response.arrayBuffer()) : undefined;
-  await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), ...(body ? { body } : {}) });
-}
+const fulfillWorkerResponse = (route, response) => fulfillManagedWorkerResponse(route, response, { managedStorageOrigin, draftUnitExtraBytes, managedStorageObjectRequests, managedStorageObjects });
 
 const immutableRedirectTargetServer = createServer((request, response) => {
   if (request.url?.startsWith("/publishers/hamilton-house/teacher-ui/assets/")) {
@@ -443,6 +434,9 @@ const server = createServer(async (request, response) => {
   }
   if (url.pathname === "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/lifecycle" && request.method === "GET") {
     sendJson(response, { schemaVersion: "1.0", revision: 0, source: "repository", document: { schemaVersion: "1.0", activities: {} } }); return;
+  }
+  if (url.pathname === "/builder/api/native-activities/books/ultimate-b2/components/ultimate-b2-students-book/order" && request.method === "GET") {
+    sendJson(response, { indexRevision: 0, lifecycleRevision: 0, pages: projectComponentActivityOrder(componentActivityOrderEntries(ultimateB2StudentsBookAuthoringActivities, { activities: [] }, { activities: {} })) }); return;
   }
   if (url.pathname.startsWith("/builder/api/native-activities/")) {
     const event = netlifyEvent(request, url, await requestBody(request));

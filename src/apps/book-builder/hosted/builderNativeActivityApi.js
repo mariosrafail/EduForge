@@ -136,6 +136,20 @@ export function retireCanonicalActivity(input) { return mutateActivity({ ...inpu
 
 export function moveActivity(input) { return mutateActivity({ ...input, action: "move" }); }
 
+export async function getActivityOrder({ bookSlug, componentSlug }, { signal } = {}) {
+  const response = await fetch(`${root}/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/order`, { credentials: "same-origin", cache: "no-store", signal });
+  const value = await payload(response);
+  if (!response.ok || !value.pages || ![value.indexRevision, value.lifecycleRevision].every((revision) => Number.isSafeInteger(revision) && revision >= 0)) throw new Error("Activity order could not be loaded.");
+  return value;
+}
+
+export async function reorderActivity({ bookSlug, componentSlug, ...input }) {
+  const response = await fetch(`${root}/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/reorder`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...input, clientMutationId: newBuilderClientMutationId() }) });
+  const value = await payload(response);
+  if (!response.ok) throw new Error(response.status === 409 ? "Activity order changed in another session. Reload the list before moving again." : value.error || "Activity order could not be saved.");
+  return value;
+}
+
 export async function uploadNativeActivityAsset({ bookSlug, componentSlug, activityId, assetSlot, file, purpose = "native-asset" }) {
   const base = activityRoot(bookSlug, componentSlug, activityId);
   const clientMutationId = newBuilderClientMutationId();
