@@ -5,7 +5,7 @@ const NARROW = new Set(".,:;!|'ijlI1()[]".split(""));
 const WIDE = new Set("MW@%&#QOwm".split(""));
 
 export function normalizeNativeAnswerWhitespace(value) {
-  return String(value ?? "").replace(/\s+/g, " ").trim();
+  return String(value ?? "").replace(/\r\n?/g, "\n").split("\n").map((line) => line.replace(/[^\S\n]+/g, " ").trim()).join("\n").trim();
 }
 
 export function nativeAnswerTextWidth(value, fontSize) {
@@ -25,8 +25,8 @@ function splitLongToken(token, width, fontSize, measureTextWidth) {
   return chunks;
 }
 
-function wrap(text, width, fontSize, measureTextWidth) {
-  if (!text) return [];
+function wrapLine(text, width, fontSize, measureTextWidth) {
+  if (!text) return [""];
   const lines = [];
   let current = "";
   for (const token of text.split(" ")) {
@@ -42,18 +42,37 @@ function wrap(text, width, fontSize, measureTextWidth) {
   return lines;
 }
 
+function wrap(text, width, fontSize, measureTextWidth) {
+  return text.split("\n").flatMap((line) => wrapLine(line, width, fontSize, measureTextWidth));
+}
+
 export function autoFitNativeOpenResponseAnswer({ text, responseRegion, measureTextWidth = nativeAnswerTextWidth }) {
   const normalizedText = normalizeNativeAnswerWhitespace(text);
   const { area, presentation } = responseRegion;
   const availableWidth = Math.min(presentation.lineWidth, area.width - (2 * presentation.paddingX));
   const baselines = presentation.linePositions.map((position) => Math.round((area.y + position) * 1_000) / 1_000);
   if (!normalizedText) return { fontSize: presentation.answerFontSizeMax, lines: [], baselines, fits: true, overflowReason: null };
-  for (let fontSize = Math.floor(presentation.answerFontSizeMax); fontSize >= Math.ceil(presentation.answerFontSizeMin); fontSize -= 1) {
+  if (presentation.answerSizeMode === "authored") {
+    const fontSize = presentation.answerFontSizeMax;
+    const lines = wrap(normalizedText, availableWidth, fontSize, measureTextWidth);
+    const spacing = Math.max(fontSize, presentation.lineSpacing);
+    const authoredBaselines = lines.map((_, index) => area.y + presentation.paddingY + spacing * (index + 1));
+    const fits = authoredBaselines.at(-1) <= area.y + area.height - presentation.paddingY && lines.every((line) => measureTextWidth(line, fontSize) <= availableWidth);
+    return { fontSize, lines, baselines: authoredBaselines, fits, overflowReason: fits ? null : "authored-size-overflow" };
+  }
+  // Bounded search also supports large saved maximums without a linear loop.
+  let lower = Math.ceil(presentation.answerFontSizeMin);
+  let upper = Math.floor(presentation.answerFontSizeMax);
+  let best = null;
+  while (lower <= upper) {
+    const fontSize = lower + Math.floor((upper - lower) / 2);
     const lines = wrap(normalizedText, availableWidth, fontSize, measureTextWidth);
     if (lines.length <= presentation.lineCount && lines.every((line) => measureTextWidth(line, fontSize) <= availableWidth)) {
-      return { fontSize, lines, baselines: baselines.slice(0, lines.length), fits: true, overflowReason: null };
-    }
+      best = { fontSize, lines, baselines: baselines.slice(0, lines.length), fits: true, overflowReason: null };
+      lower = fontSize + 1;
+    } else upper = fontSize - 1;
   }
+  if (best) return best;
   const lines = wrap(normalizedText, availableWidth, presentation.answerFontSizeMin, measureTextWidth);
   return { fontSize: presentation.answerFontSizeMin, lines, baselines: baselines.slice(0, Math.min(lines.length, baselines.length)), fits: false, overflowReason: lines.length > presentation.lineCount ? "too-many-lines" : "line-too-wide" };
 }

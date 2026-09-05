@@ -203,7 +203,6 @@ export function assessNativeListeningReadiness(publicDocument, teacherDocument) 
     if (!question.prompt) issues.push(`Question ${index + 1} needs a prompt.`);
     const modelAnswer = answers.get(question.id) || "";
     if (!modelAnswer.trim()) issues.push(`Question ${index + 1} needs a model answer.`);
-    else if (question.responseRegion && !autoFitNativeOpenResponseAnswer({ text: modelAnswer, responseRegion: question.responseRegion }).fits) issues.push(`Question ${index + 1} model answer does not fit its authored lines.`);
   });
   (interaction.artwork || []).forEach((item, index) => {
     if (!item.decorative && !item.altText.trim()) issues.push(`Artwork ${index + 1} needs alt text or must be marked decorative.`);

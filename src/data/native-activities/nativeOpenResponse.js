@@ -20,7 +20,8 @@ export const NATIVE_OPEN_RESPONSE_LIMITS = Object.freeze({
 export const NATIVE_OPEN_RESPONSE_DEFAULT_SURFACE = Object.freeze({ width: 1024, height: 582 });
 export const NATIVE_OPEN_RESPONSE_FONT_FAMILY = "Arial";
 export const NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MINIMUM = 8;
-export const NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MAXIMUM = 72;
+// Safe numeric representation, independent of the response region's layout.
+export const NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MAXIMUM = Number.MAX_SAFE_INTEGER;
 export const NATIVE_OPEN_RESPONSE_LEGACY_PANEL_ID = "panel-00000000000040008000000000000000";
 
 export function initialNativeOpenResponseArtworkArea(logicalSurface, metadata = {}) {
@@ -143,7 +144,9 @@ export function resizeNativeOpenResponseRegion(responseRegion, nextArea) {
 
 function responsePresentation(input, label, regionArea, assets) {
   const hasFontAsset = Object.hasOwn(input, "answerFontAssetSlot");
-  exactKeys(input, ["paddingX", "paddingY", "lineCount", "lineSpacing", "linePositions", "lineWidth", "answerFontFamily", "answerFontSizeMin", "answerFontSizeMax", "color", "align", ...(hasFontAsset ? ["answerFontAssetSlot"] : [])], label);
+  const hasSizeMode = Object.hasOwn(input, "answerSizeMode");
+  exactKeys(input, ["paddingX", "paddingY", "lineCount", "lineSpacing", "linePositions", "lineWidth", "answerFontFamily", "answerFontSizeMin", "answerFontSizeMax", "color", "align", ...(hasFontAsset ? ["answerFontAssetSlot"] : []), ...(hasSizeMode ? ["answerSizeMode"] : [])], label);
+  if (hasSizeMode && !["auto-fit", "authored"].includes(input.answerSizeMode)) throw new Error(`${label}.answerSizeMode is invalid.`);
   const paddingX = number(input.paddingX, `${label}.paddingX`, 0, Math.min(100, regionArea.width / 2));
   const paddingY = number(input.paddingY, `${label}.paddingY`, 0, Math.min(100, regionArea.height / 2));
   const lineCount = integer(input.lineCount, `${label}.lineCount`, 1, 20);
@@ -159,9 +162,8 @@ function responsePresentation(input, label, regionArea, assets) {
   });
   if (linePositions.at(-1) > regionArea.height - paddingY) throw new Error(`${label} line layout exceeds the response region.`);
   if (input.answerFontFamily !== NATIVE_OPEN_RESPONSE_FONT_FAMILY) throw new Error(`${label}.answerFontFamily is not approved.`);
-  const answerFontSizeMin = number(input.answerFontSizeMin, `${label}.answerFontSizeMin`, NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MINIMUM, 48);
+  const answerFontSizeMin = number(input.answerFontSizeMin, `${label}.answerFontSizeMin`, 1, NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MAXIMUM);
   const answerFontSizeMax = number(input.answerFontSizeMax, `${label}.answerFontSizeMax`, answerFontSizeMin, NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MAXIMUM);
-  if (answerFontSizeMax > lineSpacing * 0.9) throw new Error(`${label}.answerFontSizeMax exceeds the line spacing.`);
   let answerFontAssetSlot;
   if (hasFontAsset) {
     const reference = assets.find((asset) => asset.slot === input.answerFontAssetSlot);
@@ -173,6 +175,7 @@ function responsePresentation(input, label, regionArea, assets) {
     answerFontFamily: input.answerFontFamily,
     ...(answerFontAssetSlot ? { answerFontAssetSlot } : {}),
     answerFontSizeMin, answerFontSizeMax,
+    ...(hasSizeMode ? { answerSizeMode: input.answerSizeMode } : {}),
     color: color(input.color, `${label}.color`),
     align: alignment(input.align, `${label}.align`),
   };
@@ -445,8 +448,6 @@ function fitResponsePresentationToArea(responseRegion) {
   const { area, presentation } = responseRegion;
   presentation.paddingX = roundGeometry(Math.min(presentation.paddingX, Math.max(0, (area.width - 1) / 2)));
   presentation.lineSpacing = roundGeometry(Math.min(presentation.lineSpacing, area.height));
-  presentation.answerFontSizeMax = roundGeometry(Math.min(presentation.answerFontSizeMax, presentation.lineSpacing * .9));
-  presentation.answerFontSizeMin = roundGeometry(Math.min(presentation.answerFontSizeMin, presentation.answerFontSizeMax));
   presentation.paddingY = roundGeometry(Math.min(presentation.paddingY, Math.max(0, (area.height - presentation.lineSpacing) / 2)));
   while (presentation.lineCount > 1 && presentation.paddingY + presentation.lineSpacing * presentation.lineCount > area.height - presentation.paddingY) presentation.lineCount -= 1;
   presentation.linePositions = nativeOpenResponseLinePositions(presentation);
@@ -483,16 +484,15 @@ export function nativeOpenResponseAnswerFontFamily(publicDocument, presentation)
 
 export function nativeOpenResponseConfiguredFontSizeBounds(presentation) {
   return {
-    minimum: Math.ceil(Math.max(NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MINIMUM, Number(presentation?.answerFontSizeMin) || NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MINIMUM)),
-    maximum: Math.floor(Math.min(NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MAXIMUM, (Number(presentation?.lineSpacing) || 0) * 0.9)),
+    minimum: 1,
+    maximum: NATIVE_OPEN_RESPONSE_ANSWER_FONT_SIZE_MAXIMUM,
   };
 }
 
 export function commitNativeOpenResponseConfiguredFontSize(presentation, value) {
-  if (!Number.isSafeInteger(value)) throw new Error("Requested answer font size must be a whole number.");
+  if (!Number.isSafeInteger(value) || value <= 0) throw new Error("Requested answer font size must be a positive safe whole number.");
   const bounds = nativeOpenResponseConfiguredFontSizeBounds(presentation);
-  if (bounds.maximum < bounds.minimum) throw new Error("The line spacing is too small for the auto-fit minimum.");
-  const committed = clampNumber(value, bounds.minimum, bounds.maximum);
+  const committed = value;
   return { value: committed, bounds, clamped: committed !== value };
 }
 
@@ -595,7 +595,6 @@ export function assessNativeOpenResponseReadiness(publicDocument, teacherDocumen
     if (!membership.has(questionValue.id)) issues.push(`Question ${index + 1} must be assigned to a panel.`);
     const modelAnswers = answers.get(questionValue.id) || [];
     if (!modelAnswers.length || modelAnswers.some((modelAnswer) => !modelAnswer.trim())) issues.push(`Question ${index + 1} needs one or two model answers.`);
-    else if (!autoFitNativeOpenResponseAnswer({ text: modelAnswers.filter((modelAnswer) => modelAnswer.trim()).join(" / "), responseRegion: questionValue.responseRegion }).fits) issues.push(`Question ${index + 1} combined model answer does not fit its authored lines.`);
   }
   panels.forEach((panel, panelIndex) => panel.images.forEach((item, imageIndex) => {
     if (!item.decorative && !item.altText.trim()) issues.push(`Panel ${panelIndex + 1} image ${imageIndex + 1} needs alt text or must be marked decorative.`);

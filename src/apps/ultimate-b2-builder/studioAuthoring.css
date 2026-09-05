@@ -241,7 +241,7 @@
 .studio-open-response .studio-canvas-context-controls .studio-danger-action { color: var(--studio-danger); background: #fff7f6; border-color: #f0b4ae; }
 .studio-open-response .native-or-toolbar-fit { align-self: center; margin: 0; padding: 5px 7px; color: var(--studio-success); background: #edf9f2; border-radius: 6px; font-size: .66rem; font-weight: 800; white-space: nowrap; }
 .studio-open-response .native-or-toolbar-fit[data-fit="false"] { color: #9a3412; background: #fff1e8; }
-.studio-open-response .native-or-typography-sample { box-sizing: border-box; min-width: 180px; max-width: 320px; min-height: 52px; padding: 8px 10px; overflow: hidden; background: #fff; border: 1px solid var(--studio-border); border-radius: 6px; line-height: 1.15; white-space: nowrap; }
+.studio-open-response .native-or-typography-sample { box-sizing: border-box; min-width: 180px; max-width: 320px; min-height: 52px; max-height: 76px; padding: 8px 10px; overflow: auto; background: #fff; border: 1px solid var(--studio-border); border-radius: 6px; line-height: 1.15; white-space: nowrap; }
 .studio-open-response .native-or-readiness { display: flex; gap: 12px; margin: 0; padding: 11px 18px; border: 0; border-top: 1px solid var(--studio-border); border-radius: 0; background: #fff8e8; }
 .studio-open-response .native-or-preview { max-width: 1080px; margin: 22px auto; padding: 18px; border: 1px solid var(--studio-border); border-radius: 12px; background: #fff; }
 .studio-open-response .native-or-preview-toggle { display: flex; gap: 6px; margin: 13px 0; }

@@ -140,11 +140,10 @@ test("Open Response publishes its configured component font, size, and color thr
   assert.ok(compiled.assetManifest.some((entry) => entry.sha256 === font.checksumSha256 && entry.role === "activity_font" && entry.extension === "ttf" && entry.mediaType === "font/ttf"));
 });
 
-test("requested answer size commits whole numbers and reports canonical live bounds", () => {
+test("requested answer size accepts positive safe integers independently of layout", () => {
   const presentation = createNativeOpenResponseQuestion(q1).responseRegion.presentation;
-  assert.deepEqual(commitNativeOpenResponseConfiguredFontSize(presentation, 22), { value: 22, bounds: { minimum: 12, maximum: 28 }, clamped: false });
-  assert.deepEqual(commitNativeOpenResponseConfiguredFontSize(presentation, 80), { value: 28, bounds: { minimum: 12, maximum: 28 }, clamped: true });
-  assert.deepEqual(commitNativeOpenResponseConfiguredFontSize(presentation, 2), { value: 12, bounds: { minimum: 12, maximum: 28 }, clamped: true });
+  for (const value of [2, 22, 80, 100, 1000]) assert.deepEqual(commitNativeOpenResponseConfiguredFontSize(presentation, value), { value, bounds: { minimum: 1, maximum: Number.MAX_SAFE_INTEGER }, clamped: false });
+  for (const value of [0, -1, Infinity, Number.MAX_SAFE_INTEGER + 1]) assert.throws(() => commitNativeOpenResponseConfiguredFontSize(presentation, value), /positive safe whole number/);
   assert.throws(() => commitNativeOpenResponseConfiguredFontSize(presentation, Number.NaN), /whole number/);
   assert.throws(() => commitNativeOpenResponseConfiguredFontSize(presentation, 18.5), /whole number/);
 });
@@ -427,8 +426,30 @@ function region(overrides = {}) {
   return responseRegion;
 }
 
+test("authored size and blank lines survive normalization, resizing, and teacher rendering metrics", () => {
+  const { publicDocument, teacherDocument } = pair([q1]);
+  const question = publicDocument.parts[0].interaction.questions[0];
+  question.prompt = "First prompt\r\n\r\nThird prompt";
+  question.responseRegion.presentation.answerSizeMode = "authored";
+  question.responseRegion.presentation.answerFontSizeMax = 100;
+  teacherDocument.parts[0].solution.modelAnswers[0].text = "First line\r\n\r\nThird line";
+  const normalized = kind.normalizePublic(publicDocument);
+  const normalizedTeacher = kind.normalizeTeacher(teacherDocument, activityId);
+  assert.equal(normalized.parts[0].interaction.questions[0].prompt, "First prompt\n\nThird prompt");
+  assert.equal(normalizedTeacher.parts[0].solution.modelAnswers[0].text, "First line\n\nThird line");
+  resizeNativeOpenResponseRegion(question.responseRegion, { ...question.responseRegion.area, height: 100 });
+  assert.equal(question.responseRegion.presentation.answerFontSizeMax, 100);
+  const fitted = autoFitNativeOpenResponseAnswer({ text: "A\n\nB", responseRegion: question.responseRegion });
+  assert.equal(fitted.fontSize, 100);
+  assert.deepEqual(fitted.lines, ["A", "", "B"]);
+  assert.equal(fitted.baselines.length, 3);
+  assert.equal(fitted.fits, false);
+  assert.equal(kind.assessReadiness(publicDocument, teacherDocument).ready, true);
+  assertPublicBuilderDocument(normalized);
+});
+
 test("deterministic Auto Fit covers wrapping, whitespace, tokens, punctuation, boundaries, and overflow", () => {
-  assert.equal(normalizeNativeAnswerWhitespace("  one\n  two   three "), "one two three");
+  assert.equal(normalizeNativeAnswerWhitespace("  one\n  two   three "), "one\ntwo three");
   const cases = [
     { text: "Short answer.", responseRegion: region(), fits: true, lines: 1 },
     { text: "A sentence with enough words to wrap cleanly across two authored answer lines.", responseRegion: region({ lineWidth: 300 }), fits: true, minimumLines: 2 },

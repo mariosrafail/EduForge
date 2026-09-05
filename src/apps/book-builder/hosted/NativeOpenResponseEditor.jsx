@@ -273,11 +273,7 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
     const presentation = target.responseRegion.presentation;
     presentation[key] = value;
     if (key === "paddingX") presentation.lineWidth = Math.min(presentation.lineWidth, Math.max(1, target.responseRegion.area.width - 2 * value));
-    if (key === "lineSpacing") {
-      presentation.answerFontSizeMax = Math.min(presentation.answerFontSizeMax, Math.floor(value * .9), 72);
-      presentation.answerFontSizeMin = Math.min(presentation.answerFontSizeMin, presentation.answerFontSizeMax);
-    }
-    if (key === "answerFontSizeMin") presentation.answerFontSizeMin = Math.min(Math.max(value, 8), presentation.answerFontSizeMax, 48);
+    if (key === "answerFontSizeMax") presentation.answerFontSizeMin = Math.min(presentation.answerFontSizeMin, value);
     if (["paddingY", "lineSpacing", "lineCount"].includes(key)) presentation.linePositions = nativeOpenResponseLinePositions(presentation);
   });
 
