@@ -14,8 +14,17 @@ export async function exerciseSupplementalAudio({ page, nativeDocuments, activit
   assert.equal(await page.getByRole("button", { name: "Save Draft" }).isDisabled(), false);
   const referenceToggle = editor.getByRole("switch", { name: "Supplemental MP3 Reference" });
   await referenceToggle.click();
-  await editor.getByText("Upload a Reference image.", { exact: true }).waitFor();
-  assert.equal(await page.getByRole("button", { name: "Save Draft" }).isDisabled(), true);
+  await editor.getByText("No Reference image attached. The MP3 can be saved on its own.", { exact: true }).waitFor();
+  assert.equal(await page.getByRole("button", { name: "Save Draft" }).isDisabled(), false);
+  await page.getByRole("tab", { name: "Content", exact: true }).click();
+  assert.equal(await page.getByRole("button", { name: "Save Draft" }).isDisabled(), false);
+  await page.getByRole("button", { name: "Save Draft" }).click();
+  await page.getByText("Draft saved.", { exact: true }).waitFor();
+  assert.equal(Object.hasOwn(nativeDocuments.get(activityId).publicDocument.supplementalAudio, "reference"), false);
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.getByRole("button", { name: new RegExp(activityId) }).click();
+  await page.getByRole("tab", { name: "Supplemental MP3" }).click();
+  await referenceToggle.click();
   const referenceInput = editor.locator('input[type="file"][accept*="image/png"]');
   await referenceInput.waitFor({ state: "attached" });
   await page.waitForFunction(() => !document.querySelector('.native-supplemental-audio-editor input[type="file"][accept*="image/png"]')?.disabled);
@@ -81,6 +90,7 @@ export async function exerciseSupplementalAudio({ page, nativeDocuments, activit
   await referenceImage.evaluate((image) => image.decode());
   const scrollMetrics = await scroll.evaluate((element) => { const section = element.closest(".native-supplemental-audio-reference"); const root = element.closest("[data-native-media-scope]"); return { scrollHeight: element.scrollHeight, clientHeight: element.clientHeight, width: element.clientWidth, sectionStyle: section?.getAttribute("style"), sectionHeight: section?.getBoundingClientRect().height, computedSectionHeight: getComputedStyle(section).height, rootHeight: root?.getBoundingClientRect().height, windowHeight: innerHeight, image: { width: element.firstElementChild?.getBoundingClientRect().width, height: element.firstElementChild?.getBoundingClientRect().height, naturalWidth: element.firstElementChild?.naturalWidth, naturalHeight: element.firstElementChild?.naturalHeight } }; });
   assert.ok(scrollMetrics.scrollHeight > scrollMetrics.clientHeight, JSON.stringify(scrollMetrics));
+  assert.ok(Math.abs(scrollMetrics.sectionHeight - scrollMetrics.rootHeight) <= 1, JSON.stringify(scrollMetrics));
   assert.equal(await reference.getByRole("scrollbar", { name: "Supplemental audio Reference vertical scroll" }).count(), 1);
   await scroll.evaluate((element) => { element.scrollTop = element.scrollHeight; });
   assert.ok(await scroll.evaluate((element) => element.scrollTop > 0));

@@ -1,8 +1,23 @@
+import { useLayoutEffect, useState } from "react";
 import { StudioField } from "./StudioControls.jsx";
 import { updateStageGeometryField } from "./stageGeometry.js";
 
 export function QuickNumber({ label, value, minimum = 0, maximum, step = 1, disabled = false, onChange }) {
   return <StudioField label={label} className="studio-quick-field"><input aria-label={`Quick ${label}`} type="number" min={minimum} max={maximum} step={step} value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} /></StudioField>;
+}
+
+export function StageIntegerPosition({ axis, value, maximum, onChange }) {
+  const [draft, setDraft] = useState(String(value));
+  useLayoutEffect(() => setDraft(String(value)), [value]);
+  const commit = () => {
+    if (!draft.trim() || !Number.isFinite(Number(draft))) { setDraft(String(value)); return; }
+    const next = Math.max(0, Math.min(Math.floor(maximum), Math.round(Number(draft))));
+    onChange(next); setDraft(String(next));
+  };
+  return <StudioField label={`${axis} (source pixels)`}><input aria-label={`Activity hotspot ${axis}`} type="number" step="1" min="0" max={Math.floor(maximum)} value={draft} onChange={(event) => setDraft(event.target.value)} onBlur={commit} onKeyDown={(event) => {
+    if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
+    if (event.key === "Escape") { event.preventDefault(); setDraft(String(value)); }
+  }} /></StudioField>;
 }
 
 export function StageGeometryControls({

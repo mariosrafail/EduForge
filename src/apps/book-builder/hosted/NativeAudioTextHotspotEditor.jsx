@@ -5,7 +5,7 @@ import { NativeImageSurface } from "../../../components/native-image/NativeImage
 import { NativeOpenResponseFontSurface } from "../../../components/native-open-response/NativeOpenResponseSurface.jsx";
 import { NativeAudioTextFocusContent, nativeAudioTextHotspotArtwork } from "../../../components/native-readable-text/NativeAudioTextHotspots.jsx";
 import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
-import { StageGeometryControls } from "../../../components/builder-studio/StageGeometryControls.jsx";
+import { StageGeometryControls, StageIntegerPosition } from "../../../components/builder-studio/StageGeometryControls.jsx";
 import { logicalAreaStyle, normalizeStageGeometryAspectRatio, roundStageValue } from "../../../components/builder-studio/stageGeometry.js";
 import { NATIVE_AUDIO_TEXT_DEFAULT_HIGHLIGHT_COLOR, NATIVE_AUDIO_TEXT_FIXED_FOCUS_ASPECT_RATIO, NATIVE_AUDIO_TEXT_HIGHLIGHT_COLORS, nativeAudioTextFocusLayout, nativeAudioTextHighlightColor, nativeAudioTextHotspotTargets, nativeAudioTextReadableHighlightArea, normalizeNativeAudioTextHotspots } from "../../../data/native-activities/nativeAudioTextHotspots.js";
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
@@ -221,9 +221,9 @@ export function NativeAudioTextHotspotEditor({ bookSlug, componentSlug, activity
         updateSelected((hotspot) => { hotspot.panelId = target.panelId; hotspot.activityArea = defaultActivityArea(target); });
       }}>{targets.map((target, index) => <option key={target.panelId} value={target.panelId}>Panel {index + 1}</option>)}</select></label> : null}
       <div><h4>1. Place on activity</h4><ActivityCanvas document={publicDraft} target={selectedTarget} hotspot={selected} assetUrl={previewUrl} onPlace={(point) => updateSelected((hotspot) => {
-        hotspot.activityArea.x = Math.round(clamp(point.x - hotspot.activityArea.width / 2, 0, selectedTarget.width - hotspot.activityArea.width));
-        hotspot.activityArea.y = Math.round(clamp(point.y - hotspot.activityArea.height / 2, 0, selectedTarget.height - hotspot.activityArea.height));
-      })} /></div>
+        hotspot.activityArea.x = clamp(Math.round(point.x - hotspot.activityArea.width / 2), 0, Math.floor(selectedTarget.width - hotspot.activityArea.width));
+        hotspot.activityArea.y = clamp(Math.round(point.y - hotspot.activityArea.height / 2), 0, Math.floor(selectedTarget.height - hotspot.activityArea.height));
+      })} /><div key={`${selected.id}:${selected.panelId}`} className="studio-number-grid" role="group" aria-label="Activity hotspot position">{["x", "y"].map((axis) => <StageIntegerPosition key={axis} axis={axis.toUpperCase()} value={selected.activityArea[axis]} maximum={selectedTarget[axis === "x" ? "width" : "height"] - selected.activityArea[axis === "x" ? "width" : "height"]} onChange={(value) => updateSelected((hotspot) => { hotspot.activityArea[axis] = value; })} />)}</div></div>
       <div><h4>2. Set transparent focus and colored highlight</h4><FocusCanvas readableText={publicDraft.readableText} imageUrl={previewUrl(readableReference.assetId)} hotspot={selected} onFocusArea={(area) => updateSelected((hotspot) => { hotspot.readableFocusArea = area; if (hotspot.readableHighlightArea) hotspot.readableHighlightArea = containedArea(hotspot.readableHighlightArea, area); })} onFocusLayout={(focusLayout) => updateSelected((hotspot) => { hotspot.focusLayout = focusLayout; })} onHighlightArea={(area) => updateSelected((hotspot) => { hotspot.readableHighlightArea = containedArea(area, hotspot.readableFocusArea); })} onDeleteHighlight={() => updateSelected((hotspot) => { hotspot.readableHighlightArea = null; })} /></div>
       <fieldset className="native-audio-hotspot-highlight-colors">
         <legend>Highlight color</legend>

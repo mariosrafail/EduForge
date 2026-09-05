@@ -7,22 +7,14 @@ import { pauseSiblingNativeMedia } from "./nativeMediaArbitration.js";
 import { NativeVerticalScrollViewport } from "./NativeVerticalScrollViewport.jsx";
 import "./nativeSupplementalAudio.css";
 
-const presentationViewportHeight = (scope) => {
-  const scopeRect = scope?.getBoundingClientRect();
-  const activityHeight = scope?.querySelector(".native-readable-text-activity-view")?.clientHeight || scope?.clientHeight || (scopeRect?.width ? scopeRect.width * 582 / 1024 : 0);
-  return Math.min(activityHeight, Math.floor((globalThis.innerHeight || activityHeight) * 0.8));
-};
-
 export function NativeSupplementalAudioPresentation({ document, assetUrl, presentationView, command = null }) {
   const supplementalAudio = document.supplementalAudio;
   const audioRef = useRef(null);
-  const referenceScopeRef = useRef(null);
   const lastCommandToken = useRef(command?.token);
   const [playing, setPlaying] = useState(false);
   const [currentMs, setCurrentMs] = useState(0);
   const [muted, setMuted] = useState(false);
   const [referenceOpen, setReferenceOpen] = useState(false);
-  const [referenceHeight, setReferenceHeight] = useState(0);
   const [error, setError] = useState(false);
   const audioAsset = supplementalAudio ? document.assets.find((asset) => asset.slot === supplementalAudio.assetSlot) : null;
   const referenceAsset = supplementalAudio?.reference ? document.assets.find((asset) => asset.slot === supplementalAudio.reference.assetSlot) : null;
@@ -34,7 +26,7 @@ export function NativeSupplementalAudioPresentation({ document, assetUrl, presen
   };
 
   useEffect(() => {
-    stop(); setReferenceOpen(false); setReferenceHeight(0); setMuted(false); setError(false);
+    stop(); setReferenceOpen(false); setMuted(false); setError(false);
   }, [document.activityId, supplementalAudio?.assetSlot]);
   useEffect(() => () => audioRef.current?.pause(), []);
   useEffect(() => {
@@ -56,12 +48,6 @@ export function NativeSupplementalAudioPresentation({ document, assetUrl, presen
     globalThis.addEventListener("keydown", close);
     return () => globalThis.removeEventListener("keydown", close);
   }, [referenceOpen]);
-  useEffect(() => {
-    if (!referenceOpen) return undefined;
-    const measure = () => setReferenceHeight(presentationViewportHeight(referenceScopeRef.current));
-    globalThis.addEventListener("resize", measure);
-    return () => globalThis.removeEventListener("resize", measure);
-  }, [referenceOpen]);
 
   if (!supplementalAudio || !audioAsset) return null;
   const play = () => {
@@ -79,11 +65,7 @@ export function NativeSupplementalAudioPresentation({ document, assetUrl, presen
     const next = !muted; setMuted(next);
     if (audioRef.current) audioRef.current.muted = next;
   };
-  const toggleReference = (event) => {
-    if (!referenceOpen) {
-      referenceScopeRef.current = event.currentTarget.closest("[data-native-media-scope]");
-      setReferenceHeight(presentationViewportHeight(referenceScopeRef.current));
-    }
+  const toggleReference = () => {
     setReferenceOpen((current) => !current);
   };
   const referenceAction = supplementalAudio.reference && referenceAsset ? {
@@ -94,7 +76,7 @@ export function NativeSupplementalAudioPresentation({ document, assetUrl, presen
   } : null;
 
   return <>
-    {referenceOpen && supplementalAudio.reference && referenceAsset ? <section className="native-readable-text-view native-supplemental-audio-reference" style={referenceHeight ? { height: `${referenceHeight}px` } : undefined} aria-label="Supplemental audio Reference" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
+    {referenceOpen && supplementalAudio.reference && referenceAsset ? <section className="native-readable-text-view native-supplemental-audio-reference" aria-label="Supplemental audio Reference" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
       <NativeVerticalScrollViewport id={`${document.activityId}-supplemental-audio-reference-scroll`} className="native-readable-text-scroll" ariaLabel="Supplemental audio Reference vertical scroll" resetKey={`${document.activityId}:${referenceAsset.assetId}`}>
         <img src={assetUrl(referenceAsset.assetId)} alt={supplementalAudio.reference.altText} width={supplementalAudio.reference.sourceWidth} height={supplementalAudio.reference.sourceHeight} />
       </NativeVerticalScrollViewport>
