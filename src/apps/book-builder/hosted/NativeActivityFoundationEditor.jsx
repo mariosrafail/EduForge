@@ -1,3 +1,4 @@
+import { NativeMultiPartEditor } from "./NativeMultiPartEditor.jsx";
 import { NativeMarkWordsEditor } from "./NativeMarkWordsEditor.jsx";
 import { NativeOpenResponseEditor } from "./NativeOpenResponseEditor.jsx";
 import { NativeImageEditor } from "./NativeImageEditor.jsx";
@@ -8,6 +9,7 @@ import { NativeOldschoolListeningEditor } from "./NativeOldschoolListeningEditor
 import { NativeDragDropEditor } from "./NativeDragDropEditor.jsx";
 
 export function NativeActivityFoundationEditor({ bookSlug, componentSlug, activityId, kind, placementLabel, onDirtyChange = () => {}, onSaved = () => {} }) {
+  if (kind === "multi-part") return <NativeMultiPartEditor key={`${bookSlug}/${componentSlug}/${activityId}`} {...{ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange, onSaved }} />;
   if (kind === "mark-the-words") return <NativeMarkWordsEditor key={`${bookSlug}/${componentSlug}/${activityId}`} {...{ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange, onSaved }} />;
   if (kind === "open-response") return <NativeOpenResponseEditor {...{ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange, onSaved }} />;
   if (kind === "image") return <NativeImageEditor {...{ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange, onSaved }} />;

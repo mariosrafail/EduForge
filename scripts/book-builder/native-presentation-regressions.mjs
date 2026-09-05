@@ -13,7 +13,7 @@ function localProviders() {
     "virtual:ultimate-b2-multiple-choice-presentation": "export default null;",
     "virtual:ultimate-b2-hosted-open-response-drafts": "export const useHostedOpenResponseDraft = () => null; export const useHostedOpenResponseImport = () => ({});",
     "virtual:component-publication": "export const usePublishedComponentRelease = () => ({kind:'unavailable'});",
-    "virtual:hosted-native-drafts": "export const hostedNativeDraftAssetUrl = (_, id) => globalThis.nativePresentationFixture.assetUrl(id); export const useHostedNativeDraftActivity = () => { const fixture = globalThis.nativePresentationFixture; return fixture.choiceState ||= {kind:'ready',entry:{kind:'single-choice',document:fixture.choice.publicDocument},teacher:{kind:'ready',entry:{document:fixture.choice.teacherDocument}}}; };",
+    "virtual:hosted-native-drafts": "export const hostedNativeDraftTeacherAssetUrl = () => { throw Error('Unexpected protected answer request'); }; export const hostedNativeDraftAssetUrl = (_, id) => globalThis.nativePresentationFixture.assetUrl(id); export const useHostedNativeDraftActivity = () => { const fixture = globalThis.nativePresentationFixture; return fixture.choiceState ||= {kind:'ready',entry:{kind:'single-choice',document:fixture.choice.publicDocument},teacher:{kind:'ready',entry:{document:fixture.choice.teacherDocument}}}; };",
   };
   return { name: "isolated-native-presentation-providers", enforce: "pre",
     resolveId(id) {

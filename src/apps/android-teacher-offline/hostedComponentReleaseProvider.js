@@ -111,3 +111,8 @@ export async function loadPublishedNativeTeacherDocument(publication, activityId
   if (payload.releaseId !== publication.releaseId || payload.activityId !== activityId) throw new Error("Prepared Teacher release identity mismatch.");
   return payload.document;
 }
+
+export function publishedNativeTeacherAssetUrl(publication, activityId, sectionId = null) {
+  const path = hostedReleasePath(publication.runtimeContext, publication.identity, `native-answer/${activityId}`);
+  return sectionId ? `${path}${path.includes("?") ? "&" : "?"}sectionId=${encodeURIComponent(sectionId)}` : path;
+}

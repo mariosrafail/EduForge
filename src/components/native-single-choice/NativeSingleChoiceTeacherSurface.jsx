@@ -5,7 +5,7 @@ import { createNativeSingleChoiceTeacherSession, nativeSingleChoiceTeacherPresen
 import { nativeSingleChoiceCorrectOptionIds } from "../../data/native-activities/nativeSingleChoice.js";
 import { selectNativeSingleChoiceResponse } from "../../data/native-activities/nativeSingleChoiceRuntime.js";
 
-function NativeSingleChoiceTeacherSession({ publicDocument, teacherDocument, assetUrl, presentation, audioHotspotPresentation }) {
+function NativeSingleChoiceTeacherSession({ publicDocument, teacherDocument, assetUrl, presentation, audioHotspotPresentation, embeddedCanvas }) {
   const [session, setSession] = useState(createNativeSingleChoiceTeacherSession);
   const [announcement, setAnnouncement] = useState("");
   const lastCommandToken = useRef(presentation?.command?.token);
@@ -36,6 +36,7 @@ function NativeSingleChoiceTeacherSession({ publicDocument, teacherDocument, ass
   return <>
     <NativeSingleChoicePresentation
       document={publicDocument}
+      embeddedCanvas={embeddedCanvas}
       assetUrl={assetUrl}
       responses={session.responses}
       onSelect={choose}
@@ -50,6 +51,6 @@ function NativeSingleChoiceTeacherSession({ publicDocument, teacherDocument, ass
   </>;
 }
 
-export function NativeSingleChoiceTeacherSurface({ publicDocument, teacherDocument, assetUrl = () => "", presentation = null, audioHotspotPresentation = null }) {
-  return <NativeSingleChoiceTeacherSession key={publicDocument.activityId} publicDocument={publicDocument} teacherDocument={teacherDocument} assetUrl={assetUrl} presentation={presentation} audioHotspotPresentation={audioHotspotPresentation} />;
+export function NativeSingleChoiceTeacherSurface({ publicDocument, teacherDocument, assetUrl = () => "", presentation = null, audioHotspotPresentation = null, embeddedCanvas = false }) {
+  return <NativeSingleChoiceTeacherSession embeddedCanvas={embeddedCanvas} key={publicDocument.activityId} publicDocument={publicDocument} teacherDocument={teacherDocument} assetUrl={assetUrl} presentation={presentation} audioHotspotPresentation={audioHotspotPresentation} />;
 }

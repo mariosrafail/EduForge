@@ -49,7 +49,7 @@ test("hosted native draft provider validates public and separately protected Tea
   assert(paths.every(({ init }) => init.method === "GET" && init.credentials === "omit" && init.cache === "no-store"));
 });
 
-test("hosted native drafts are Builder-preview-only and image drafts never request Teacher data", async () => {
+test("hosted native drafts are Builder-preview-only and Image Teacher data is loaded only through its authorized Teacher path", async () => {
   let requests = 0;
   const bare = await loadHostedNativeDraftPublicActivity(publicationV2Fixture.imageId, {
     context: { kind: HOSTED_VIEWER_RUNTIME_MODES.BARE, teacherPreview: false },
@@ -61,8 +61,10 @@ test("hosted native drafts are Builder-preview-only and image drafts never reque
     fetchImpl: async () => { requests += 1; return response(envelope(publicationV2Fixture.imageId, "public")); },
   });
   assert.equal(imageEntry.kind, "image");
-  assert.equal(await loadHostedNativeDraftTeacherActivity(imageEntry, { context, fetchImpl: async () => { requests += 1; return response({}); } }), null);
-  assert.equal(requests, 1);
+  assert.equal(shouldLoadHostedNativeDraftTeacherActivity(imageEntry, false), false);
+  assert.equal(shouldLoadHostedNativeDraftTeacherActivity(imageEntry, true), true);
+  assert.equal((await loadHostedNativeDraftTeacherActivity(imageEntry, { context, fetchImpl: async () => { requests += 1; return response(envelope(publicationV2Fixture.imageId, "teacher")); } })).kind, "image");
+  assert.equal(requests, 2);
 });
 
 test("Single Choice public drafts exclude the key while authorized Teacher preview validates it separately", async () => {

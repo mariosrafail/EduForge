@@ -22,10 +22,10 @@ const DRAG_RETURN_MS = 160;
 const FITTED_CONTENT_MIN_FONT_PX = 8;
 const FITTED_CONTENT_TOLERANCE_PX = 1;
 
-function PanelArtwork({ document, panel, assetUrl, textMode, children }) {
+function PanelArtwork({ document, panel, assetUrl, textMode, children, embeddedCanvas = null }) {
   const assets = new Map(document.assets.map((asset) => [asset.slot, asset]));
   return <div className="native-drag-drop-stage-slot" style={textMode ? { aspectRatio: `${panel.surface.width} / ${panel.surface.height}` } : undefined}><div className="native-drag-drop-stage" data-surface-width={panel.surface.width} data-surface-height={panel.surface.height}>
-    {panel.images.map((image) => {
+    {(embeddedCanvas ? [] : panel.images).map((image) => {
       const reference = assets.get(image.assetSlot);
       return <div key={image.id} className="native-drag-drop-artwork" style={{ ...logicalAreaStyle(image.area, panel.surface), zIndex: image.order + 1 }}>
         {reference ? <img src={assetUrl(reference.assetId)} alt={image.decorative ? "" : image.altText} style={{ objectFit: image.fit }} /> : null}
@@ -200,7 +200,7 @@ export function NativeDragDropStudentSurface({
   document, assetUrl = () => "", responses: controlled = null, initialResponses = null, onResponsesChange = null,
   readOnly = false, evaluatePlacement = null, resolveWordForTarget = null, resolveWordsForTarget = null,
   targetWordOverrides = null, onEmptyTargetActivate = null, panelIndex: controlledPanelIndex = null,
-  onPanelIndexChange = null, presentation = null, resetToken = null, presentationMode = false,
+  onPanelIndexChange = null, presentation = null, resetToken = null, presentationMode = false, embeddedCanvas = null,
 }) {
   const interaction = document.parts[0].interaction;
   const textMode = interaction.layoutMode === "text";
@@ -340,7 +340,7 @@ export function NativeDragDropStudentSurface({
 
   if (!panel) return <p role="status">This Drag &amp; Drop activity has no panels yet.</p>;
   const previewWord = dragPreview ? wordById.get(dragPreview.wordId) : null;
-  const bank = <div className="native-drag-drop-bank" aria-label={textMode ? "Phrase bank" : "Word bank"} data-font-status={bankFontState.status} style={{ zIndex: panel.images.length + 4 }}>
+  const bank = <div className="native-drag-drop-bank" aria-label={textMode ? "Phrase bank" : "Word bank"} data-font-status={bankFontState.status} style={{ zIndex: panel.images.length + 4, ...(embeddedCanvas?.bankRegion ? logicalAreaStyle(embeddedCanvas.bankRegion, panel.surface) : {}) }}>
     <div ref={bankItemsRef} className="native-drag-drop-bank-items">
       {visibleWords.map((word) => <button key={word.id} type="button" className={`native-drag-drop-word${textMode ? " native-drag-drop-phrase" : ""}`} style={{ fontFamily: bankFont, fontSize: textMode ? `calc(${(bankWordStyle.fontSize / panel.surface.width) * 100}cqw * var(--native-drag-drop-bank-fit-scale, 1))` : `${(bankWordStyle.fontSize / panel.surface.width) * 100}cqw`, color: bankWordStyle.color }} aria-label={textMode && !word.image ? `${word.shortLabel}, ${word.text}` : word.text} aria-pressed={selectedWordId === word.id} data-image-item={word.image ? "true" : undefined} data-drag-drop-word-id={word.id} data-dragging={dragPreview?.wordId === word.id && !dragPreview.returning || undefined} disabled={readOnly} onClick={() => { if (suppressClickWordId.current === word.id) { suppressClickWordId.current = null; return; } clearFeedback(); const next = selectedWordId === word.id ? null : word.id; setSelectedWordId(next); setAnnouncement(next ? `${textMode ? `${word.shortLabel}, ` : ""}${word.text} selected. Choose a target.` : "Selection cleared."); }} onPointerDown={(event) => beginDrag(event, word.id)} onPointerMove={moveDrag} onPointerUp={(event) => finishDrag(event)} onPointerCancel={(event) => finishDrag(event, true)} onLostPointerCapture={(event) => finishDrag(event, true)}>{word.image ? <NativeDragDropItemContent word={word} document={document} assetUrl={assetUrl} /> : textMode ? <><span className="native-drag-drop-short-label" data-drag-drop-drag-handle>{word.shortLabel}</span><span>{word.text}</span></> : word.text}</button>)}
     </div>
@@ -374,9 +374,9 @@ export function NativeDragDropStudentSurface({
     ...(interaction.textPanelHeightPx ? { "--native-drag-drop-text-panel-height": `${interaction.textPanelHeightPx}px` } : {}),
   };
   const preview = previewWord && dragPreview ? <span className={`${textMode ? "native-drag-drop-short-label" : "native-drag-drop-word"} native-drag-drop-drag-preview`} data-drag-drop-drag-preview data-returning={dragPreview.returning || undefined} aria-label={textMode ? `${previewWord.shortLabel}, ${previewWord.text}` : previewWord.text} style={{ left: dragPreview.clientX - dragPreview.offsetX, top: dragPreview.clientY - dragPreview.offsetY, width: dragPreview.logicalWidth, height: dragPreview.logicalHeight, minWidth: dragPreview.logicalWidth, maxWidth: "none", minHeight: dragPreview.logicalHeight, maxHeight: "none", ...dragPreview.previewStyle, boxSizing: "border-box", transformOrigin: "top left", transform: `scale(${dragPreview.scaleX}, ${dragPreview.scaleY})` }}><NativeDragDropItemContent word={previewWord} document={document} assetUrl={assetUrl} shortLabel={textMode} /></span> : null;
-  return <NativeScrollControlsHost as="section" enabled={textMode} className={`native-drag-drop ${presentationMode ? "native-drag-drop-teacher" : "native-drag-drop-student"}`} aria-label={document.metadata.title} data-layout-mode={textMode ? "text" : "standard"} data-image-items={hasImageItems || undefined} data-configured-bank-height={interaction.answerBankHeightPx ? "true" : undefined} data-read-only={readOnly || undefined} style={rootStyle}>
+  return <NativeScrollControlsHost as="section" enabled={textMode} className={`native-drag-drop ${presentationMode ? "native-drag-drop-teacher" : "native-drag-drop-student"}`} aria-label={document.metadata.title} data-embedded-canvas={Boolean(embeddedCanvas) || undefined} data-layout-mode={textMode ? "text" : "standard"} data-image-items={hasImageItems || undefined} data-configured-bank-height={interaction.answerBankHeightPx ? "true" : undefined} data-read-only={readOnly || undefined} style={rootStyle}>
     <div ref={ownerRef} className="native-drag-drop-visual-region">
-      {textMode ? <NativeVerticalScrollViewport id={`${document.activityId}-text-drag-scroll`} className="native-drag-drop-workspace" ariaLabel="Text Drag & Drop vertical scroll" resetKey={`${document.activityId}:${panel.id}`}><PanelArtwork document={document} panel={panel} assetUrl={assetUrl} textMode>{targets}</PanelArtwork></NativeVerticalScrollViewport> : <div className="native-drag-drop-workspace"><PanelArtwork document={document} panel={panel} assetUrl={assetUrl} textMode={false}>{targets}{bank}</PanelArtwork></div>}
+      {textMode ? <NativeVerticalScrollViewport id={`${document.activityId}-text-drag-scroll`} className="native-drag-drop-workspace" ariaLabel="Text Drag & Drop vertical scroll" resetKey={`${document.activityId}:${panel.id}`}><PanelArtwork embeddedCanvas={embeddedCanvas} document={document} panel={panel} assetUrl={assetUrl} textMode>{targets}</PanelArtwork></NativeVerticalScrollViewport> : <div className="native-drag-drop-workspace"><PanelArtwork embeddedCanvas={embeddedCanvas} document={document} panel={panel} assetUrl={assetUrl} textMode={false}>{targets}{bank}</PanelArtwork></div>}
       {textMode ? bank : null}
       {!presentation ? <PanelNavigation panels={interaction.panels} panelIndex={panelIndex} setPanelIndex={setPanelIndex} /> : null}
     </div>

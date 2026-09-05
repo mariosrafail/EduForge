@@ -1,3 +1,4 @@
+import { loadNativeEditorDocuments, compositeEditorContent, compositeEditorTabs, useCompositeEditorBinding } from "./nativeCompositeEditorBinding.js";
 import { useEffect, useMemo, useState } from "react";
 import { Eye, ImagePlus, KeyRound, LayoutPanelTop, Plus, Trash2, Upload } from "lucide-react";
 import { StudioButton, StudioCanvasToolbar, StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
@@ -11,7 +12,7 @@ import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUn
 import { assessNativeCompleteSentencesReadiness, assessNativeCompleteSentencesSaveability, nativeCompleteSentencesAcceptedTexts, NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE, NATIVE_COMPLETE_SENTENCES_LIMITS, normalizeNativeCompleteSentencesInteraction } from "../../../data/native-activities/nativeCompleteSentences.js";
 import { addNativeCompleteSentencesItem, addNextNativeCompleteSentencesHotspot, alignNativeCompleteSentencesAnswers, createNativeCompleteSentencesPanel, findNextUnusedNativeCompleteSentencesItemId, nativeCompleteSentencesMarkedSentence, parseNativeCompleteSentencesMarkedSentence, removeNativeCompleteSentencesItem, removeNativeCompleteSentencesPanel, replaceNativeCompleteSentencesBackground } from "../../../data/native-activities/nativeCompleteSentencesAuthoring.js";
 import { generateNativeCompleteSentencesHotspotImportCandidate } from "../../../data/native-activities/nativeCompleteSentencesHotspotBulkAuthoring.js";
-import { getBuilderContent } from "./builderContentApi.js";
+import { getBuilderContent as getRemoteBuilderContent } from "./builderContentApi.js";
 import { getBuilderFontLibrary, nativeFontPreviewUrl, saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import { NativeCompleteSentencesHotspotBulkImporter } from "./NativeCompleteSentencesHotspotBulkImporter.jsx";
 import { NATIVE_COMPLETE_SENTENCES_TABS, NativeCompleteSentencesEditorHeader, NativeCompleteSentencesItemNavigation } from "./NativeCompleteSentencesEditorControls.jsx";
@@ -23,7 +24,8 @@ import { NativeVideoEditor } from "./NativeVideoEditor.jsx";
 import { NativeBulkGenerator } from "./NativeBulkGenerator.jsx";
 const clone = (value) => structuredClone(value);
 const previewRoot = (bookSlug, componentSlug, activityId, assetId) => `/builder/api/native-activities/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/activities/${encodeURIComponent(activityId)}/assets/${encodeURIComponent(assetId)}/preview`;
-export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {}, onSaved = () => {} }) {
+export function NativeCompleteSentencesEditor({ compositeBinding = null, bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {}, onSaved = () => {} }) {
+  const getBuilderContent = (request, options) => compositeEditorContent(compositeBinding, getRemoteBuilderContent, request, options);
   const [state, setState] = useState({ kind: "loading", publicRevision: 0, teacherRevision: 0, message: "" });
   const [publicDraft, setPublicDraft] = useState(null);
   const [teacherDraft, setTeacherDraft] = useState(null);
@@ -43,33 +45,14 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
   const [readableIncomplete, setReadableIncomplete] = useState(false);
   const [videoIncomplete, setVideoIncomplete] = useState(false);
   const [supplementalAudioIncomplete, setSupplementalAudioIncomplete] = useState(false);
+  useCompositeEditorBinding(compositeBinding, publicDraft, teacherDraft, dirty, uploading);
   useEffect(() => {
     const controller = new AbortController();
     setTab("content");
     setDirty(false);
     setLockedHotspotIds(new Set());
     onDirtyChange(false);
-    Promise.all([
-      getBuilderContent(
-        {
-          bookSlug,
-          componentSlug,
-          resource: "native-activity-public",
-          documentKey: activityId,
-        },
-        { signal: controller.signal },
-      ),
-      getBuilderContent(
-        {
-          bookSlug,
-          componentSlug,
-          resource: "native-activity-teacher",
-          documentKey: activityId,
-        },
-        { signal: controller.signal },
-      ),
-      getBuilderFontLibrary({ bookSlug, componentSlug }, { signal: controller.signal }),
-    ])
+    loadNativeEditorDocuments(getBuilderContent, getBuilderFontLibrary, { bookSlug, componentSlug, activityId }, controller.signal)
       .then(([publicValue, teacherValue, fontLibrary]) => {
         if (controller.signal.aborted) return;
         const projected = projectNativeActivityPublicForAuthoring(publicValue.document);
@@ -320,6 +303,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
     setSelectedHotspotId(null);
   };
   const save = async () => {
+    if (compositeBinding) return;
     if (!saveability.saveable || authoringIssues.length || readableIncomplete || videoIncomplete || supplementalAudioIncomplete)
       return setState((current) => ({
         ...current,
@@ -382,7 +366,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
           setTab(value);
           setDrawing(false);
         }}
-        tabs={NATIVE_COMPLETE_SENTENCES_TABS}
+        tabs={compositeEditorTabs(compositeBinding, NATIVE_COMPLETE_SENTENCES_TABS)}
         label="Complete the Sentences authoring modes"
       >
         {tab === "content" ? (
@@ -448,7 +432,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
                   <div className="studio-layer-list">
                     {panels.map((panel, index) => <button type="button" key={panel.id} aria-current={panel.id === selectedPanel?.id ? "true" : undefined} onClick={() => { setSelectedPanelId(panel.id); setSelectedHotspotId(null); setDrawing(false); }}><span><strong>Panel {index + 1}</strong><small>{panel.backgroundAssetSlot ? `${panel.sourceWidth} × ${panel.sourceHeight}` : "Needs background"}</small></span></button>)}
                   </div>
-                  <StudioButton onClick={addPanel} disabled={panels.length >= NATIVE_COMPLETE_SENTENCES_LIMITS.panels}><Plus aria-hidden="true" />Add Panel</StudioButton>
+                  <StudioButton onClick={addPanel} disabled={panels.length >= (compositeBinding ? 1 : NATIVE_COMPLETE_SENTENCES_LIMITS.panels)}><Plus aria-hidden="true" />Add Panel</StudioButton>
                   {selectedPanel ? <>
                     <StudioButton onClick={() => movePanel(-1)} disabled={panels.indexOf(selectedPanel) === 0}>Move Up</StudioButton>
                     <StudioButton onClick={() => movePanel(1)} disabled={panels.indexOf(selectedPanel) === panels.length - 1}>Move Down</StudioButton>
@@ -642,7 +626,7 @@ export function NativeCompleteSentencesEditor({ bookSlug, componentSlug, activit
           </div>
         ) : null}
       </StudioTabWorkspace>
-      <StudioSaveBar dirty={dirty} saving={state.saving} message={state.message} ready={readyToSave} issues={readinessIssues} disabled={!dirty || state.saving || !readyToSave} reason={!dirty ? "No unsaved changes" : !readyToSave ? "Resolve all authoring issues before saving" : ""} onSave={save} />
+      <StudioSaveBar hidden={Boolean(compositeBinding)} dirty={dirty} saving={state.saving} message={state.message} ready={readyToSave} issues={readinessIssues} disabled={!dirty || state.saving || !readyToSave} reason={!dirty ? "No unsaved changes" : !readyToSave ? "Resolve all authoring issues before saving" : ""} onSave={save} />
     </section>
   );
 }

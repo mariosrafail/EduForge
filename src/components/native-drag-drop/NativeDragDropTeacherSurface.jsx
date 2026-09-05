@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { nativeDragDropMappingWordIds, updateNativeDragDropRevealState } from "../../data/native-activities/nativeDragDrop.js";
 import { NativeDragDropStudentSurface } from "./NativeDragDropSurface.jsx";
 
-export function NativeDragDropTeacherSurface({ publicDocument, teacherDocument, assetUrl = () => "", presentation = null }) {
+export function NativeDragDropTeacherSurface({ publicDocument, teacherDocument, assetUrl = () => "", presentation = null, embeddedCanvas = null }) {
   const interaction = publicDocument.parts[0].interaction;
   const targetIds = interaction.panels.flatMap((panel) => panel.dropTargets.map((target) => target.id));
   const wordById = new Map(interaction.words.map((word) => [word.id, word]));
@@ -34,6 +34,7 @@ export function NativeDragDropTeacherSurface({ publicDocument, teacherDocument, 
   const revealedWords = new Map([...revealed].map((targetId) => [targetId, (wordIdsByTarget.get(targetId) || []).map((wordId) => wordById.get(wordId)).filter(Boolean)]).filter(([, words]) => words.length));
   return <NativeDragDropStudentSurface
     document={publicDocument}
+    embeddedCanvas={embeddedCanvas}
     assetUrl={assetUrl}
     evaluatePlacement={(targetId, wordId) => (wordIdsByTarget.get(targetId) || []).includes(wordId)}
     targetWordOverrides={revealedWords}

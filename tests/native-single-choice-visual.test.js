@@ -481,7 +481,8 @@ test("Student and Teacher share a public classroom renderer while only Teacher o
   assert.match(hostedRunner, /NativeSingleChoiceTeacherSurface publicDocument=\{document\} teacherDocument=\{state\.teacher\.entry\.document\} assetUrl=\{assetUrl\}/);
   assert.match(publishedStudentRunner, /NativeSingleChoiceStudentSurface document=\{document\} assetUrl=\{assetUrl\}/);
   assert.doesNotMatch(publishedStudentRunner, /NativeSingleChoiceTeacherSurface|teacherState|teacherDocument/);
-  assert.match(publishedTeacherRunner, /NativeSingleChoiceTeacherSurface publicDocument=\{document\} teacherDocument=\{teacherState\.document\} assetUrl=\{assetUrl\}/);
+  assert.match(publishedTeacherRunner, /NativeSingleChoiceTeacherSurface publicDocument=\{document\} teacherDocument=\{currentTeacher\} assetUrl=\{assetUrl\}/);
+  assert.match(publishedTeacherRunner, /teacherState.releaseId === publication.releaseId/);
   assert.match(editor, /NativeSingleChoiceTeacherSurface publicDocument=\{publicDraft\} teacherDocument=\{teacherDraft\} assetUrl=\{assetUrl\}/);
   assert.match(studentSurface, /NativeSingleChoicePresentation/);
   assert.match(teacherSurface, /NativeSingleChoicePresentation/);

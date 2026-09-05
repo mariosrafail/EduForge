@@ -38,7 +38,7 @@ function assertNativeDraftIdentity(identity) {
 }
 
 function nativeDraftPath(activityId, suffix, authorization, identity = currentIdentity()) {
-  if (!SAFE_ID.test(String(activityId || "")) || !/^(?:public|teacher|assets\/[0-9a-f-]{36})$/i.test(suffix)) throw new Error("Invalid native draft preview path.");
+  if (!SAFE_ID.test(String(activityId || "")) || !/^(?:public|teacher|(?:assets|teacher-assets)\/[0-9a-f-]{36})$/i.test(suffix)) throw new Error("Invalid native draft preview path.");
   assertNativeDraftIdentity(identity);
   return authorizedHostedPreviewPath(`/preview/native-activities/books/${identity.bookSlug}/components/${identity.componentSlug}/activities/${activityId}/${suffix}`, authorization);
 }
@@ -68,7 +68,7 @@ export async function loadHostedNativeDraftPublicActivity(activityId, { context 
 }
 
 export async function loadHostedNativeDraftTeacherActivity(publicEntry, { context = resolveHostedViewerRuntimeContext(), identity = currentIdentity(), fetchImpl = globalThis.fetch, signal } = {}) {
-  if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW || !["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop", "mark-the-words"].includes(publicEntry?.kind)) return null;
+  if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW || !["multi-part", "image", "open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop", "mark-the-words"].includes(publicEntry?.kind)) return null;
   const activityId = publicEntry.document.activityId;
   const payload = await fetchEnvelope(nativeDraftPath(activityId, "teacher", context.authorization, identity), { fetchImpl, signal });
   if (!payload) throw new Error("Native Teacher draft is unavailable.");
@@ -76,7 +76,7 @@ export async function loadHostedNativeDraftTeacherActivity(publicEntry, { contex
 }
 
 export function shouldLoadHostedNativeDraftTeacherActivity(publicEntry, teacherMode) {
-  return Boolean(teacherMode && ["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop", "mark-the-words"].includes(publicEntry?.kind));
+  return Boolean(teacherMode && ["multi-part", "image", "open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop", "mark-the-words"].includes(publicEntry?.kind));
 }
 
 export function hostedNativeDraftAssetUrl(activityId, assetId, context = resolveHostedViewerRuntimeContext(), identity = currentIdentity()) {
@@ -110,3 +110,8 @@ export function useHostedNativeDraftActivity(activityId, { teacherMode = false, 
 }
 
 export { nativeDraftPath as hostedNativeDraftPath, normalizeEnvelope as normalizeHostedNativeDraftEnvelope };
+
+export function hostedNativeDraftTeacherAssetUrl(activityId, assetId, context = resolveHostedViewerRuntimeContext(), identity = currentIdentity()) {
+  if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW || !UUID.test(String(assetId || ""))) return "";
+  return nativeDraftPath(activityId, `teacher-assets/${assetId.toLowerCase()}`, context.authorization, identity);
+}

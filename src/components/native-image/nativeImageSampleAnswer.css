@@ -1,0 +1,6 @@
+.native-image-sample-answer-toggle { position: fixed; z-index: 10002; min-height: 40px; max-width: 150px; padding: 8px 12px; border: 1px solid #78899a; border-radius: 8px; background: #fff; color: #152b3a; cursor: pointer; font: 600 14px/1.4 sans-serif; }
+.native-image-sample-answer-toggle:focus-visible { outline: 3px solid #246bd0; outline-offset: 3px; }
+.native-image-sample-answer-popup.native-scroll-controls-host { position: fixed; z-index: 10001; width: min(620px, calc(100vw - 48px)); padding: 8px 36px 8px 8px; border: 1px solid #78899a; border-radius: 8px; background: #fff; box-shadow: 0 6px 28px #0004; }
+.native-image-sample-answer-viewport { max-height: min(500px, calc(100vh - 120px)); overflow-y: auto; overflow-x: hidden; scrollbar-width: none; overscroll-behavior: contain; }
+.native-image-sample-answer-viewport::-webkit-scrollbar { display: none; }
+.native-image-sample-answer-viewport img { display: block; width: 100%; height: auto; object-fit: contain; }

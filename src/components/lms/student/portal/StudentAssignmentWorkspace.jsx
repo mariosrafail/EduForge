@@ -9,7 +9,7 @@ import { resolveStudentAssignmentBookContext } from "./studentAssignmentBookCont
 import { deriveStudentAssignmentPresentation } from "./studentAssignmentPresentation.js";
 import { StudentInteractiveRuntimeShell } from "../runtime/StudentInteractiveRuntimeShell.jsx";
 import { activityModeForStudentRuntime, STUDENT_RUNTIME_MODES } from "../runtime/studentRuntimeMode.js";
-import { buildLegacyFinalSubmission, buildNativeFinalSubmission, isDuplicateFinalSubmission } from "../runtime/studentSubmissionContract.js";
+import { buildLegacyFinalSubmission, buildNativeFinalSubmission, restoreNativeSubmissionResponses, isDuplicateFinalSubmission } from "../runtime/studentSubmissionContract.js";
 
 function formatDate(value) {
   if (!value) return "No due date";
@@ -70,7 +70,7 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, navigate
       if (!match) throw new Error("This assignment is not available.");
       const normalized = normalizeAssignment(match);
       setAssignment(normalized);
-      setNativeResponses(Object.fromEntries((normalized.responsePayload?.items || []).map((item) => [item.id, item.value])));
+      setNativeResponses(restoreNativeSubmissionResponses(normalized.responsePayload));
     } catch (loadError) {
       setAssignment(null);
       setError(loadError.message || "This assignment is not available.");

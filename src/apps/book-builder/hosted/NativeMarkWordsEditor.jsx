@@ -1,3 +1,4 @@
+import { compositeEditorContent, compositeEditorTabs, useCompositeEditorBinding } from "./nativeCompositeEditorBinding.js";
 import { useEffect, useRef, useState } from "react";
 import { BookOpenText, Eye, FileText, Film, KeyRound, LayoutPanelTop, Music } from "lucide-react";
 import { StudioButton, StudioField, StudioSaveBar, StudioTabWorkspace } from "../../../components/builder-studio/StudioControls.jsx";
@@ -7,7 +8,7 @@ import { NativeReadableTextPresentation } from "../../../components/native-reada
 import { assessNativeMarkWordsReadiness, NATIVE_MARK_WORDS_LIMITS } from "../../../data/native-activities/nativeMarkWords.js";
 import { addNativeMarkWordsPassage, alignNativeMarkWordsAnswers, rebuildNativeMarkWordsPassage, removeNativeMarkWordsPassage, setNativeMarkWordsAnswers, validateMarkWordsAuthoringPair } from "../../../data/native-activities/nativeMarkWordsAuthoring.js";
 import { generateNativeMarkWordsBulkCandidate } from "../../../data/native-activities/nativeMarkWordsBulkAuthoring.js";
-import { getBuilderContent } from "./builderContentApi.js";
+import { getBuilderContent as getRemoteBuilderContent } from "./builderContentApi.js";
 import { nativeFontPreviewUrl, saveNativeActivityPair } from "./builderNativeActivityApi.js";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeBulkGenerator } from "./NativeBulkGenerator.jsx";
@@ -18,12 +19,14 @@ import { NativeMarkWordsVisualEditor } from "./NativeMarkWordsVisualEditor.jsx";
 
 const tabs = [{ id: "content", label: "Content", icon: FileText }, { id: "visual", label: "Visual", icon: LayoutPanelTop }, { id: "answer-key", label: "Answer Key", icon: KeyRound }, { id: "readable-text", label: "Readable Text", icon: BookOpenText }, { id: "video", label: "Video", icon: Film }, { id: "supplemental-audio", label: "Supplemental MP3", icon: Music }, { id: "preview", label: "Local Preview", icon: Eye }];
 
-export function NativeMarkWordsEditor({ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange, onSaved }) {
+export function NativeMarkWordsEditor({ compositeBinding = null, bookSlug, componentSlug, activityId, placementLabel, onDirtyChange, onSaved }) {
+  const getBuilderContent = (request, options) => compositeEditorContent(compositeBinding, getRemoteBuilderContent, request, options);
   const [pair, setPair] = useState(null); const pairRef = useRef(null);
   const [state, setState] = useState({ kind: "loading", message: "", saving: false });
   const [dirty, setDirty] = useState(false); const [mode, setMode] = useState("content"); const [preview, setPreview] = useState("student");
   const [textEdits, setTextEdits] = useState({}); const [uploading, setUploading] = useState(false);
   const [readableIncomplete, setReadableIncomplete] = useState(false); const [videoIncomplete, setVideoIncomplete] = useState(false); const [audioIncomplete, setAudioIncomplete] = useState(false);
+  useCompositeEditorBinding(compositeBinding, pair?.publicDocument, pair?.teacherDocument, dirty, uploading);
   const alive = useRef(false);
   const scope = { bookSlug, componentSlug, activityId };
   const message = (value) => { if (alive.current) setState((current) => ({ ...current, message: value })); };
@@ -61,6 +64,7 @@ export function NativeMarkWordsEditor({ bookSlug, componentSlug, activityId, pla
     install({ publicDocument: result.publicDocument, teacherDocument: result.teacherDocument }); setTextEdits({}); changed(); return result;
   };
   const save = async () => {
+    if (compositeBinding) return;
     if (issues.length || state.saving || !dirty) return;
     setState((current) => ({ ...current, saving: true, message: "Saving…" }));
     try {
@@ -74,7 +78,7 @@ export function NativeMarkWordsEditor({ bookSlug, componentSlug, activityId, pla
   return <section className="native-activity-foundation native-mark-words-editor studio-editor">
     <header className="studio-editor-header"><div><span className="studio-eyebrow">{placementLabel} · Mark the Words</span><h2>{publicDraft.metadata.title}</h2></div></header>
     <fieldset disabled={state.saving || uploading} style={{ border: 0, padding: 0, minWidth: 0 }}>
-      <StudioTabWorkspace id="native-mark-words-tabs" value={mode} onChange={setMode} tabs={tabs} label="Mark the Words authoring modes">
+      <StudioTabWorkspace id="native-mark-words-tabs" value={mode} onChange={setMode} tabs={compositeEditorTabs(compositeBinding, tabs)} label="Mark the Words authoring modes">
         {mode === "content" ? <><StudioField label="Activity title"><input maxLength={300} value={publicDraft.metadata.title} onChange={(event) => mutatePublic((next) => { next.metadata.title = event.target.value; })} /></StudioField><NativeBulkGenerator kind="mark-the-words" hasExistingContent={items.length > 0} onGenerate={generate} /><StudioButton disabled={items.length >= NATIVE_MARK_WORDS_LIMITS.passages} onClick={() => mutatePair(addNativeMarkWordsPassage)}>Add passage</StudioButton></> : null}
         {["content", "answer-key"].includes(mode) ? items.map((item, index) => <section key={item.id} className="studio-content-panel"><h3>Passage {index + 1}</h3>
           {mode === "content" ? <><StudioField label={`Passage ${index + 1} text`}><textarea rows={4} maxLength={NATIVE_MARK_WORDS_LIMITS.text} value={textEdits[item.id] ?? item.text} onChange={(event) => { setTextEdits((current) => ({ ...current, [item.id]: event.target.value })); changed(); }} /></StudioField>
@@ -95,6 +99,6 @@ export function NativeMarkWordsEditor({ bookSlug, componentSlug, activityId, pla
       </StudioTabWorkspace>
     </fieldset>
     {dirty && state.message ? <p role="status">{state.message}</p> : null}
-    <StudioSaveBar dirty={dirty} saving={state.saving} message={state.message} ready={!issues.length} issues={issues} disabled={!dirty || state.saving || issues.length > 0} onSave={save} reason={issues.length ? "Resolve authoring issues before saving" : "No unsaved changes"} />
+    <StudioSaveBar hidden={Boolean(compositeBinding)} dirty={dirty} saving={state.saving} message={state.message} ready={!issues.length} issues={issues} disabled={!dirty || state.saving || issues.length > 0} onSave={save} reason={issues.length ? "Resolve authoring issues before saving" : "No unsaved changes"} />
   </section>;
 }

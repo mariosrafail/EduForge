@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId } from "react";
 
 import { selectNativeSingleChoiceResponse, updateNativeSingleChoiceVisualNavigation, visibleNativeSingleChoicePanelIndexes } from "../../data/native-activities/nativeSingleChoiceRuntime.js";
 import { logicalAreaStyle } from "../builder-studio/stageGeometry.js";
@@ -11,14 +11,14 @@ function feedbackText(state) {
   return "";
 }
 
-function TextSingleChoice({ questions, responses, update, readOnly, disabledQuestionIds, optionStates }) {
+function TextSingleChoice({ scope, questions, responses, update, readOnly, disabledQuestionIds, optionStates }) {
   return questions.map((question, questionIndex) => <fieldset key={question.id} disabled={readOnly || disabledQuestionIds.has(question.id)}>
     <legend>{questionIndex + 1}. {question.prompt}</legend>
     {question.options.map((option) => {
       const selected = question.selectionMode === "multiple" ? (responses[question.id] || []).includes?.(option.id) === true : responses[question.id] === option.id;
       const answerState = optionStates[option.id];
       return <label key={option.id} data-answer-state={answerState || undefined}>
-        <input type={question.selectionMode === "multiple" ? "checkbox" : "radio"} name={question.id} value={option.id} checked={selected} onChange={() => update(question.id, option.id)} />
+        <input type={question.selectionMode === "multiple" ? "checkbox" : "radio"} name={`${scope}-${question.id}`} value={option.id} checked={selected} onChange={() => update(question.id, option.id)} />
         <span>{option.text}</span>
         {answerState ? <strong className="native-single-choice-feedback" role="status">{feedbackText(answerState)}</strong> : null}
       </label>;
@@ -26,15 +26,15 @@ function TextSingleChoice({ questions, responses, update, readOnly, disabledQues
   </fieldset>);
 }
 
-function VisualPanel({ panel, panelIndex, document, assetUrl, responses, update, readOnly, disabledQuestionIds, optionStates, headingVisible = true, audioHotspotPresentation = null }) {
+function VisualPanel({ panel, panelIndex, document, assetUrl, responses, update, readOnly, disabledQuestionIds, optionStates, headingVisible = true, audioHotspotPresentation = null, embeddedCanvas = false, scope }) {
   const questions = document.parts[0].interaction.questions;
   const questionById = new Map(questions.map((question) => [question.id, question]));
   const reference = document.assets.find((asset) => asset.slot === panel.backgroundAssetSlot);
   const panelQuestionIds = [...new Set(panel.hotspots.map((hotspot) => hotspot.questionId))];
-  return <section className={`native-single-choice-visual-panel${headingVisible ? " has-heading" : ""}`} style={{ "--native-single-choice-stage-aspect": panel.sourceWidth / panel.sourceHeight }} aria-labelledby={headingVisible ? `${panel.id}-title` : undefined} aria-label={headingVisible ? undefined : `Panel ${panelIndex + 1}`}>
-    {headingVisible ? <h3 id={`${panel.id}-title`}>Panel {panelIndex + 1}</h3> : null}
+  return <section className={`native-single-choice-visual-panel${headingVisible ? " has-heading" : ""}`} style={{ "--native-single-choice-stage-aspect": panel.sourceWidth / panel.sourceHeight }} aria-labelledby={headingVisible ? `${scope}-${panel.id}-title` : undefined} aria-label={headingVisible ? undefined : `Panel ${panelIndex + 1}`}>
+    {headingVisible ? <h3 id={`${scope}-${panel.id}-title`}>Panel {panelIndex + 1}</h3> : null}
     <div className="native-single-choice-stage-slot"><div className={`native-single-choice-visual-stage${reference ? "" : " is-missing-background"}`} style={{ aspectRatio: `${panel.sourceWidth} / ${panel.sourceHeight}` }}>
-      {reference ? <img src={assetUrl(reference.assetId)} alt="" /> : <p role="status">Panel background is unavailable.</p>}
+      {!embeddedCanvas ? reference ? <img src={assetUrl(reference.assetId)} alt="" /> : <p role="status">Panel background is unavailable.</p> : null}
       {panel.hotspots.map((hotspot) => {
         const question = questionById.get(hotspot.questionId);
         const option = question?.options.find((entry) => entry.id === hotspot.optionId);
@@ -67,7 +67,7 @@ function VisualPanel({ panel, panelIndex, document, assetUrl, responses, update,
   </section>;
 }
 
-function VisualSingleChoice({ document, assetUrl, responses, update, readOnly, disabledQuestionIds, optionStates, navigationMode, externalPanelIndex, audioHotspotPresentation }) {
+function VisualSingleChoice({ document, assetUrl, responses, update, readOnly, disabledQuestionIds, optionStates, navigationMode, externalPanelIndex, audioHotspotPresentation, embeddedCanvas, scope }) {
   const panels = document.parts[0].interaction.presentation.panels;
   const [navigation, setNavigation] = useState({ panelIndex: 0, showAll: false });
   const normalized = navigationMode === "external"
@@ -85,7 +85,7 @@ function VisualSingleChoice({ document, assetUrl, responses, update, readOnly, d
       <span role="status">{normalized.showAll ? `Showing all ${panels.length} panels` : `Panel ${normalized.panelIndex + 1} of ${panels.length}`}</span>
     </div> : null}
     <div className={normalized.showAll ? "native-single-choice-visual-panels is-show-all" : "native-single-choice-visual-panels"}>
-      {visiblePanels.map(({ panel, index }) => panel ? <VisualPanel key={panel.id} panel={panel} panelIndex={index} document={document} assetUrl={assetUrl} responses={responses} update={update} readOnly={readOnly} disabledQuestionIds={disabledQuestionIds} optionStates={optionStates} headingVisible={navigationMode === "inline"} audioHotspotPresentation={audioHotspotPresentation} /> : null)}
+      {visiblePanels.map(({ panel, index }) => panel ? <VisualPanel embeddedCanvas={embeddedCanvas} scope={scope} key={panel.id} panel={panel} panelIndex={index} document={document} assetUrl={assetUrl} responses={responses} update={update} readOnly={readOnly} disabledQuestionIds={disabledQuestionIds} optionStates={optionStates} headingVisible={navigationMode === "inline"} audioHotspotPresentation={audioHotspotPresentation} /> : null)}
     </div>
   </div>;
 }
@@ -104,7 +104,9 @@ export function NativeSingleChoicePresentation({
   navigationMode = "inline",
   panelIndex = 0,
   audioHotspotPresentation = null,
+  embeddedCanvas = false,
 }) {
+  const scope = useId();
   const [localResponses, setLocalResponses] = useState(() => ({ ...(initialResponses || {}) }));
   const responses = controlledResponses && typeof controlledResponses === "object" ? controlledResponses : localResponses;
   const update = (questionId, optionId) => {
@@ -117,9 +119,9 @@ export function NativeSingleChoicePresentation({
   };
   const interaction = document.parts[0].interaction;
   const presentationKind = interaction.presentation?.kind === "image-hotspot" ? "visual" : "text";
-  return <div className={className} data-native-single-choice-presentation={presentationKind}>
+  return <div className={className} data-embedded-canvas={embeddedCanvas || undefined} data-native-single-choice-presentation={presentationKind}>
     {presentationKind === "visual"
-      ? <VisualSingleChoice document={document} assetUrl={assetUrl} responses={responses} update={update} readOnly={readOnly} disabledQuestionIds={disabledQuestionIds} optionStates={optionStates} navigationMode={navigationMode} externalPanelIndex={panelIndex} audioHotspotPresentation={audioHotspotPresentation} />
-      : <TextSingleChoice questions={interaction.questions} responses={responses} update={update} readOnly={readOnly} disabledQuestionIds={disabledQuestionIds} optionStates={optionStates} />}
+      ? <VisualSingleChoice embeddedCanvas={embeddedCanvas} scope={scope} document={document} assetUrl={assetUrl} responses={responses} update={update} readOnly={readOnly} disabledQuestionIds={disabledQuestionIds} optionStates={optionStates} navigationMode={navigationMode} externalPanelIndex={panelIndex} audioHotspotPresentation={audioHotspotPresentation} />
+      : <TextSingleChoice scope={scope} questions={interaction.questions} responses={responses} update={update} readOnly={readOnly} disabledQuestionIds={disabledQuestionIds} optionStates={optionStates} />}
   </div>;
 }

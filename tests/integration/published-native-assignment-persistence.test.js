@@ -1,4 +1,5 @@
 import { createMarkWordsFixture, markWordsFixtureId } from "../fixtures/native-mark-words.js";
+import { publicDocument as multiPublic, teacherDocument as multiTeacher } from "../fixtures/native-runtime-regressions/multi-part-data.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -122,7 +123,7 @@ test("published native assignment remains release-pinned through submit, review,
     componentId: scope.component_id,
     builderId,
     releaseNumber: 99,
-    fixture: { markWords: true, prompt: "Release A prompt", teacherAnswer: "Release A protected answer" },
+    fixture: { markWords: true, multiPart: true, prompt: "Release A prompt", teacherAnswer: "Release A protected answer" },
   });
   await publishRelease(pool, { packageId: scope.package_id, componentId: scope.component_id, releaseId: releaseA.releaseId, revision: 1, builderId });
 
@@ -148,6 +149,9 @@ test("published native assignment remains release-pinned through submit, review,
   const markCreation = await createAssignment(sql, { idempotencyKey: "mark-words-integration", classIds: [classRow.id], target: { kind: "published_native", releaseId: releaseA.releaseId, nativeActivityId: markWordsFixtureId } }, teacherUser);
   assert.equal(markCreation.statusCode, 200, markCreation.body);
   const markAssignment = JSON.parse(markCreation.body).assignment;
+  const multiCreation = await createAssignment(sql, { idempotencyKey: "composition-integration", classIds: [classRow.id], target: { kind: "published_native", releaseId: releaseA.releaseId, nativeActivityId: multiPublic.activityId } }, teacherUser);
+  assert.equal(multiCreation.statusCode, 200, multiCreation.body);
+  const multiAssignment = JSON.parse(multiCreation.body).assignment;
   const catalog = await listAssignmentTargets(sql, teacherUser);
   assert.equal(catalog.find((item) => item.target.nativeActivityId === publicationV2Fixture.openResponseId)?.assignable, true);
   assert.equal(catalog.find((item) => item.target.nativeActivityId === publicationV2Fixture.imageId)?.assignable, false);
@@ -347,6 +351,27 @@ test("published native assignment remains release-pinned through submit, review,
   assert.equal(restoredMark.target.releaseId, releaseA.releaseId); assert.doesNotMatch(JSON.stringify(restoredMark), /correctWordIds/);
   const markResults = JSON.parse((await getAssignmentResults(sql, markAssignment.id)).body);
   assert.equal(markResults.rows[0].implementationMode, "auto-scored"); assert.match(markResults.rows[0].answerDetails[0].answer, /watch \(word 2\)/);
+
+  const multiResponse = { schemaVersion: "native-multi-response.v1", sections: multiPublic.parts[0].interaction.sections.filter((section) => section.kind !== "image").map((section) => {
+    const solution = multiTeacher.parts[0].solution.sections.find((entry) => entry.id === section.id).solution;
+    const items = section.kind === "drag-drop" ? solution.mappings.map((entry) => ({ id: entry.targetId, value: [entry.wordId] }))
+      : section.kind === "single-choice" ? solution.correctAnswers.map((entry) => ({ id: entry.questionId, value: entry.correctOptionId }))
+        : section.kind === "open-response" ? solution.modelAnswers.map((entry) => ({ id: entry.questionId, value: "My persisted explanation" }))
+          : solution.answers.map((entry) => ({ id: entry.itemId, value: section.kind === "mark-the-words" ? entry.correctWordIds : entry.text }));
+    return { id: section.id, kind: section.kind, response: { schemaVersion: "native-response.v1", items } };
+  }) };
+  const submittedMulti = await submitActivity(sql, { assignmentId: multiAssignment.id, response: multiResponse }, studentUser);
+  assert.equal(submittedMulti.statusCode, 200, submittedMulti.body);
+  assert.equal(JSON.parse(submittedMulti.body).submission.status, "awaiting_review");
+  const multiStored = (await pool.query("select * from activity_submissions where activity_assignment_id=$1", [multiAssignment.id])).rows[0];
+  assert.equal(multiStored.response_schema_version, "native-multi-response.v1"); assert.equal(multiStored.response_payload.sections.length, 8);
+  assert.equal(multiStored.response_payload.sectionResults.length, 8); assert.equal(multiStored.score_percent, null);
+  const multiRestored = (await listAssignmentsForStudent(sql, student.id, studentUser)).find((item) => item.id === multiAssignment.id);
+  assert.equal(multiRestored.target.releaseId, releaseA.releaseId); assert.doesNotMatch(JSON.stringify(multiRestored), /Synthetic private explanation/);
+  const multiResults = JSON.parse((await getAssignmentResults(sql, multiAssignment.id)).body);
+  assert.equal(multiResults.rows[0].answerDetails.length, 8); assert.equal(new Set(multiResults.rows[0].answerDetails.map((detail) => detail.questionId)).size, 8);
+  assert.equal((await reviewSubmission(sql, { submissionId: multiStored.id, score: 92, teacherFeedback: "Composed response reviewed" }, teacherUser)).statusCode, 200);
+  assert.equal((await submitActivity(sql, { assignmentId: multiAssignment.id, response: multiResponse }, studentUser)).statusCode, 409);
 
   await assert.rejects(pool.query(`
     insert into activity_submissions(

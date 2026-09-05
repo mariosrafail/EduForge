@@ -5,3 +5,5 @@ export function useHostedNativeDraftActivity() {
 export function hostedNativeDraftAssetUrl() {
   return "";
 }
+
+export function hostedNativeDraftTeacherAssetUrl() { return ""; }

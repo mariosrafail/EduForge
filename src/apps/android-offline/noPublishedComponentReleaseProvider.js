@@ -9,3 +9,5 @@ export function publishedHotspotActions(_publication, identity) {
   return getUltimateB2StudentsBookHotspotActions(identity);
 }
 import { getUltimateB2StudentsBookHotspotActions } from "../../data/ultimate-b2/studentsBookHotspots.js";
+
+export function publishedNativeTeacherAssetUrl() { return ""; }

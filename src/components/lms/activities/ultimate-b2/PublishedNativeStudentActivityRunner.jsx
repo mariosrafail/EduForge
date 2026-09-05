@@ -1,3 +1,4 @@
+import { NativeMultiPartStudentSurface } from "../../../native-multi-part/NativeMultiPartStudentSurface.jsx";
 import { NativeMarkWordsStudentSurface } from "../../../native-mark-words/NativeMarkWordsStudentSurface.jsx";
 import { NativeImageLearnerContent, NativeImagePresentation } from "../../../native-image/NativeImageSurface.jsx";
 import { NativeOpenResponseStudentSurface } from "../../../native-open-response/NativeOpenResponseStudentSurface.jsx";
@@ -18,6 +19,7 @@ export function PublishedNativeStudentActivityRunner({ entry, publication, respo
   };
   return <NativeReadableTextPresentation document={document} assetUrl={assetUrl} presentation={presentation}>{(activityPresentation, audioHotspotPresentation) => <article className="published-native-activity" data-native-kind={entry.kind} data-release-id={publication.releaseId} data-native-metadata={showMetadataHeader || undefined}>
     {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p className="native-activity-visible-instruction">{document.metadata.visibleInstructionText}</p> : null}</header> : null}
+    {entry.kind === "multi-part" ? <NativeMultiPartStudentSurface document={document} assetUrl={assetUrl} identity={publication.releaseId} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} /> : null}
     {entry.kind === "mark-the-words" ? <NativeMarkWordsStudentSurface document={document} assetUrl={assetUrl} identity={publication.releaseId} responses={responses} initialResponses={initialResponses} onResponsesChange={onResponsesChange} readOnly={readOnly} /> : null}
     {entry.kind === "image" ? <NativeImagePresentation document={document} assetUrl={assetUrl} className="native-runtime-surface" audioHotspotPresentation={audioHotspotPresentation} /> : null}
     {entry.kind === "image" && showMetadataHeader ? <NativeImageLearnerContent document={document} /> : null}

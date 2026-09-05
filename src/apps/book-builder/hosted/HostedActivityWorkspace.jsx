@@ -14,8 +14,9 @@ import "../../ultimate-b2-builder/hostedUltimateB2BuilderReview.css";
 import "../../ultimate-b2-builder/hostedUltimateB2BuilderModern.css";
 import "../../ultimate-b2-builder/studioAuthoring.css";
 
-const kindIcons = { "mark-the-words": ListChecks, "open-response": MessageSquareText, image: FileImage, "single-choice": ListChecks, "complete-sentences": ListChecks, listening: MessageSquareText, "oldschool-listening": FileImage, "drag-drop": Boxes };
+const kindIcons = { "multi-part": Boxes, "mark-the-words": ListChecks, "open-response": MessageSquareText, image: FileImage, "single-choice": ListChecks, "complete-sentences": ListChecks, listening: MessageSquareText, "oldschool-listening": FileImage, "drag-drop": Boxes };
 const kindDescriptions = {
+  "multi-part": "Combine typed sections on shared panels, with one activity and one submission.",
   "open-response": "Learners write a free response for Teacher review.",
   image: "Present an authored image with optional guidance.",
   "complete-sentences": "Learners type words or phrases into visual blanks; answers stay Teacher-only.",

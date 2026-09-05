@@ -52,3 +52,10 @@ export async function loadPublishedNativeTeacherDocument(publication, activityId
   if (payload.releaseId !== publication.releaseId || payload.activityId !== activityId) throw new Error("Teacher release identity mismatch.");
   return payload.document;
 }
+
+export function publishedNativeTeacherAssetUrl(publication, activityId, sectionId = null) {
+  if (publication.kind !== "published") return "";
+  const query = new URLSearchParams({ action: "published-native-answer-asset", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: publication.releaseId, activityId });
+  if (sectionId) query.set("sectionId", sectionId);
+  return `/.netlify/functions/book-content?${query}`;
+}

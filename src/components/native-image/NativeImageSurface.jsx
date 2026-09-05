@@ -13,10 +13,10 @@ export function NativeImageLearnerContent({ document }) {
   return contentText ? <div className="native-image-learner-content" aria-label="Activity content">{contentText}</div> : null;
 }
 
-export function NativeImageSurface({ document, assetUrl = () => "", onSelect = null, selectedId = null, children = null, className = "", audioHotspotPresentation = null }) {
+export function NativeImageSurface({ document, assetUrl = () => "", onSelect = null, selectedId = null, children = null, className = "", audioHotspotPresentation = null, surfaceRef = null }) {
   const interaction = document.parts[0].interaction;
   const assets = new Map(document.assets.map((asset) => [asset.slot, asset]));
-  return <div className={`native-or-surface native-image-surface ${className}`.trim()} style={{ aspectRatio: `${interaction.surface.width} / ${interaction.surface.height}`, "--native-image-surface-ratio": interaction.surface.width / interaction.surface.height }} data-studio-stage data-empty={!interaction.images.length || undefined} data-surface-width={interaction.surface.width} data-surface-height={interaction.surface.height}>
+  return <div ref={surfaceRef} className={`native-or-surface native-image-surface ${className}`.trim()} style={{ aspectRatio: `${interaction.surface.width} / ${interaction.surface.height}`, "--native-image-surface-ratio": interaction.surface.width / interaction.surface.height }} data-studio-stage data-empty={!interaction.images.length || undefined} data-surface-width={interaction.surface.width} data-surface-height={interaction.surface.height}>
     {interaction.images.map((item) => {
       const reference = assets.get(item.assetSlot);
       const authoringLocked = Boolean(onSelect && item.locked);

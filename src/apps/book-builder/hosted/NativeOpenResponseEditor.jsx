@@ -1,3 +1,4 @@
+import { compositeEditorContent, compositeEditorTabs, useCompositeEditorBinding } from "./nativeCompositeEditorBinding.js";
 import { PanelCompositionControls } from "./NativeOpenResponsePanelCompositionControls.jsx";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { BookOpenText, Eye, FileText, Film, ImagePlus, Layers3, LayoutPanelTop, Music, Plus, ShieldCheck, Trash2, Upload } from "lucide-react";
@@ -17,7 +18,7 @@ import { generateNativeBulkCandidate } from "../../../data/native-activities/nat
 import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import { duplicateNativeImage } from "../../../data/native-activities/nativeImage.js";
 import { assessNativeOpenResponseReadiness, commitNativeOpenResponseConfiguredFontSize, createNativeOpenResponseQuestion, initialNativeOpenResponseArtworkArea, nativeOpenResponseAnswerFontFamily, nativeOpenResponseLinePositions, nativeOpenResponseModelAnswerTexts, nativeOpenResponsePanelPromptIds, nativeOpenResponsePanelResponseIds, promoteNativeOpenResponsePanels, removeNativeOpenResponsePanel, resizeNativeOpenResponseRegion, updateNativeOpenResponsePanelMembership } from "../../../data/native-activities/nativeOpenResponse.js";
-import { getBuilderContent } from "./builderContentApi.js";
+import { getBuilderContent as getRemoteBuilderContent } from "./builderContentApi.js";
 import { getBuilderFontLibrary, nativeFontPreviewUrl, saveNativeActivityPair, uploadNativeActivityArtwork } from "./builderNativeActivityApi.js";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeBulkGenerator } from "./NativeBulkGenerator.jsx";
@@ -66,7 +67,8 @@ const tabs = [
   { id: "preview", label: "Local Preview", icon: Eye },
 ];
 
-export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {}, onSaved = () => {} }) {
+export function NativeOpenResponseEditor({ compositeBinding = null, bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {}, onSaved = () => {} }) {
+  const getBuilderContent = (request, options) => compositeEditorContent(compositeBinding, getRemoteBuilderContent, request, options);
   const [state, setState] = useState({ kind: "loading", publicRevision: 0, teacherRevision: 0, message: "" });
   const [publicDraft, setPublicDraft] = useState(null);
   const [teacherDraft, setTeacherDraft] = useState(null);
@@ -87,6 +89,7 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
   const canvasViewportRef = useRef(null);
   const panRef = useRef(null);
 
+  useCompositeEditorBinding(compositeBinding, publicDraft, teacherDraft, dirty, uploading);
   useEffect(() => {
     const controller = new AbortController();
     setState({ kind: "loading", publicRevision: 0, teacherRevision: 0, message: "" }); setPublicDraft(null); setTeacherDraft(null); setTab("content"); setDirty(false); onDirtyChange(false);
@@ -344,6 +347,7 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
   };
 
   const save = async () => {
+    if (compositeBinding) return;
     setState((current) => ({ ...current, saving: true, message: "Saving…" }));
     try {
       const value = await saveNativeActivityPair({ bookSlug, componentSlug, activityId, expectedPublicRevision: state.publicRevision, expectedTeacherRevision: state.teacherRevision, publicDocument: publicDraft, teacherDocument: teacherDraft });
@@ -365,8 +369,8 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
 
   return <section className="native-activity-foundation native-or-editor studio-editor studio-open-response">
     <header className="studio-editor-header"><div><span className="studio-eyebrow">{placementLabel} · Open Response</span><h2>{publicDraft.metadata.title}</h2><p>{readiness.ready ? "Content complete" : "Content needs attention"}</p></div><details className="builder-technical-details"><summary>Technical details</summary><dl><div><dt>Stable ID</dt><dd><code>{activityId}</code></dd></div><div><dt>Revisions</dt><dd>Public {state.publicRevision} · Teacher {state.teacherRevision}</dd></div></dl></details></header>
-    <StudioTabWorkspace id="native-open-response-tabs" value={tab} onChange={setTab} tabs={tabs} label="Open Response authoring modes">
-    {tab === "layout" ? <section className="native-or-panel-authoring" aria-label="Visual panels"><header><strong>Visual panels</strong><button type="button" onClick={addPanel} disabled={panels.length >= 12}><Plus aria-hidden="true" /> Add Panel</button></header><div>{panels.map((entry, index) => { const promptCount = nativeOpenResponsePanelPromptIds(entry).length; const responseCount = nativeOpenResponsePanelResponseIds(entry).length; return <div key={entry.id}><button type="button" aria-current={panel?.id === entry.id ? "true" : undefined} onClick={() => { setPanelId(entry.id); setSelection(null); }}>Panel {index + 1} · {promptCount} prompt{promptCount === 1 ? "" : "s"} · {responseCount} box{responseCount === 1 ? "" : "es"} · {entry.images.length} image{entry.images.length === 1 ? "" : "s"}</button><button type="button" aria-label={`Move panel ${index + 1} up`} disabled={index === 0} onClick={() => { setPanelId(entry.id); mutatePublic((next) => { const list = next.parts[0].interaction.presentation.panels; const current = list.findIndex((item) => item.id === entry.id); [list[current - 1], list[current]] = [list[current], list[current - 1]]; }); }}>Move Up</button><button type="button" aria-label={`Move panel ${index + 1} down`} disabled={index === panels.length - 1} onClick={() => { setPanelId(entry.id); mutatePublic((next) => { const list = next.parts[0].interaction.presentation.panels; const current = list.findIndex((item) => item.id === entry.id); [list[current], list[current + 1]] = [list[current + 1], list[current]]; }); }}>Move Down</button></div>; })}</div></section> : null}
+    <StudioTabWorkspace id="native-open-response-tabs" value={tab} onChange={setTab} tabs={compositeEditorTabs(compositeBinding, tabs)} label="Open Response authoring modes">
+    {tab === "layout" ? <section className="native-or-panel-authoring" aria-label="Visual panels"><header><strong>Visual panels</strong><button type="button" onClick={addPanel} disabled={panels.length >= (compositeBinding ? 1 : 12)}><Plus aria-hidden="true" /> Add Panel</button></header><div>{panels.map((entry, index) => { const promptCount = nativeOpenResponsePanelPromptIds(entry).length; const responseCount = nativeOpenResponsePanelResponseIds(entry).length; return <div key={entry.id}><button type="button" aria-current={panel?.id === entry.id ? "true" : undefined} onClick={() => { setPanelId(entry.id); setSelection(null); }}>Panel {index + 1} · {promptCount} prompt{promptCount === 1 ? "" : "s"} · {responseCount} box{responseCount === 1 ? "" : "es"} · {entry.images.length} image{entry.images.length === 1 ? "" : "s"}</button><button type="button" aria-label={`Move panel ${index + 1} up`} disabled={index === 0} onClick={() => { setPanelId(entry.id); mutatePublic((next) => { const list = next.parts[0].interaction.presentation.panels; const current = list.findIndex((item) => item.id === entry.id); [list[current - 1], list[current]] = [list[current], list[current - 1]]; }); }}>Move Up</button><button type="button" aria-label={`Move panel ${index + 1} down`} disabled={index === panels.length - 1} onClick={() => { setPanelId(entry.id); mutatePublic((next) => { const list = next.parts[0].interaction.presentation.panels; const current = list.findIndex((item) => item.id === entry.id); [list[current], list[current + 1]] = [list[current + 1], list[current]]; }); }}>Move Down</button></div>; })}</div></section> : null}
     {tab === "content" ? <div className="native-or-content"><NativeBulkGenerator kind="open-response" hasExistingContent={questions.length > 0} onGenerate={generateBulk} />
       <div className="native-activity-foundation-fields"><label><span>Activity title</span><input value={publicDraft.metadata.title} maxLength={300} onChange={(event) => mutatePublic((next) => { next.metadata.title = event.target.value; })} /></label></div>
       <div className="native-or-question-workspace"><aside><button className="studio-primary-action" type="button" disabled={questions.length >= 20} onClick={addQuestion}><Plus aria-hidden="true" /> Add Question</button>{questions.map((question, index) => { const panelCount = questionPanelCount(question.id); return <button type="button" key={question.id} aria-current={selectedQuestionId === question.id ? "true" : undefined} onClick={() => setSelectedQuestionId(question.id)}><strong>Question {index + 1}</strong><span>{question.prompt.trim() || "Untitled question"}</span><small>{panelCount ? `Shown on ${panelCount} panel${panelCount === 1 ? "" : "s"}` : "Unassigned"}</small><code>{question.id}</code></button>; })}</aside>
@@ -384,7 +388,7 @@ export function NativeOpenResponseEditor({ bookSlug, componentSlug, activityId, 
     {tab === "video" ? <NativeVideoEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} onIncompleteChange={setVideoIncomplete} onIntentChange={markDirty} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
     {tab === "supplemental-audio" ? <NativeSupplementalAudioEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={previewAsset} onIncompleteChange={setSupplementalAudioIncomplete} onIntentChange={markDirty} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
     </StudioTabWorkspace>
-    <StudioSaveBar dirty={dirty} saving={state.saving} message={state.message} ready={readyToSave} issues={readinessIssues} disabled={!dirty || state.saving || !publicDraft.metadata.title.trim() || readableTextIncomplete || videoIncomplete || supplementalAudioIncomplete} reason={!dirty ? "No unsaved changes" : readableTextIncomplete ? "Upload a readable-text image before saving" : videoIncomplete ? "Complete the Video setup before saving" : supplementalAudioIncomplete ? "Complete the Supplemental MP3 setup before saving" : "Add an activity title before saving"} onSave={save} />
+    <StudioSaveBar hidden={Boolean(compositeBinding)} dirty={dirty} saving={state.saving} message={state.message} ready={readyToSave} issues={readinessIssues} disabled={!dirty || state.saving || !publicDraft.metadata.title.trim() || readableTextIncomplete || videoIncomplete || supplementalAudioIncomplete} reason={!dirty ? "No unsaved changes" : readableTextIncomplete ? "Upload a readable-text image before saving" : videoIncomplete ? "Complete the Video setup before saving" : supplementalAudioIncomplete ? "Complete the Supplemental MP3 setup before saving" : "Add an activity title before saving"} onSave={save} />
   </section>;
 }
 

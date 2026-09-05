@@ -68,7 +68,8 @@ export function StudioReadiness({ ready, issues = [], readyMessage = "Ready to s
   </details>;
 }
 
-export function StudioSaveBar({ dirty, saving, message, ready, issues = [], disabled, reason = "", onSave }) {
+export function StudioSaveBar({ hidden = false, dirty, saving, message, ready, issues = [], disabled, reason = "", onSave }) {
+  if (hidden) return null;
   return <footer className="studio-save-bar" data-studio-save-cluster="true">
     <StudioReadiness ready={ready} issues={issues} />
     <div className="studio-save-actions">

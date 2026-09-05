@@ -1,3 +1,4 @@
+import { compositeEditorContent, compositeEditorTabs, useCompositeEditorBinding } from "./nativeCompositeEditorBinding.js";
 import { useEffect, useMemo, useState } from "react";
 import { BookOpenText, Eye, FileText, Film, KeyRound, LayoutPanelTop, Music } from "lucide-react";
 
@@ -23,7 +24,7 @@ import {
   setNativeSingleChoiceHotspotArea,
   setNativeSingleChoiceCorrectAnswers,
 } from "../../../data/native-activities/nativeSingleChoiceAuthoring.js";
-import { getBuilderContent } from "./builderContentApi.js";
+import { getBuilderContent as getRemoteBuilderContent } from "./builderContentApi.js";
 import { saveNativeActivityPair, uploadNativeActivityAsset } from "./builderNativeActivityApi.js";
 import { projectNativeActivityPublicForAuthoring } from "./nativeActivityAuthoringProjection.js";
 import { NativeReadableTextEditor } from "./NativeReadableTextEditor.jsx";
@@ -46,7 +47,8 @@ const tabs = [
 const previewRoot = (bookSlug, componentSlug, activityId, assetId) => `/builder/api/native-activities/books/${encodeURIComponent(bookSlug)}/components/${encodeURIComponent(componentSlug)}/activities/${encodeURIComponent(activityId)}/assets/${encodeURIComponent(assetId)}/preview`;
 const bindingValue = (questionId, optionId) => `${questionId}:${optionId}`;
 
-export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {}, onSaved = () => {} }) {
+export function NativeSingleChoiceEditor({ compositeBinding = null, bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {}, onSaved = () => {} }) {
+  const getBuilderContent = (request, options) => compositeEditorContent(compositeBinding, getRemoteBuilderContent, request, options);
   const [state, setState] = useState({ kind: "loading", publicRevision: 0, teacherRevision: 0, message: "" });
   const [publicDraft, setPublicDraft] = useState(null);
   const [teacherDraft, setTeacherDraft] = useState(null);
@@ -63,6 +65,7 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
   const [zoom, setZoom] = useState(1);
   const [dirty, setDirty] = useState(false);
 
+  useCompositeEditorBinding(compositeBinding, publicDraft, teacherDraft, dirty, uploading);
   useEffect(() => {
     const controller = new AbortController();
     setMode("content"); setDirty(false); onDirtyChange(false);
@@ -244,6 +247,7 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
   const updateHotspotGeometry = (area) => updateHotspot((hotspot) => setNativeSingleChoiceHotspotArea(hotspot, area));
 
   const save = async () => {
+    if (compositeBinding) return;
     if (!readiness.ready) { setState((current) => ({ ...current, message: "Resolve all authoring issues before saving." })); return; }
     setState((current) => ({ ...current, saving: true, message: "Saving…" }));
     try {
@@ -262,13 +266,13 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
   const readyToSave = readiness.ready && !readableTextIncomplete && !videoIncomplete && !supplementalAudioIncomplete;
   return <section className="native-activity-foundation native-single-choice-editor studio-editor">
     <header className="studio-editor-header"><div><span className="studio-eyebrow">{placementLabel} · Multiple Choice</span><h2>{publicDraft.metadata.title}</h2><p>{readiness.ready ? "Content complete" : `${readiness.issues.length} item${readiness.issues.length === 1 ? "" : "s"} need attention`}</p></div><details className="builder-technical-details"><summary>Technical details</summary><dl><div><dt>Stable ID</dt><dd><code>{activityId}</code></dd></div><div><dt>Revisions</dt><dd>Public {state.publicRevision} · Teacher {state.teacherRevision}</dd></div></dl></details></header>
-    <StudioTabWorkspace id="native-single-choice-tabs" value={mode} onChange={setMode} tabs={tabs} label="Multiple Choice authoring modes">
+    <StudioTabWorkspace id="native-single-choice-tabs" value={mode} onChange={setMode} tabs={compositeEditorTabs(compositeBinding, tabs)} label="Multiple Choice authoring modes">
 
     {["content", "visual", "answer-key", "preview"].includes(mode) ? <div className="native-single-choice-back" data-authoring-mode={mode}>
       {mode === "content" ? <section className="studio-content-panel"><header><div><span className="studio-section-icon"><FileText aria-hidden="true" /></span><div><h3>Activity content</h3><p>Edit the learner-facing title and questions.</p></div></div></header><div className="studio-form-grid"><StudioField label="Activity title"><input maxLength={300} value={publicDraft.metadata.title} onChange={(event) => mutatePublic((next) => { next.metadata.title = event.target.value; })} /></StudioField></div></section> : null}
       <NativeSingleChoiceQuestionAuthoring {...{ mode, questions, selected, answer, selectedQuestionId, setSelectedQuestionId, addQuestion, deleteQuestion, moveQuestion, addOption, deleteOption, moveOption, toggleAnswer, mutatePublic, generateBulk }} answeredQuestionIds={new Set(teacherDraft.parts[0].solution.correctAnswers.map((entry) => entry.questionId))} />
 
-      {mode === "visual" ? <NativeSingleChoiceVisualAuthoring {...{ presentation, panels, selectedPanel, selectedPanelId, setSelectedPanelId, selectedHotspot, selectedHotspotId, setSelectedHotspotId, questions, zoom, setZoom, uploading, hotspotBinding, setHotspotBinding, mappedBindings, nextHotspotBinding, assetUrlForSlot, enableVisual, disableVisual, importHotspots, addPanel, movePanel, deletePanel, uploadBackground, createHotspot, updateHotspot, updateHotspotArea, updateHotspotGeometry, deleteHotspot }} /> : null}
+      {mode === "visual" ? <NativeSingleChoiceVisualAuthoring maximumPanels={compositeBinding ? 1 : undefined} sharedCanvas={compositeBinding?.sharedCanvas} {...{ presentation, panels, selectedPanel, selectedPanelId, setSelectedPanelId, selectedHotspot, selectedHotspotId, setSelectedHotspotId, questions, zoom, setZoom, uploading, hotspotBinding, setHotspotBinding, mappedBindings, nextHotspotBinding, assetUrlForSlot, enableVisual, disableVisual, importHotspots, addPanel, movePanel, deletePanel, uploadBackground, createHotspot, updateHotspot, updateHotspotArea, updateHotspotGeometry, deleteHotspot }} /> : null}
       {mode === "preview" ?
       <section className="native-or-preview"><div className="native-or-preview-toggle"><button type="button" aria-pressed={preview === "student"} onClick={() => setPreview("student")}>Student Preview</button><button type="button" aria-pressed={preview === "teacher"} onClick={() => setPreview("teacher")}>Teacher Preview</button></div><h3>{publicDraft.metadata.title}</h3><NativeReadableTextPresentation document={publicDraft} assetUrl={assetUrl}>{(presentation, audioHotspotPresentation) => preview === "student" ? <NativeSingleChoiceStudentSurface document={publicDraft} assetUrl={assetUrl} presentation={presentation} audioHotspotPresentation={audioHotspotPresentation} /> : <NativeSingleChoiceTeacherSurface publicDocument={publicDraft} teacherDocument={teacherDraft} assetUrl={assetUrl} presentation={presentation} audioHotspotPresentation={audioHotspotPresentation} />}</NativeReadableTextPresentation></section>
       : null}
@@ -278,6 +282,6 @@ export function NativeSingleChoiceEditor({ bookSlug, componentSlug, activityId, 
     {mode === "video" ? <NativeVideoEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} onIncompleteChange={setVideoIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
     {mode === "supplemental-audio" ? <NativeSupplementalAudioEditor bookSlug={bookSlug} componentSlug={componentSlug} activityId={activityId} publicDraft={publicDraft} mutatePublic={mutatePublic} previewUrl={assetUrl} onIncompleteChange={setSupplementalAudioIncomplete} onIntentChange={changed} onStatusChange={(message) => setState((current) => ({ ...current, message }))} /> : null}
     </StudioTabWorkspace>
-    <StudioSaveBar dirty={dirty} saving={state.saving} message={state.message} ready={readyToSave} issues={readinessIssues} disabled={!dirty || state.saving || !readyToSave} reason={!dirty ? "No unsaved changes" : !readyToSave ? "Resolve all authoring issues before saving" : ""} onSave={save} />
+    <StudioSaveBar hidden={Boolean(compositeBinding)} dirty={dirty} saving={state.saving} message={state.message} ready={readyToSave} issues={readinessIssues} disabled={!dirty || state.saving || !readyToSave} reason={!dirty ? "No unsaved changes" : !readyToSave ? "Resolve all authoring issues before saving" : ""} onSave={save} />
   </section>;
 }

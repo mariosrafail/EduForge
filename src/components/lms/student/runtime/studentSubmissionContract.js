@@ -8,6 +8,10 @@ export function buildLegacyFinalSubmission({ assignmentId, activityId, result } 
 
 export function buildNativeFinalSubmission({ assignmentId, target, responses = {} } = {}) {
   const interaction = target?.entry?.document?.parts?.[0]?.interaction || {};
+  if (target?.nativeKind === "multi-part") return {
+    assignmentId,
+    response: { schemaVersion: "native-multi-response.v1", sections: (interaction.sections || []).filter((section) => section.kind !== "image").map((section) => ({ id: section.id, kind: section.kind, response: buildNativeFinalSubmission({ target: { nativeKind: section.kind, capability: { responseSchemaVersion: "native-response.v1" }, entry: { document: { parts: [{ interaction: section.interaction }] } } }, responses: responses[section.id] || {} }).response })) },
+  };
   const questions = target?.nativeKind === "drag-drop"
     ? (interaction.panels || []).flatMap((panel) => panel.dropTargets || [])
     : interaction.questions || interaction.items || [];
@@ -24,4 +28,9 @@ export function buildNativeFinalSubmission({ assignmentId, target, responses = {
 
 export function isDuplicateFinalSubmission(error) {
   return error?.status === 409 && /already been submitted/i.test(error?.message || error?.payload?.error || "");
+}
+
+export function restoreNativeSubmissionResponses(payload) {
+  if (payload?.schemaVersion === "native-multi-response.v1") return Object.fromEntries((payload.sections || []).map((section) => [section.id, restoreNativeSubmissionResponses(section.response)]));
+  return Object.fromEntries((payload?.items || []).map((item) => [item.id, item.value]));
 }
