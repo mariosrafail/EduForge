@@ -164,7 +164,8 @@ export async function exerciseDragDropExtensions(page, { dragDropId, savedDragDr
 
   const textPreview = page.locator(".studio-preview-panel .native-drag-drop");
   const textBankWord = textPreview.locator(`[data-drag-drop-word-id="${reusableWordId}"]`);
-  assert.match(await textBankWord.textContent(), /B\. repeated/);
+  assert.equal(await textBankWord.locator(".native-drag-drop-short-label").textContent(), "B");
+  assert.equal(await textBankWord.locator("span").last().textContent(), "repeated");
   await page.waitForFunction((surface) => surface.querySelector(".native-drag-drop-bank-items")?.dataset.fitStatus, await textPreview.elementHandle());
   let latestTextBankMeasurement = null;
   try {
@@ -205,7 +206,7 @@ export async function exerciseDragDropExtensions(page, { dragDropId, savedDragDr
   assert.match(await firstTextTarget.getAttribute("aria-label"), /0 of 2 places used/);
   await firstTextTarget.click();
   assert.equal((await firstTextTarget.textContent()).trim(), "B", "text mode places only the stable short label");
-  assert.equal(await textBankWord.count(), 0, "text mode always consumes a placed phrase");
+  assert.equal(await textBankWord.count(), 0, "a non-reusable text phrase is consumed after placement");
   await textPreview.locator(`[data-drag-drop-word-id="${distractorWordId}"]`).click();
   await firstTextTarget.focus();
   await firstTextTarget.press("Enter");

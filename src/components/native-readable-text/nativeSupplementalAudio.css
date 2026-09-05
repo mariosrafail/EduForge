@@ -37,9 +37,7 @@
 .native-supplemental-audio-anchor[data-stacked] { bottom: 126px; }
 .native-readable-text-view.native-supplemental-audio-reference { position: absolute; inset: 0; z-index: 119; height: 100%; max-height: none; }
 .native-supplemental-audio-reference .native-readable-text-scroll { padding-bottom: 126px; }
-.native-supplemental-audio-reference .native-readable-text-scroll-control { bottom: 130px; }
 .native-readable-text-presentation[data-native-kind="listening"] .native-supplemental-audio-reference .native-readable-text-scroll { padding-bottom: 234px; }
-.native-readable-text-presentation[data-native-kind="listening"] .native-supplemental-audio-reference .native-readable-text-scroll-control { bottom: 238px; }
 .native-supplemental-audio-error { position: absolute; right: 0; bottom: 100%; width: 266px; margin: 0 0 4px; padding: 5px 8px; color: #fff; background: #991b1b; border-radius: 6px; font-size: 12px; }
 .native-readable-text-presentation[data-supplemental-audio] .native-supplementary-navigation { bottom: 126px; }
 .native-readable-text-presentation[data-supplemental-audio][data-native-kind="listening"] .native-supplementary-navigation { bottom: 234px; }

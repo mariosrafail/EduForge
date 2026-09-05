@@ -3,6 +3,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { createServer } from "vite";
 import react from "@vitejs/plugin-react";
 import { chromium, expect } from "@playwright/test";
+import { runNativePresentationRegressions } from "./native-presentation-regressions.mjs";
 
 const output = process.env.NATIVE_REGRESSION_OUTPUT || "test-results/native-runtime-regressions";
 await mkdir(output, { recursive: true });
@@ -78,5 +79,6 @@ try {
     entry.before.textRects.forEach((rect, index) => assert.ok(Math.abs(rect.height - entry.during.textRects[index].height) < 1 && Math.abs(rect.width - entry.during.textRects[index].width) < 1, JSON.stringify(entry)));
   }
   for (const entry of evidence.filter((item) => item.kind === "listening")) assert.ok(entry.visible && entry.top > 0, JSON.stringify(entry));
+  await runNativePresentationRegressions(browser, output);
   console.log("Native runtime browser regressions passed.");
 } finally { await browser.close(); await server.close(); }

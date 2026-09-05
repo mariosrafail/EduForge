@@ -4,6 +4,7 @@ import { LegacyListeningPlayer } from "../listening-player/LegacyListeningPlayer
 import { formatNativeListeningTime } from "../native-listening/nativeListeningRuntime.js";
 import { nativeListeningPlayerAssets } from "../native-listening/nativeListeningPlayerAssets.js";
 import { pauseSiblingNativeMedia } from "./nativeMediaArbitration.js";
+import { NativeScrollControlsHost } from "./NativeScrollControlsHost.jsx";
 import { NativeVerticalScrollViewport } from "./NativeVerticalScrollViewport.jsx";
 import "./nativeSupplementalAudio.css";
 
@@ -76,11 +77,11 @@ export function NativeSupplementalAudioPresentation({ document, assetUrl, presen
   } : null;
 
   return <>
-    {referenceOpen && supplementalAudio.reference && referenceAsset ? <section className="native-readable-text-view native-supplemental-audio-reference" aria-label="Supplemental audio Reference" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
+    {referenceOpen && supplementalAudio.reference && referenceAsset ? <NativeScrollControlsHost as="section" inherit={false} className="native-readable-text-view native-supplemental-audio-reference" aria-label="Supplemental audio Reference" onPointerDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
       <NativeVerticalScrollViewport id={`${document.activityId}-supplemental-audio-reference-scroll`} className="native-readable-text-scroll" ariaLabel="Supplemental audio Reference vertical scroll" resetKey={`${document.activityId}:${referenceAsset.assetId}`}>
         <img src={assetUrl(referenceAsset.assetId)} alt={supplementalAudio.reference.altText} width={supplementalAudio.reference.sourceWidth} height={supplementalAudio.reference.sourceHeight} />
       </NativeVerticalScrollViewport>
-    </section> : null}
+    </NativeScrollControlsHost> : null}
     {presentationView !== "video" ? <div className="native-supplemental-audio-anchor" data-stacked={document.kind === "listening" || undefined} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
       <LegacyListeningPlayer assets={nativeListeningPlayerAssets} currentMs={currentMs} durationMs={supplementalAudio.durationMs} playing={playing} muted={muted} disabled={error} formatTime={formatNativeListeningTime} onPlay={play} onPause={pause} onStop={stop} onSeek={seek} onToggleMute={toggleMute} ariaLabel="Supplemental audio player" playLabel="Play supplemental audio" pauseLabel="Pause supplemental audio" stopLabel="Stop supplemental audio" extraAction={referenceAction} />
       {error ? <p className="native-supplemental-audio-error" role="alert">Supplemental audio could not be played.</p> : null}

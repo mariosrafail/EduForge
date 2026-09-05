@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { NativeAudioTextFocusContent } from "./NativeAudioTextHotspots.jsx";
+import { NativeScrollControlsHost } from "./NativeScrollControlsHost.jsx";
 import { NativeVerticalScrollViewport } from "./NativeVerticalScrollViewport.jsx";
 import { NativeVideoPlayer } from "../native-video/NativeVideoPlayer.jsx";
 import { NativeVideoWorksheetAction, openNativeVideoWorksheet } from "../native-video/NativeVideoWorksheetAction.jsx";
@@ -167,7 +168,7 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
   }, [document.activityId, externalWorksheetControl, openWorksheet, presentation?.onWorksheetActionChange, worksheetReference?.assetId]);
   const internalNavigation = !presentation && (available || videoAvailable);
   const fallbackWorksheetControl = Boolean(worksheetReference) && !externalWorksheetControl;
-  return <div className="native-readable-text-presentation" data-native-media-scope="" data-native-kind={document.kind} data-readable-text-available={available || undefined} data-video-available={videoAvailable || undefined} data-supplemental-audio={Boolean(document.supplementalAudio) || undefined} data-presentation-view={effectiveView} data-audio-focus={focusOpen || undefined} data-internal-navigation={internalNavigation || undefined}>
+  return <NativeScrollControlsHost enabled={available || document.kind === "oldschool-listening" || document.parts?.[0]?.interaction?.layoutMode === "text"} className="native-readable-text-presentation" data-native-media-scope="" data-native-kind={document.kind} data-readable-text-available={available || undefined} data-video-available={videoAvailable || undefined} data-supplemental-audio={Boolean(document.supplementalAudio) || undefined} data-presentation-view={effectiveView} data-audio-focus={focusOpen || undefined} data-internal-navigation={internalNavigation || undefined}>
     <div className="native-audio-text-focus-slot" hidden={!focusOpen}>{focusOpen ? <NativeAudioTextFocusContent document={document} hotspot={activeHotspot} assetUrl={assetUrl} autoPlay /> : null}</div>
     <div ref={activityViewRef} className={`native-readable-text-activity-view${focusOpen ? " is-audio-focus" : ""}`} hidden={effectiveView === "text" || effectiveView === "video"}>{activity}</div>
     {effectiveView === "text" && reference ? <section className="native-readable-text-view" aria-label="Readable text">
@@ -183,5 +184,5 @@ export function NativeReadableTextPresentation({ document, assetUrl, presentatio
       {videoAvailable ? <button type="button" aria-pressed={effectiveView === "video"} onClick={() => setView((current) => nextNativeSupplementaryView(current, "toggle-video", { readableText: available, video: videoAvailable }))}>{effectiveView === "video" ? "Questions" : "Video"}</button> : null}
       {fallbackWorksheetControl ? <NativeVideoWorksheetAction video={document.video} worksheetSrc={assetUrl(worksheetReference.assetId)} onError={setWorksheetMessage} /> : null}
     </nav> : null}
-  </div>;
+  </NativeScrollControlsHost>;
 }

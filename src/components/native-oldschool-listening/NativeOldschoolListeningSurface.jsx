@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { LegacyListeningPlayer } from "../listening-player/LegacyListeningPlayer.jsx";
+import { NativeScrollControlsHost } from "../native-readable-text/NativeScrollControlsHost.jsx";
 import { NativeVerticalScrollViewport } from "../native-readable-text/NativeVerticalScrollViewport.jsx";
 import { NativeAudioTextHotspotButtons } from "../native-readable-text/NativeAudioTextHotspots.jsx";
 import { formatNativeListeningTime } from "../native-listening/nativeListeningRuntime.js";
@@ -130,7 +131,7 @@ export function NativeOldschoolListeningSurface({ publicDocument, assetUrl = () 
   const seek = (nextMs) => { if (!audioRef.current || !Number.isFinite(nextMs)) return; audioRef.current.currentTime = nextMs / 1_000; setCurrentMs(nextMs); setSeekVersion((value) => value + 1); setView("page"); setFocusedCueIds([]); };
   const toggleMute = () => { const next = !muted; setMuted(next); if (audioRef.current) audioRef.current.muted = next; };
 
-  return <div className="native-oldschool-listening" data-panel={view === "questions" ? 1 : 2} data-view={view}>
+  return <NativeScrollControlsHost className="native-oldschool-listening" data-panel={view === "questions" ? 1 : 2} data-view={view}>
     <div className="native-oldschool-listening-local-stage">
       <div className="native-oldschool-listening-activity-stage" style={{ aspectRatio: `${interaction.panels[0].sourceWidth}/${interaction.panels[0].sourceHeight}` }}>
         {view === "questions" ? renderQuestions({ audioHotspotPresentation: hotspotPresentation, presentation: questionPresentation }) : null}
@@ -142,5 +143,5 @@ export function NativeOldschoolListeningSurface({ publicDocument, assetUrl = () 
     {!audioUrl ? <p className="native-oldschool-listening-error" role="alert">Listening audio is unavailable.</p> : null}
     {audioError ? <p className="native-oldschool-listening-error" role="alert">Listening audio could not be played.</p> : null}
     <audio ref={audioRef} hidden preload="metadata" src={audioUrl} onPlay={(event) => { pauseSiblingNativeMedia(event.currentTarget); setPlaying(true); }} onPause={() => setPlaying(false)} onTimeUpdate={() => { if (audioRef.current) setCurrentMs(Math.round(audioRef.current.currentTime * 1_000)); }} onSeeked={() => { if (audioRef.current) { setCurrentMs(Math.round(audioRef.current.currentTime * 1_000)); setSeekVersion((value) => value + 1); } }} onEnded={reset} onError={() => setAudioError(true)} />
-  </div>;
+  </NativeScrollControlsHost>;
 }

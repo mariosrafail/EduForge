@@ -1,4 +1,9 @@
 .native-readable-text-presentation { position: relative; width: 100%; height: 100%; min-height: 0; }
+.native-scroll-controls-host { position: relative; box-sizing: border-box; padding-right: 36px; }
+.native-scroll-controls-rail { position: absolute; top: 0; right: 0; bottom: 0; width: 36px; pointer-events: none; z-index: 100; }
+.native-scroll-controls-rail > .native-readable-text-scroll-control { right: 8px; bottom: 8px; height: 104px; pointer-events: auto; }
+.native-scroll-controls-host > .native-supplementary-navigation { right: 44px; }
+.native-scroll-controls-host.native-readable-text-view { padding-right: 36px; }
 .native-readable-text-presentation[data-audio-focus] { display: grid; width: auto; max-width: 100%; margin-inline: auto; aspect-ratio: 1024 / 582; grid-template-rows: minmax(0, 1fr) minmax(0, 1fr); gap: 0; overflow: hidden; }
 .native-readable-text-presentation[data-audio-focus]::after { content: ""; position: absolute; z-index: 80; top: 50%; left: 0; width: 100%; height: 7px; transform: translateY(-3.5px); background: #000; pointer-events: none; }
 .native-readable-text-activity-view { width: 100%; height: 100%; }
@@ -50,3 +55,6 @@
 .native-supplementary-navigation button { min-height: 42px; padding: 8px 15px; color: #fff; background: #183b63; border: 2px solid rgb(255 255 255 / 76%); border-radius: 999px; box-shadow: 0 3px 12px rgb(0 0 0 / 28%); font-weight: 800; cursor: pointer; }
 .native-supplementary-navigation button[aria-pressed="true"] { color: #13233a; background: #ffdc42; }
 .native-supplementary-navigation button:focus-visible { outline: 3px solid #ffdc42; outline-offset: 3px; }
+
+.native-scroll-controls-host > .native-supplemental-audio-anchor,
+.native-scroll-controls-host[data-supplemental-audio] > .native-supplementary-navigation { right: 44px; }
