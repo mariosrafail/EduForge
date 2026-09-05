@@ -55,7 +55,8 @@ export async function runNativeMultiPartRegressions(browser, baseUrl, output) {
     const fullscreenSurface = await page.locator(".native-image-surface").boundingBox(); const fullscreenAction = await toggle.boundingBox(); assert.ok(fullscreenAction.x > fullscreenSurface.x + fullscreenSurface.width);
     await toggle.click(); await expect(page.getByRole("img", { name: "Protected tall answer" })).toBeVisible();
     await page.getByRole("scrollbar", { name: "Scroll Sample answer" }).press("End");
-    assert.ok(Number(await page.getByRole("scrollbar", { name: "Scroll Sample answer" }).getAttribute("aria-valuenow")) > 0);
+    await expect.poll(async () => Number(await page.getByRole("scrollbar", { name: "Scroll Sample answer" }).getAttribute("aria-valuenow"))).toBeGreaterThan(0);
+    await expect.poll(() => page.locator(".native-image-sample-answer-viewport").evaluate((element) => Math.abs(element.scrollTop - (element.scrollHeight - element.clientHeight)))).toBeLessThanOrEqual(1);
     await page.keyboard.press("Escape"); await expect(toggle).toBeFocused();
     await page.evaluate(() => document.exitFullscreen());
     await page.setViewportSize({ width: 600, height: 850 });
