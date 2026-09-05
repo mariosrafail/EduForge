@@ -62,3 +62,4 @@ button.native-drag-drop-target-text { cursor: pointer; }
 .native-drag-drop[data-layout-mode="text"] .native-drag-drop-workspace { scrollbar-width: none; touch-action: pan-y; }
 .native-drag-drop[data-layout-mode="text"] .native-drag-drop-workspace::-webkit-scrollbar { width: 0; height: 0; }
 .native-drag-drop[data-layout-mode="text"] .native-drag-drop-stage { touch-action: pan-y; }
+.native-drag-drop[data-layout-mode="text"] .native-drag-drop-target-items { overscroll-behavior: auto; }

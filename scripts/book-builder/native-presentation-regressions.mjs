@@ -123,6 +123,16 @@ export async function runNativePresentationRegressions(browser, output) {
         assert.ok(controlBox.x > stageBox.x + stageBox.width - 36 * scale && controlBox.y > stageBox.y + stageBox.height - 120 * scale);
         assert.ok(controlBox.x + controlBox.width < stageBox.x + stageBox.width && controlBox.y + controlBox.height < stageBox.y + stageBox.height);
         const hit = await scrollbar.evaluate((node) => { const r = node.getBoundingClientRect(); return node.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)); }); assert.ok(hit);
+        const thumb = await scrollbar.locator("span").boundingBox();
+        await page.mouse.move(thumb.x + thumb.width / 2, thumb.y + thumb.height / 2); await page.mouse.down();
+        await page.mouse.move(thumb.x + thumb.width / 2, controlBox.y + controlBox.height, { steps: 4 }); await page.mouse.up();
+        await expect.poll(() => pane.evaluate((node) => node.scrollTop)).toBeGreaterThan(1000);
+        await scrollbar.focus(); await page.keyboard.press("Home");
+        await expect.poll(() => pane.evaluate((node) => node.scrollTop)).toBe(0);
+        await pane.hover();
+        await page.mouse.wheel(0, 400);
+        await expect.poll(() => pane.evaluate((node) => node.scrollTop)).toBeGreaterThan(0);
+        await scrollbar.focus(); await page.keyboard.press("Home");
         measurements.push({ kind: "bank-scroll", viewport, scale, initial, partial, status });
       }
     }
@@ -225,10 +235,22 @@ export async function runNativePresentationRegressions(browser, output) {
     await expect(page.locator(".native-audio-text-focus")).toHaveCount(0);
     await page.getByRole("button", { name: "Choose: First", exact: true }).click();
     await expect(page.getByRole("button", { name: "Choose: First", exact: true })).toHaveAttribute("data-answer-state", "correct");
+    await page.evaluate(() => nativePresentationFixture.command("toggle-text"));
+    await page.getByRole("scrollbar", { name: "Readable text vertical scroll", exact: true }).focus(); await page.keyboard.press("End");
+    await expect.poll(() => page.locator(".native-readable-text-scroll").evaluate((node) => node.scrollTop)).toBeGreaterThan(1000);
+    await page.evaluate(() => nativePresentationFixture.command("toggle-text"));
+    await expect(page.getByRole("button", { name: "Choose: First", exact: true })).toBeVisible();
     const diagnostics = await page.evaluate(() => presentationDiagnostics);
     measurements.push({ kind: "diagnostics", ...diagnostics });
     assert.deepEqual(errors, []);
     await page.screenshot({ path: `${output}/native-presentation.png` });
+    await page.setContent(`<iframe title="Native presentation iframe" style="border:0;width:1100px;height:650px" src="${server.resolvedUrls.local[0]}tests/fixtures/native-runtime-regressions/presentation.html"></iframe>`);
+    const frame = page.frameLocator("iframe");
+    const frameScroll = frame.getByRole("scrollbar", { name: "Text Drag & Drop vertical scroll" });
+    await frameScroll.focus(); await frameScroll.press("End");
+    await expect.poll(() => frame.locator(".native-drag-drop-workspace").evaluate((node) => node.scrollTop)).toBeGreaterThan(1000);
+    assert.equal(await frameScroll.evaluate((node) => { const r = node.getBoundingClientRect(); return node.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)); }), true);
+    assert.deepEqual(errors, []);
     console.log("Native presentation/editor/reusable browser regressions passed.");
   } catch (error) {
     await page.screenshot({ path: `${output}/presentation-failure.png` });
