@@ -1,3 +1,4 @@
+import { nativeTeacherAnswerImages, nativeTeacherAnswerAssetDescriptors, usesNativeComposition } from "../../../src/data/native-activities/nativeImageSampleAnswer.js";
 import { createEmptyNativeActivityIndex, NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION, NATIVE_ACTIVITY_SCHEMA_VERSION } from "../../../src/data/native-activities/nativeActivityPublic.js";
 import { createEmptyUltimateB2ActivityLifecycle } from "../../../src/data/ultimate-b2/activityLifecycle.js";
 import { COMPONENT_PUBLICATION_ASSET_ROLES } from "../../../src/data/ultimate-b2/componentPublicationAssetRoles.js";
@@ -162,8 +163,8 @@ function publicationPages(sources, componentSlug) {
   return { units, pages, assetSources: [...assetSources.values()].sort((left, right) => left.descriptor.sha256.localeCompare(right.descriptor.sha256)) };
 }
 
-function compatibility(componentSlug, nativeKinds) {
-  return builderDocumentSha256({ compilerId: componentIdentity(componentSlug).compilerId, releaseSchemaVersion: ULTIMATE_B2_MANAGED_COMPONENT_RELEASE_SCHEMA_VERSION, hotspotSchemaVersion: ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION, nativeActivitySchemaVersion: NATIVE_ACTIVITY_SCHEMA_VERSION, nativeIndexSchemaVersion: NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION, nativeKinds: [...nativeKinds].sort(), releaseAssetDescriptorSchemaVersion: "1.0" });
+function compatibility(componentSlug, nativeKinds, composition = false) {
+  return builderDocumentSha256({ compilerId: componentIdentity(componentSlug).compilerId, releaseSchemaVersion: ULTIMATE_B2_MANAGED_COMPONENT_RELEASE_SCHEMA_VERSION, hotspotSchemaVersion: ULTIMATE_B2_HOTSPOT_SCHEMA_VERSION, nativeActivitySchemaVersion: NATIVE_ACTIVITY_SCHEMA_VERSION, nativeIndexSchemaVersion: NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION, nativeKinds: [...nativeKinds].sort(), ...(composition ? { nativeComposition: "multi-part.v1" } : {}), releaseAssetDescriptorSchemaVersion: "1.0" });
 }
 
 export function compileUltimateB2ManagedComponentRelease(sources, componentSlug) {
@@ -180,7 +181,7 @@ export function compileUltimateB2ManagedComponentRelease(sources, componentSlug)
   const selectedNative = collectNativeEntriesForPublication(sources, hotspots);
   const nativeAssetSources = validateNativePublicationAssetRows(selectedNative, sources.native?.assetRows || []);
   const nativeKinds = new Set(selectedNative.map(([, entry]) => entry.publicDocument.kind));
-  const compatibilitySha256 = compatibility(componentSlug, nativeKinds);
+  const compatibilitySha256 = compatibility(componentSlug, nativeKinds, selectedNative.some(([, entry]) => usesNativeComposition(entry.publicDocument, entry.teacherDocument)));
   const publicNative = Object.fromEntries(selectedNative.map(([activityId, entry]) => [activityId, { kind: entry.publicDocument.kind, document: entry.publicDocument }]));
   const teacherNative = Object.fromEntries(selectedNative.map(([activityId, entry]) => [activityId, { kind: entry.teacherDocument.kind, document: entry.teacherDocument }]));
   const pageSourceSha256 = builderDocumentSha256({ units: normalizedPages.units, pages: normalizedPages.pages });
@@ -193,7 +194,7 @@ export function compileUltimateB2ManagedComponentRelease(sources, componentSlug)
     nativeActivities: Object.fromEntries(selectedNative.map(([activityId, entry]) => [activityId, { kind: entry.publicDocument.kind, public: { revision: entry.source.public.revision, sha256: entry.source.public.sha256 }, teacher: { revision: entry.source.teacher.revision, sha256: entry.source.teacher.sha256 } }])),
   }, componentSlug);
   const assets = [...normalizedPages.assetSources.map((sourceEntry) => sourceEntry.descriptor), ...nativeAssetSources.map((sourceEntry) => sourceEntry.descriptor)].sort((left, right) => `${left.sha256}.${left.role}`.localeCompare(`${right.sha256}.${right.role}`));
-  const publicProjection = normalizeManagedPublicProjection({ bookSlug: identity.bookSlug, componentSlug, schemaVersion: identity.releaseSchemaVersion, compatibility: compatibilitySha256, units: normalizedPages.units, pages: normalizedPages.pages, hotspots, nativeActivities: publicNative, activityOrder: projectComponentActivityOrder(componentActivityOrderEntries([], { activities: Object.values(sources.native?.activities || {}).map((entry) => entry.index) }, createEmptyUltimateB2ActivityLifecycle()), new Set(Object.keys(publicNative))), assets }, componentSlug, compatibilitySha256);
+  const publicProjection = normalizeManagedPublicProjection({ bookSlug: identity.bookSlug, componentSlug, schemaVersion: identity.releaseSchemaVersion, compatibility: compatibilitySha256, units: normalizedPages.units, pages: normalizedPages.pages, hotspots, nativeActivities: publicNative, activityOrder: projectComponentActivityOrder(componentActivityOrderEntries([], { activities: Object.values(sources.native?.activities || {}).map((entry) => entry.index) }, createEmptyUltimateB2ActivityLifecycle()), new Set(Object.keys(publicNative))), assets: assets.filter((asset) => asset.role !== "native_teacher_answer") }, componentSlug, compatibilitySha256);
   const teacherProjection = normalizeManagedTeacherProjection({ schemaVersion: identity.releaseSchemaVersion, bookSlug: identity.bookSlug, componentSlug, nativeActivities: teacherNative }, componentSlug, publicProjection);
   const assetManifest = assets;
   return {
@@ -217,11 +218,11 @@ export function verifyUltimateB2ManagedComponentRelease(release, componentSlug) 
   const identity = componentIdentity(componentSlug);
   if (release.compiler_id !== identity.compilerId || release.release_schema_version !== identity.releaseSchemaVersion) throw new Error("publication_compiler_mismatch");
   const publicProjection = normalizeManagedPublicProjection(release.public_projection, componentSlug);
-  const expectedCompatibility = compatibility(componentSlug, new Set(Object.values(publicProjection.nativeActivities).map((entry) => entry.kind)));
+  const expectedCompatibility = compatibility(componentSlug, new Set(Object.values(publicProjection.nativeActivities).map((entry) => entry.kind)), Object.entries(publicProjection.nativeActivities).some(([id, entry]) => usesNativeComposition(entry.document, release.teacher_projection.nativeActivities?.[id]?.document)));
   if (publicProjection.compatibility !== expectedCompatibility || release.runtime_compatibility_sha256 !== expectedCompatibility) throw new Error("release_integrity_failed");
   const sourceSnapshot = normalizeManagedReleaseSourceSnapshot(release.source_snapshot, componentSlug);
   const teacherProjection = normalizeManagedTeacherProjection(release.teacher_projection, componentSlug, publicProjection);
-  const expectedManifest = [...publicProjection.assets].sort((left, right) => `${left.sha256}.${left.role}`.localeCompare(`${right.sha256}.${right.role}`));
+  const expectedManifest = [...publicProjection.assets, ...[...new Map(Object.values(teacherProjection.nativeActivities).flatMap((entry) => nativeTeacherAnswerAssetDescriptors(entry.document)).map((asset) => [`${asset.sha256}.${asset.extension}.${asset.role}`, asset])).values()]].sort((left, right) => `${left.sha256}.${left.role}`.localeCompare(`${right.sha256}.${right.role}`));
   if (stableBuilderJson(release.asset_manifest) !== stableBuilderJson(expectedManifest)
     || builderDocumentSha256(sourceSnapshot) !== release.source_snapshot_sha256
     || builderDocumentSha256(publicProjection) !== release.public_projection_sha256

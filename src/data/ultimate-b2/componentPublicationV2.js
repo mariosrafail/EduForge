@@ -1,3 +1,4 @@
+import { normalizeNativeMultiPartInteraction, normalizeNativeMultiPartSolution, validateNativeMultiPartTopology } from "../native-activities/nativeMultiPart.js";
 import { normalizeNativeMarkWordsInteraction, normalizeNativeMarkWordsSolution, validateNativeMarkWordsTopology } from "../native-activities/nativeMarkWords.js";
 import repositoryHotspots from "./authoring/studentsBookHotspots.json" with { type: "json" };
 import { normalizeNativeActivityPublic } from "../native-activities/nativeActivityPublic.js";
@@ -33,6 +34,7 @@ export const ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS = Object.fr
 export const ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS = Object.freeze(["complete-sentences", "drag-drop", "image", "listening", "oldschool-listening", "open-response", "single-choice"]);
 
 export const ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS = Object.freeze([...ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS, "mark-the-words"].sort());
+export const ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPOSITION_NATIVE_KINDS = Object.freeze([...ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS, "multi-part"].sort());
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
@@ -52,8 +54,13 @@ function sourceIdentity(value, label, { nullableZeroSha = false } = {}) {
   return { revision: value.revision, sha256: value.sha256 };
 }
 
-function nativeDefinition(kind, allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS) {
+function nativeDefinition(kind, allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPOSITION_NATIVE_KINDS) {
   if (!allowedNativeKinds.includes(kind)) throw new Error("Published native activity kind is unsupported by this release compatibility variant.");
+  if (kind === "multi-part") return {
+    normalizePublic(document, activityId) { return normalizeNativeActivityPublic(document, { expectedActivityId: activityId, expectedKind: kind, normalizeInteraction: normalizeNativeMultiPartInteraction }); },
+    normalizeTeacher(document, activityId) { return normalizeNativeActivityTeacher(document, { expectedActivityId: activityId, expectedKind: kind, normalizeSolution: normalizeNativeMultiPartSolution }); },
+    validate(publicDocument, teacherDocument) { validateNativeActivityDocumentPair(publicDocument, teacherDocument); validateNativeMultiPartTopology(publicDocument, teacherDocument); },
+  };
   if (kind === "mark-the-words") return {
     normalizePublic(document, activityId) { return normalizeNativeActivityPublic(document, { expectedActivityId: activityId, expectedKind: kind, normalizeInteraction: normalizeNativeMarkWordsInteraction }); },
     normalizeTeacher(document, activityId) { return normalizeNativeActivityTeacher(document, { expectedActivityId: activityId, expectedKind: kind, normalizeSolution: normalizeNativeMarkWordsSolution }); },
@@ -107,7 +114,7 @@ function normalizeAsset(value, label) {
 
 const assetIdentity = (asset) => `${asset.sha256}.${asset.extension}.${asset.role}`;
 
-export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeedsById, { allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS, includeUnitExtras = Object.hasOwn(value || {}, "unitExtras"), includePageLifecycle = Object.hasOwn(value || {}, "pageLibrary") } = {}) {
+export function normalizeUltimateB2ReleaseV2SourceSnapshot(value, canonicalSeedsById, { allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPOSITION_NATIVE_KINDS, includeUnitExtras = Object.hasOwn(value || {}, "unitExtras"), includePageLifecycle = Object.hasOwn(value || {}, "pageLibrary") } = {}) {
   exactObject(value, ["schemaVersion", "hotspots", "openResponse", "teacherUi", "nativeIndex", "nativeActivities", ...(includeUnitExtras ? ["unitExtras"] : []), ...(includePageLifecycle ? ["pageLibrary"] : []), ...(Object.hasOwn(value, "activityLifecycle") ? ["activityLifecycle"] : [])], "Release v2 source snapshot");
   if (value.schemaVersion !== ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION) throw new Error("Release v2 source snapshot version is invalid.");
   const legacy = normalizeUltimateB2ReleaseSourceSnapshot({
@@ -169,7 +176,7 @@ function hotspotCatalog(nativeActivities) {
 }
 
 export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSeedsById, {
-  allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS,
+  allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPOSITION_NATIVE_KINDS,
   expectedCompatibility = null,
   includeUnitExtras = Object.hasOwn(value || {}, "unitExtras"),
   includePageLifecycle = Object.hasOwn(value || {}, "activePageIds"),
@@ -226,7 +233,7 @@ export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSee
   return normalized;
 }
 
-export function normalizeUltimateB2TeacherReleaseV2Projection(value, canonicalSeedsById, publicProjection = null, { allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS } = {}) {
+export function normalizeUltimateB2TeacherReleaseV2Projection(value, canonicalSeedsById, publicProjection = null, { allowedNativeKinds = ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPOSITION_NATIVE_KINDS } = {}) {
   exactObject(value, ["schemaVersion", "bookSlug", "componentSlug", "solutions", "ui", "nativeActivities"], "Teacher release v2");
   if (value.schemaVersion !== ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION || value.bookSlug !== "ultimate-b2" || value.componentSlug !== "ultimate-b2-students-book") throw new Error("Teacher release v2 identity is invalid.");
   const legacy = normalizeUltimateB2TeacherReleaseProjection({ schemaVersion: "1.0", bookSlug: value.bookSlug, componentSlug: value.componentSlug, solutions: value.solutions, ui: value.ui }, canonicalSeedsById);

@@ -23,6 +23,7 @@ export function readQuery(event) {
     packageSlug: params.packageSlug || params.package_slug || "",
     bookSlug: params.bookSlug || params.book_slug || "",
     componentSlug: params.componentSlug || params.component_slug || "",
+    sectionId: params.sectionId || "",
     releaseId: params.releaseId || params.release_id || "",
     sha256: params.sha256 || "",
     extension: params.extension || "",

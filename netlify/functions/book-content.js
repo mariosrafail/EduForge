@@ -35,7 +35,7 @@ import {
   getDashboardMetrics, withDashboardMetricsHeaders
 } from "./_book-content/dashboard-metrics.js";
 import { getTeacherGradeAnalytics } from "./_book-content/teacher-grade-analytics.js";
-import { getActiveComponentRelease, getPublishedNativeTeacherDocument, getPublishedReleaseAsset } from "./_book-content/publication-actions.js";
+import { getActiveComponentRelease, getPublishedNativeTeacherAnswer, getPublishedNativeTeacherDocument, getPublishedReleaseAsset } from "./_book-content/publication-actions.js";
 
 export {
   stripStudentAnswerKeys,
@@ -79,6 +79,12 @@ export async function handler(event) {
     }
     const currentUser = auth.currentUser;
 
+    if (["GET", "HEAD"].includes(event.httpMethod) && query.action === "published-native-answer-asset") {
+      if (requestsHiddenPhaseOneComponent(query)) return json(404, { error: "Component not found" });
+      const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
+      const accessError = roleError || await verifyPackageAccess(sql, currentUser, { packageSlug: query.bookSlug });
+      return accessError || getPublishedNativeTeacherAnswer(sql, query, { method: event.httpMethod });
+    }
     if (event.httpMethod === "HEAD" && query.action === "published-release-asset") {
       if (requestsHiddenPhaseOneComponent(query)) return json(404, { error: "Component not found" });
       const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: query.bookSlug });

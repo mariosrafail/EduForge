@@ -101,7 +101,7 @@ test("native draft public and teacher endpoints enforce audience separation", as
     createPublicationV2FixtureSources().native.activities[publicationV2Fixture.singleChoiceId].teacher.payload,
   );
   assert.equal(choiceTeacherEnvelope.document.parts[0].solution.correctAnswers.length, 2);
-  assert.equal((await handler(request(publicationV2Fixture.imageId, "teacher"))).statusCode, 404);
+  assert.equal((await handler(request(publicationV2Fixture.imageId, "teacher"))).statusCode, 200);
 });
 
 test("Oldschool Listening preview returns its public page mapping and keeps model answers Teacher-only", async () => {

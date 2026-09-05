@@ -1,3 +1,4 @@
+import { normalizeNativeImageSampleAnswer } from "./nativeImageSampleAnswer.js";
 import { isNativeChildId } from "./nativeChildIdentity.js";
 import { removeNativeManagedAssetReferenceIfUnused } from "./nativeActivityPublic.js";
 import { normalizeNativePedagogicalText } from "./nativePedagogicalText.js";
@@ -139,15 +140,17 @@ export function removeNativeImage(publicDocument, imageId) {
 
 export function normalizeNativeImageSolution(input) {
   const value = structuredClone(object(input, "Native Image Teacher solution"));
-  exactKeys(value, ["kind"], "Native Image Teacher solution");
+  exactKeys(value, ["kind", ...(Object.hasOwn(value, "sampleAnswer") ? ["sampleAnswer"] : [])], "Native Image Teacher solution");
   if (value.kind !== "image") throw new Error("Native Image Teacher solution kind is invalid.");
-  return { kind: "image" };
+  return { kind: "image", ...(Object.hasOwn(value, "sampleAnswer") ? { sampleAnswer: normalizeNativeImageSampleAnswer(value.sampleAnswer) } : {}) };
 }
 
-export function assessNativeImageReadiness(publicDocument) {
+export function assessNativeImageReadiness(publicDocument, teacherDocument = null) {
   const images = publicDocument.parts[0].interaction.images;
   const issues = [];
   if (!images.length) issues.push("Add at least one image.");
+  const sample = teacherDocument?.parts?.[0]?.solution?.sampleAnswer;
+  if (sample?.enabled && !sample.image) issues.push("Upload a protected Sample answer image or turn Sample answer off.");
   images.forEach((image, index) => { if (!image.decorative && !image.altText.trim()) issues.push(`Image ${index + 1} needs alt text or must be marked decorative.`); });
   return { ready: issues.length === 0, issues };
 }

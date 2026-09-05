@@ -134,10 +134,10 @@ test("LMS rejects forged IDs, duplicate selections, extra fields and client targ
 });
 
 test("publication adds a derived compatibility variant without changing historical kind arrays", () => {
-  const current = ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS.at(-1);
-  assert.equal(current.name, "mark-words-expanded"); assert.equal(current.compatibility, ultimateB2PublicationV2Compatibility());
+  const current = ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS.find((variant) => variant.name === "mark-words-expanded");
+  assert.equal(current.name, "mark-words-expanded"); assert.notEqual(current.compatibility, ultimateB2PublicationV2Compatibility());
   assert.equal(current.compatibility, reconstructUltimateB2PublicationV2Compatibility(current.nativeKinds, { unitExtras: true, pageLifecycle: true }));
-  for (const variant of ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS.slice(0, -1)) assert.equal(variant.nativeKinds.includes("mark-the-words"), false);
+  for (const variant of ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS.slice(0, -2)) assert.equal(variant.nativeKinds.includes("mark-the-words"), false);
 });
 
 test("Students Book publication includes Mark the Words deterministically with a private Teacher projection", () => {

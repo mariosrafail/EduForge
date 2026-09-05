@@ -1,3 +1,5 @@
+import { deliverNativeTeacherAnswer } from "../../../netlify-sites/ultimate-b2-builder/server/_builder-native-answer-delivery.js";
+import { loadComponentReleaseAssetPin } from "../../../netlify-sites/ultimate-b2-builder/server/_builder-publication-store.js";
 import { createBookAssetStorage } from "../../../lib/book-assets/storage.js";
 import { componentPublicationAssetStorageTarget } from "../../../lib/book-assets/publication-asset-storage.js";
 import { verifyImmutableComponentRelease } from "../../../netlify-sites/ultimate-b2-builder/server/_builder-publication-compilers.js";
@@ -83,4 +85,14 @@ export async function getPublishedTeacherSolutionOverride(sql, stableActivityId)
   if (!seed) return null;
   const teacher = normalizeUltimateB2HostedOpenResponseTeacherImport(raw, stableActivityId, seed.questions.map((question) => question.id));
   return hostedTeacherImportAsSolution(teacher, stableActivityId, seed.questions.map((question) => question.id));
+}
+
+export async function getPublishedNativeTeacherAnswer(sql, query, { method = "GET", storage = createBookAssetStorage() } = {}) {
+  if (query.bookSlug !== "ultimate-b2" || query.componentSlug !== "ultimate-b2-students-book" || !/^[a-z0-9][a-z0-9-]{0,127}$/.test(String(query.activityId || "")) || !/^[0-9a-f-]{36}$/.test(String(query.releaseId || ""))) return privateJson(404, { error: "Native Teacher answer not found" });
+  const release = await publishedReleaseRow(sql, query);
+  if (!release) return privateJson(404, { error: "Native Teacher answer not found" });
+  try {
+    return await deliverNativeTeacherAnswer({ release, verified: verifiedPublicProjection(release), activityId: query.activityId, sectionId: query.sectionId || null, method, storage,
+      loadPin: (asset) => loadComponentReleaseAssetPin(sql, { ...query, ...asset }) });
+  } catch { return privateJson(404, { error: "Native Teacher answer not found" }); }
 }

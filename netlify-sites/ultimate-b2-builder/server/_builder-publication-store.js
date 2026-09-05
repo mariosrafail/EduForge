@@ -1,3 +1,4 @@
+import { nativeTeacherAnswerImages, nativeTeacherAnswerAssetDescriptors } from "../../../src/data/native-activities/nativeImageSampleAnswer.js";
 import { builderDocumentSha256 } from "./_builder-content-security.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
 import { ULTIMATE_B2_OPEN_RESPONSE_ACTIVITY_IDS } from "../../../src/data/ultimate-b2/openResponseActivityRegistry.js";
@@ -53,7 +54,7 @@ export async function collectUltimateB2PublicationV2Sources(sql) {
       teacher: document(documentRows.get(`native_activity_teacher/${entry.activityId}`), teacherResource),
     };
   }
-  const references = Object.values(activities).flatMap((entry) => entry.public?.payload?.assets || []);
+  const references = Object.values(activities).flatMap((entry) => [...(entry.public?.payload?.assets || []), ...nativeTeacherAnswerImages(entry.teacher?.payload).map((image) => image.reference)]);
   const assetRows = await loadNativePublicationAssets(sql, { bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", references });
   const unitExtraReferences = (unitExtras?.payload?.units || []).flatMap((unit) => [
     ...(unit.categories.videos || []).flatMap((video) => video.asset ? [video.asset] : []),
@@ -103,7 +104,7 @@ export async function collectUltimateB2ManagedPublicationSources(sql, componentS
       teacher: document(documentRows.get(`native_activity_teacher/${entry.activityId}`), teacherResource),
     };
   }
-  const references = Object.values(activities).flatMap((entry) => entry.public?.payload?.assets || []);
+  const references = Object.values(activities).flatMap((entry) => [...(entry.public?.payload?.assets || []), ...nativeTeacherAnswerImages(entry.teacher?.payload).map((image) => image.reference)]);
   const assetRows = await loadNativePublicationAssets(sql, { bookSlug: "ultimate-b2", componentSlug, references });
   return { pages, documents: { hotspots, activityLifecycle }, native: { index, activities, assetRows } };
 }

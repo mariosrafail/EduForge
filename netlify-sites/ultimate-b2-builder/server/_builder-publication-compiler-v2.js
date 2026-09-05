@@ -1,3 +1,5 @@
+import { nativeMultiPartAssetRequirements } from "../../../src/data/native-activities/nativeMultiPart.js";
+import { nativeTeacherAnswerImages, nativeTeacherAnswerAssetDescriptors } from "../../../src/data/native-activities/nativeImageSampleAnswer.js";
 import { nativeMarkWordsAssetRequirements } from "../../../src/data/native-activities/nativeMarkWords.js";
 import repositoryHotspots from "../../../src/data/ultimate-b2/authoring/studentsBookHotspots.json" with { type: "json" };
 import { nativeAudioTextAssetRequirements } from "../../../src/data/native-activities/nativeAudioTextHotspots.js";
@@ -17,6 +19,7 @@ import {
   normalizeUltimateB2ReleaseV2SourceSnapshot,
   normalizeUltimateB2TeacherReleaseV2Projection,
   ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS,
+  ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPOSITION_NATIVE_KINDS,
   ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPILER_ID,
   ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS,
   ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPLETE_SENTENCES_NATIVE_KINDS,
@@ -33,9 +36,9 @@ import { compileUltimateB2ComponentRelease, ultimateB2PublicationCanonicalSeeds,
 import { canonicalStudentsBookPages } from "./_builder-page-catalog.js";
 
 const extensionByMediaType = Object.freeze({ "image/png": "png", "image/jpeg": "jpg", "image/webp": "webp", "audio/mpeg": "mp3", "video/mp4": "mp4", "application/pdf": "pdf", "font/ttf": "ttf" });
-const V2_PUBLISHABLE_NATIVE_KINDS = new Set(ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS);
+const V2_PUBLISHABLE_NATIVE_KINDS = new Set(ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPOSITION_NATIVE_KINDS);
 
-function publicationV2CompatibilityDescriptor(nativeKinds, { unitExtras = false, pageLifecycle = false, legacyRuntimeCompatibility = ultimateB2PublicationCompatibility() } = {}) {
+function publicationV2CompatibilityDescriptor(nativeKinds, { nativeComposition = false, unitExtras = false, pageLifecycle = false, legacyRuntimeCompatibility = ultimateB2PublicationCompatibility() } = {}) {
   return Object.freeze({
     compilerId: ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPILER_ID,
     releaseSchemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
@@ -45,6 +48,7 @@ function publicationV2CompatibilityDescriptor(nativeKinds, { unitExtras = false,
     nativeIndexSchemaVersion: NATIVE_ACTIVITY_INDEX_SCHEMA_VERSION,
     nativeKinds: Object.freeze([...nativeKinds].sort()),
     releaseAssetDescriptorSchemaVersion: "1.0",
+    ...(nativeComposition ? { nativeComposition: { multiPart: "multi-part.v1", dragImageItems: "1.0", oldschoolQuestionSurface: "1.0", protectedImageSampleAnswer: "1.0" } } : {}),
     ...(unitExtras ? { unitExtrasSchemaVersion: ULTIMATE_B2_UNIT_EXTRAS_SCHEMA_VERSION } : {}),
     ...(pageLifecycle ? { pageLifecycleSchemaVersion: "1.0" } : {}),
   });
@@ -53,6 +57,7 @@ function publicationV2CompatibilityDescriptor(nativeKinds, { unitExtras = false,
 const previousLegacyRuntimeCompatibility = ultimateB2PublicationCompatibilityBeforeVideoWorksheetBinding();
 const previousDescriptorOptions = Object.freeze({ legacyRuntimeCompatibility: previousLegacyRuntimeCompatibility });
 const V2_COMPATIBILITY_IDENTITIES = Object.freeze({
+  compositionExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPOSITION_NATIVE_KINDS, { unitExtras: true, pageLifecycle: true, nativeComposition: true })),
   markWordsExpanded: builderDocumentSha256(publicationV2CompatibilityDescriptor(ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS, { unitExtras: true, pageLifecycle: true })),
   initialImageOpenResponse: "ab4b8255596ce01a0e7132d37c33b62683e384f2f178eed313bfeef62091027e",
   singleChoiceExpanded: "f1fca746955e58c0c4153c97a717a2f5e024cb5d12eb9263ad8c6b2a7caf9316",
@@ -128,6 +133,7 @@ export const ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS = Object.freeze([
     pageLifecycle: true,
   }),
   Object.freeze({ name: "mark-words-expanded", compatibility: V2_COMPATIBILITY_IDENTITIES.markWordsExpanded, nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS, unitExtras: true, pageLifecycle: true }),
+  Object.freeze({ name: "native-composition-expanded", compatibility: V2_COMPATIBILITY_IDENTITIES.compositionExpanded, nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPOSITION_NATIVE_KINDS, unitExtras: true, pageLifecycle: true, nativeComposition: true }),
 ]);
 
 const v2CompatibilityVariantsByIdentity = new Map(
@@ -157,7 +163,7 @@ export function resolveUltimateB2PublicationV2CompatibilityVariant(compatibility
 }
 
 export function ultimateB2PublicationV2Compatibility() {
-  return V2_COMPATIBILITY_IDENTITIES.markWordsExpanded;
+  return V2_COMPATIBILITY_IDENTITIES.compositionExpanded;
 }
 
 export function isUltimateB2PublicationV2NativeKind(kind) {
@@ -186,7 +192,9 @@ export function validateNativePublicationAssetRows(nativeEntries, assetRows) {
   const byId = new Map(assetRows.map((row) => [String(row.id), row]));
   const sources = new Map();
   for (const [activityId, entry] of nativeEntries) {
-    for (const reference of entry.publicDocument.assets) {
+    const answerImages = nativeTeacherAnswerImages(entry.teacherDocument);
+    const references = [...entry.publicDocument.assets, ...answerImages.map((image) => image.reference)];
+    for (const reference of references) {
       const row = byId.get(reference.assetId);
       const extension = extensionByMediaType[row?.mime_type];
       const libraryFont = reference.role === COMPONENT_PUBLICATION_ASSET_ROLES.ACTIVITY_FONT;
@@ -210,10 +218,12 @@ export function validateNativePublicationAssetRows(nativeEntries, assetRows) {
     }
     {
       const requirements = [
+        ...answerImages.map((image) => ({ slot: image.reference.slot, width: image.sourceWidth, height: image.sourceHeight, mediaType: image.mediaType, label: "Protected Sample answer" })),
         ...nativeReadableTextAssetRequirements(entry.publicDocument),
         ...nativeSupplementalAudioAssetRequirements(entry.publicDocument),
         ...nativeVideoAssetRequirements(entry.publicDocument),
         ...nativeAudioTextAssetRequirements(entry.publicDocument),
+        ...(entry.publicDocument.kind === "multi-part" ? nativeMultiPartAssetRequirements(entry.publicDocument) : []),
         ...(entry.publicDocument.kind === "mark-the-words" ? nativeMarkWordsAssetRequirements(entry.publicDocument) : []),
         ...(entry.publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(entry.publicDocument) : []),
         ...(entry.publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(entry.publicDocument) : []),
@@ -223,7 +233,7 @@ export function validateNativePublicationAssetRows(nativeEntries, assetRows) {
         ...(entry.publicDocument.kind === "open-response" ? nativeOpenResponseAssetRequirements(entry.publicDocument) : []),
       ];
       for (const requirement of requirements) {
-        const reference = entry.publicDocument.assets.find((asset) => asset.slot === requirement.slot);
+        const reference = references.find((asset) => asset.slot === requirement.slot);
         const row = reference ? byId.get(reference.assetId) : null;
         if (!row || (requirement.mediaType && row.mime_type !== requirement.mediaType)) {
           throw new NativePublicationError("native_activity_asset_invalid", activityId, [`${requirement.label || "Native managed asset"} media type does not match the managed asset.`]);
@@ -340,7 +350,7 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     }])),
     unitExtras: unitExtrasSource ? { revision: unitExtrasSource.revision, sha256: unitExtrasSource.sha256 } : { revision: 0, sha256: builderDocumentSha256(createEmptyUltimateB2UnitExtras()) },
     pageLibrary: pageLibrarySource,
-  }, seeds, { allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS, includeUnitExtras: true, includePageLifecycle: true });
+  }, seeds, { allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPOSITION_NATIVE_KINDS, includeUnitExtras: true, includePageLifecycle: true });
   const publicProjection = normalizeUltimateB2PublicReleaseV2Projection({
     schemaVersion: ULTIMATE_B2_COMPONENT_RELEASE_V2_SCHEMA_VERSION,
     bookSlug: "ultimate-b2",
@@ -352,9 +362,9 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     nativeActivities: Object.fromEntries(selectedNative.map(([activityId, entry]) => [activityId, { kind: entry.publicDocument.kind, document: entry.publicDocument }])),
     unitExtras,
     activePageIds,
-    assets: [...legacy.publicProjection.assets, ...nativeAssetSources.map((asset) => asset.descriptor), ...unitExtraAssetSources.map((asset) => asset.descriptor)],
+    assets: [...legacy.publicProjection.assets, ...nativeAssetSources.filter((asset) => asset.descriptor.role !== "native_teacher_answer").map((asset) => asset.descriptor), ...unitExtraAssetSources.map((asset) => asset.descriptor)],
   }, seeds, {
-    allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS,
+    allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPOSITION_NATIVE_KINDS,
     expectedCompatibility: compatibility,
     includeUnitExtras: true,
     includePageLifecycle: true,
@@ -366,7 +376,7 @@ export function compileUltimateB2ComponentReleaseV2(sources = {}) {
     solutions: legacy.teacherProjection.solutions,
     ui: legacy.teacherProjection.ui,
     nativeActivities: Object.fromEntries(selectedNative.map(([activityId, entry]) => [activityId, { kind: entry.teacherDocument.kind, document: entry.teacherDocument }])),
-  }, seeds, publicProjection, { allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS });
+  }, seeds, publicProjection, { allowedNativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPOSITION_NATIVE_KINDS });
   const assetManifest = [...legacy.assetManifest, ...nativeAssetSources.map((asset) => asset.descriptor), ...unitExtraAssetSources.map((asset) => asset.descriptor)]
     .sort((left, right) => `${left.sha256}.${left.extension}.${left.role}`.localeCompare(`${right.sha256}.${right.extension}.${right.role}`));
   const hashes = {

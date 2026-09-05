@@ -1,3 +1,4 @@
+import { multiPartAssignmentCapability } from "./multi-part-response.js";
 import {
   RELEASE_INTEGRITY_CHECK_NAMES,
   verifyImmutableComponentRelease,
@@ -338,6 +339,7 @@ const capabilities = Object.freeze({
 });
 
 export function nativeAssignmentCapability(kind, publicDocument = null) {
+  if (kind === "multi-part") return multiPartAssignmentCapability(publicDocument, nativeAssignmentCapability);
   const capability = capabilities[String(kind || "")] || null;
   if (kind === "complete-sentences" && publicDocument?.parts?.[0]?.interaction?.evaluationMode === NATIVE_COMPLETE_SENTENCES_EXACT_EVALUATION_MODE) {
     return Object.freeze({ ...capability, reviewMode: "auto-scored", evaluateResponse: scoreCompleteSentences });
@@ -351,7 +353,7 @@ export function nativeAssignmentCapability(kind, publicDocument = null) {
 export function containsClientTeacherMaterial(value) {
   if (Array.isArray(value)) return value.some(containsClientTeacherMaterial);
   if (!value || typeof value !== "object") return false;
-  const forbidden = new Set(["acceptedAnswers", "acceptedTexts", "modelAnswer", "modelAnswers", "modelAnswerTexts", "correctOptionId", "correctOptionIds", "correctAnswers", "mappings", "solution", "teacherDocument", "teacherProjection"]);
+  const forbidden = new Set(["acceptedAnswers", "acceptedTexts", "modelAnswer", "modelAnswers", "modelAnswerTexts", "correctOptionId", "correctOptionIds", "correctAnswers", "mappings", "solution", "teacherDocument", "teacherProjection", "sampleAnswer", "native_teacher_answer", "sectionResults"]);
   const normalizedForbidden = new Set([...forbidden, "correctWordIds", "isCorrect", "answerCount", "markedSource"].map((key) => key.toLowerCase().replace(/[^a-z0-9]/g, "")));
   return Object.entries(value).some(([key, child]) => normalizedForbidden.has(key.toLowerCase().replace(/[^a-z0-9]/g, "")) || containsClientTeacherMaterial(child));
 }

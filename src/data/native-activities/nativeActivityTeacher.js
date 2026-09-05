@@ -13,6 +13,7 @@ function exactKeys(value, keys, label) {
 
 export function normalizeNativeActivityTeacher(input, { normalizeSolution, expectedActivityId = null, expectedKind = null } = {}) {
   if (typeof normalizeSolution !== "function") throw new Error("Native Teacher solution normalizer is required.");
+  if (input?.kind === "multi-part" && new TextEncoder().encode(JSON.stringify(input)).length > 262144) throw new Error("Multi-Part aggregate Teacher content budget exceeded.");
   const value = structuredClone(object(input, "Native Teacher activity"));
   exactKeys(value, ["schemaVersion", "activityId", "kind", "parts"], "Native Teacher activity");
   if (value.schemaVersion !== NATIVE_ACTIVITY_SCHEMA_VERSION) throw new Error("Unsupported native Teacher activity schema version.");

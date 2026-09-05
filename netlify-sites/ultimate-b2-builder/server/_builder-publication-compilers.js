@@ -1,3 +1,4 @@
+import { nativeTeacherAnswerImages, nativeTeacherAnswerAssetDescriptors, usesNativeComposition } from "../../../src/data/native-activities/nativeImageSampleAnswer.js";
 import { builderDocumentSha256, stableBuilderJson } from "./_builder-content-security.js";
 import {
   normalizeUltimateB2PublicReleaseProjection,
@@ -31,6 +32,7 @@ import { COMPONENT_PUBLICATION_ASSET_ROLES } from "../../../src/data/ultimate-b2
 function expectedAssetManifest(publicProjection, teacherProjection) {
   return [
     ...publicProjection.assets,
+    ...[...new Map(Object.values(teacherProjection.nativeActivities || {}).flatMap((entry) => nativeTeacherAnswerAssetDescriptors(entry.document)).map((asset) => [`${asset.sha256}.${asset.extension}.${asset.role}`, asset])).values()],
     ...Object.values(teacherProjection.ui.assets).map((asset) => ({ sha256: asset.sha256, extension: asset.extension, mediaType: asset.mediaType, role: COMPONENT_PUBLICATION_ASSET_ROLES.TEACHER_UI })),
   ].sort((left, right) => `${left.sha256}.${left.extension}.${left.role}`.localeCompare(`${right.sha256}.${right.extension}.${right.role}`));
 }
@@ -120,6 +122,7 @@ const v2 = Object.freeze({
       expectedCompatibility: compatibility,
     });
     const teacherProjection = normalizeUltimateB2TeacherReleaseV2Projection(release.teacher_projection, seeds, publicProjection, normalizationOptions);
+    if (!variant.nativeComposition && Object.entries(publicProjection.nativeActivities).some(([id, entry]) => usesNativeComposition(entry.document, teacherProjection.nativeActivities[id]?.document))) throw new Error("release_integrity_failed");
     verifyManifest(release, expectedAssetManifest(publicProjection, teacherProjection));
     verifyHashes(release, compatibility, sourceSnapshot, publicProjection, teacherProjection);
     return { compatibility, sourceSnapshot, publicProjection, teacherProjection };

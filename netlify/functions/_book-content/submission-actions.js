@@ -33,6 +33,8 @@ async function submitNativeAssignment(sql, body, currentUser, assignment) {
     ? resolved.capability.evaluateResponse(resolved.publicEntry.document, resolved.teacherEntry.document, normalized.payload)
     : { status: normalized.status, scorePercent: normalized.scorePercent, correctCount: normalized.correctCount, totalCount: normalized.totalCount };
 
+  if (evaluated.sectionResults) normalized.payload.sectionResults = evaluated.sectionResults;
+
   const stateRows = await withAssignmentLifecycleTransaction(sql, body.assignmentId, (transactionSql) => transactionSql`
     with assignment_state as materialized (
       select aa.id, aa.status, aa.due_at, aa.target_kind, aa.native_release_id, aa.native_activity_id
@@ -83,6 +85,8 @@ async function submitNativeAssignment(sql, body, currentUser, assignment) {
 
 export async function submitActivity(sql, body, currentUser = null) {
   if (!body.assignmentId) return badRequest("assignmentId is required");
+  const submittedResponse = body.response || body.responsePayload;
+  if (submittedResponse?.schemaVersion === "native-multi-response.v1" && Buffer.byteLength(JSON.stringify(submittedResponse), "utf8") > 100000) return badRequest("Multi-Part response payload is too large");
   if (containsClientTeacherMaterial(body)) return badRequest("Teacher/model-answer material is not accepted from clients");
   const scoreFields = ["score", "scorePercent", "correctCount", "totalCount"];
   if (scoreFields.some((key) => Object.hasOwn(body, key) || (body.result && Object.hasOwn(body.result, key)))) {

@@ -1,3 +1,5 @@
+import { nativeTeacherAnswerImages, nativeTeacherAnswerAssetDescriptors } from "../../../src/data/native-activities/nativeImageSampleAnswer.js";
+import { serveProtectedNativeAnswer } from "./_builder-native-teacher-assets.js";
 import { createBookAssetStorage } from "../../../lib/book-assets/storage.js";
 import { getBuilderSql, json } from "./_builder-auth.js";
 import { resolveBuilderContentResource } from "./_builder-content-registry.js";
@@ -12,7 +14,7 @@ import { loadBuilderActivityOrder } from "./_builder-activity-order.js";
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const previewTtlSeconds = 5 * 60;
-const NATIVE_TEACHER_PREVIEW_KINDS = new Set(["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop", "mark-the-words"]);
+const NATIVE_TEACHER_PREVIEW_KINDS = new Set(["multi-part", "image", "open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop", "mark-the-words"]);
 
 function decode(value) { try { return decodeURIComponent(value); } catch { return ""; } }
 
@@ -27,6 +29,8 @@ function route(event) {
   if (![identity.bookSlug, identity.componentSlug, identity.activityId].every((value) => SAFE_ID.test(value))) return null;
   const suffix = pathname.slice(prefix.index + prefix[0].length).replace(/^\/+|\/+$/g, "");
   if (suffix === "public" || suffix === "teacher") return { ...identity, action: suffix };
+  const teacherAsset = suffix.match(/^teacher-assets\/([0-9a-f-]+)$/i);
+  if (teacherAsset && UUID.test(teacherAsset[1])) return { ...identity, action: "teacher-asset", assetId: teacherAsset[1].toLowerCase() };
   const asset = suffix.match(/^assets\/([0-9a-f-]+)$/i);
   return asset && UUID.test(asset[1]) ? { ...identity, action: "asset", assetId: asset[1].toLowerCase() } : null;
 }
@@ -89,8 +93,8 @@ export function createBuilderNativePreviewHandler(overrides = {}) {
     try {
       const parsed = route(event);
       if (!parsed) return privateJson(404, { error: "native_draft_not_found" });
-      if (event.httpMethod !== "GET" && !(event.httpMethod === "HEAD" && parsed.action === "asset")) return privateJson(405, { error: "method_not_allowed" });
-      const requestedAction = `native-draft-${parsed.action}`;
+      if (event.httpMethod !== "GET" && !(event.httpMethod === "HEAD" && ["asset", "teacher-asset"].includes(parsed.action))) return privateJson(405, { error: "method_not_allowed" });
+      const requestedAction = `native-draft-${parsed.action === "teacher-asset" ? "teacher" : parsed.action}`;
       const decision = dependencies.inspectAuthorization(event, { action: requestedAction, bookSlug: parsed.bookSlug, componentSlug: parsed.componentSlug, activityId: parsed.activityId });
       if (!decision.authorized) return privateJson(401, { error: "Unauthorized" });
       const sql = dependencies.getDatabase();
@@ -114,12 +118,22 @@ export function createBuilderNativePreviewHandler(overrides = {}) {
       if (!matchesAuthorizedDraftScope(decision.scope, parsed, publicState.document)) return privateJson(401, { error: "Unauthorized" });
 
       if (parsed.action === "public") return privateJson(200, envelope(parsed, publicState, "public", publicState.document));
-      if (parsed.action === "teacher") {
+      if (["teacher", "teacher-asset"].includes(parsed.action)) {
         if (!NATIVE_TEACHER_PREVIEW_KINDS.has(publicState.entry.kind)) return privateJson(404, { error: "native_teacher_draft_not_found" });
         const teacherResource = await dependencies.resolveResource(parsed.bookSlug, parsed.componentSlug, "native-activity-teacher", parsed.activityId);
         const storedTeacher = teacherResource ? await dependencies.loadDocument(sql, teacherResource) : null;
         if (!storedTeacher) return privateJson(404, { error: "native_teacher_draft_not_found" });
         validateNativeActivityPair(publicState.document, storedTeacher.document);
+        if (parsed.action === "teacher-asset") {
+          const image = nativeTeacherAnswerImages(storedTeacher.document).find((candidate) => candidate.reference.assetId === parsed.assetId);
+          if (!image) return privateJson(404, { error: "native_teacher_asset_not_found" });
+          const asset = await dependencies.loadAsset(sql, parsed);
+          if (!asset || asset.asset_role !== "native_teacher_answer" || asset.id !== image.reference.assetId || asset.checksum_sha256 !== image.reference.checksumSha256
+            || asset.source_metadata?.native_activity_id !== parsed.activityId || asset.source_metadata?.asset_slot !== image.reference.slot
+            || asset.publication_status !== "draft" || asset.access_level !== "internal" || asset.mime_type !== image.mediaType
+            || Number(asset.width) !== image.sourceWidth || Number(asset.height) !== image.sourceHeight) return privateJson(404, { error: "native_teacher_asset_not_found" });
+          return serveProtectedNativeAnswer({ storage: dependencies.storage(), asset, method: event.httpMethod });
+        }
         return privateJson(200, envelope(parsed, { ...publicState, revision: storedTeacher.revision }, "teacher", storedTeacher.document));
       }
 

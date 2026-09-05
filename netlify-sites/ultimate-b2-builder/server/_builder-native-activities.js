@@ -1,11 +1,14 @@
+import { nativeMultiPartAssetRequirements } from "../../../src/data/native-activities/nativeMultiPart.js";
+import { normalizeAssetDescriptor } from "./_builder-native-upload-descriptor.js";
+import { builderTeacherAnswerAssetsReady, validateTeacherImageDraftAssets, serveProtectedNativeAnswer } from "./_builder-native-teacher-assets.js";
 import { nativeMarkWordsAssetRequirements } from "../../../src/data/native-activities/nativeMarkWords.js";
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 
 import { createBookAssetStorage } from "../../../lib/book-assets/storage.js";
-import { inspectManagedMp3, MANAGED_MP3_MAXIMUM_BYTES } from "../../../lib/book-assets/audio-inspection.js";
-import { inspectManagedMp4, MANAGED_MP4_MAXIMUM_BYTES } from "../../../lib/book-assets/video-inspection.js";
-import { inspectManagedPdf, MANAGED_PDF_MAXIMUM_BYTES } from "../../../lib/book-assets/pdf-inspection.js";
+import { inspectManagedMp3 } from "../../../lib/book-assets/audio-inspection.js";
+import { inspectManagedMp4 } from "../../../lib/book-assets/video-inspection.js";
+import { inspectManagedPdf } from "../../../lib/book-assets/pdf-inspection.js";
 import { inspectManagedTtf, MANAGED_TTF_MAXIMUM_BYTES, MANAGED_TTF_MEDIA_TYPE } from "../../../lib/book-assets/font-inspection.js";
 import { buildBuilderFontLibraryObjectKey, buildBuilderFontLibraryStagingKey, buildNativeActivityAssetObjectKey, buildNativeActivityAssetStagingKey } from "../../../lib/book-assets/object-keys.js";
 import { inspectManagedRaster, MANAGED_RASTER_MAXIMUM_BYTES, MANAGED_RASTER_TYPES } from "../../../lib/book-assets/raster-inspection.js";
@@ -66,7 +69,6 @@ const uuidV4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]
 const safeId = nativeCatalogSafeIdPattern;
 const uploadTtlSeconds = 15 * 60;
 const previewTtlSeconds = 5 * 60;
-const declaredRasterTypes = new Set(Object.values(MANAGED_RASTER_TYPES));
 const extensionTypes = new Map([[".png", "image/png"], [".jpg", "image/jpeg"], [".jpeg", "image/jpeg"], [".webp", "image/webp"], [".mp3", "audio/mpeg"], [".mp4", "video/mp4"], [".pdf", "application/pdf"]]);
 
 function decode(value) { try { return decodeURIComponent(value); } catch { return ""; } }
@@ -475,6 +477,7 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
     teacherDocument = kind.normalizeTeacher(input.teacherDocument, parsedRoute.activityId);
     validateNativeActivityPair(publicDocument, teacherDocument);
     assertPublicBuilderDocument(publicDocument);
+    await validateTeacherImageDraftAssets(dependencies, sql, parsedRoute, teacherDocument);
     await dependencies.validateAssets(sql, {
       ...parsedRoute,
       assets: publicDocument.assets,
@@ -483,6 +486,7 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
         ...nativeSupplementalAudioAssetRequirements(publicDocument),
         ...nativeVideoAssetRequirements(publicDocument),
         ...nativeAudioTextAssetRequirements(publicDocument),
+        ...(publicDocument.kind === "multi-part" ? nativeMultiPartAssetRequirements(publicDocument) : []),
         ...(publicDocument.kind === "mark-the-words" ? nativeMarkWordsAssetRequirements(publicDocument) : []),
         ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
         ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
@@ -518,20 +522,6 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
   return json(200, { activityId: parsedRoute.activityId, publicRevision: result.publicRevision, teacherRevision: result.teacherRevision, publicDocument, teacherDocument, idempotent: result.outcome === "idempotent" });
 }
 
-function normalizeAssetDescriptor(input) {
-  if (!exact(input, ["name", "size", "type", "assetSlot", "purpose"])) throw new Error("invalid_file_descriptor");
-  const name = String(input.name || "");
-  if (!/^[A-Za-z0-9][A-Za-z0-9._() -]{0,179}$/.test(name) || path.basename(name) !== name || /^(?:[a-z]:|\\\\|\/)|%2f|%5c|[\u0000-\u001f\u007f]/i.test(name)) throw new Error("invalid_filename");
-  const extension = path.extname(name).toLowerCase();
-  const type = String(input.type || "").toLowerCase();
-  const purpose = String(input.purpose || "native-asset");
-  const worksheet = purpose === "video-worksheet";
-  if (!extensionTypes.has(extension) || extensionTypes.get(extension) !== type || (worksheet ? type !== "application/pdf" : purpose !== "native-asset" || (!declaredRasterTypes.has(type) && !["audio/mpeg", "video/mp4"].includes(type)))) throw new Error("declared_mime_mismatch");
-  const maximumBytes = type === "audio/mpeg" ? MANAGED_MP3_MAXIMUM_BYTES : type === "video/mp4" ? MANAGED_MP4_MAXIMUM_BYTES : type === "application/pdf" ? MANAGED_PDF_MAXIMUM_BYTES : MANAGED_RASTER_MAXIMUM_BYTES;
-  if (!Number.isSafeInteger(input.size) || input.size < 1 || input.size > maximumBytes) throw new Error("declared_file_too_large");
-  if (!safeId.test(String(input.assetSlot || ""))) throw new Error("invalid_asset_slot");
-  return { name, size: input.size, type, assetSlot: input.assetSlot, purpose };
-}
 
 async function prepareAsset(dependencies, sql, auth, parsedRoute, event) {
   const parsed = parseJson(event, ["name", "size", "type", "assetSlot", "clientMutationId"], 1024 * 1024, ["purpose"]);
@@ -539,6 +529,7 @@ async function prepareAsset(dependencies, sql, auth, parsedRoute, event) {
   if (!builderClientMutationIdPattern.test(String(parsed.value.clientMutationId || ""))) return json(400, { error: "invalid_client_mutation_id" });
   if (!await requireActiveActivity(dependencies, sql, parsedRoute)) return json(404, { error: "native_activity_not_found" });
   let descriptor; try { descriptor = normalizeAssetDescriptor({ name: parsed.value.name, size: parsed.value.size, type: parsed.value.type, assetSlot: parsed.value.assetSlot, purpose: parsed.value.purpose }); } catch (error) { return json(400, { error: failureCode(error) }); }
+  if (descriptor.purpose === "teacher-answer" && !await dependencies.teacherAssetsReady(sql)) return json(503, { error: "protected_teacher_assets_unavailable" });
   const uploadId = dependencies.randomUuid();
   const stagingObjectKey = buildNativeActivityAssetStagingKey({ ...parsedRoute, uploadId });
   const requestSha256 = sha256(stableBuilderJson(descriptor));
@@ -598,7 +589,7 @@ async function finalizeAsset(dependencies, sql, auth, parsedRoute, event) {
     if (bytes.length !== claimed.fileDescriptor.size) throw new Error("actual_object_size_mismatch");
     const inspected = claimed.fileDescriptor.purpose === "video-worksheet" ? dependencies.inspectPdf(bytes) : claimed.fileDescriptor.type === "audio/mpeg" ? dependencies.inspectAudio(bytes) : claimed.fileDescriptor.type === "video/mp4" ? dependencies.inspectVideo(bytes) : await dependencies.inspectRaster(bytes);
     if (inspected.mimeType !== claimed.fileDescriptor.type || extensionTypes.get(path.extname(claimed.fileDescriptor.name).toLowerCase()) !== inspected.mimeType) throw new Error("actual_mime_mismatch");
-    const objectKey = buildNativeActivityAssetObjectKey({ ...parsedRoute, assetSlot: claimed.assetSlot, checksum: inspected.checksumSha256, extension: inspected.extension });
+    const objectKey = buildNativeActivityAssetObjectKey({ ...parsedRoute, assetSlot: claimed.assetSlot, checksum: inspected.checksumSha256, extension: inspected.extension, purpose: claimed.fileDescriptor.purpose });
     await storage.upload({ profile: "private", objectKey, body: inspected.bytes, contentType: inspected.mimeType, checksumSha256: inspected.checksumSha256, byteSize: inspected.byteSize });
     const assetId = await dependencies.completeAsset(sql, { uploadId: parsed.value.uploadId, builderUserId: auth.builderUser.id, objectKey, storageBucket: storage.bucket("private"), ...inspected });
     await storage.delete({ profile: "private", objectKey: claimed.stagingObjectKey }).catch(() => {});
@@ -636,7 +627,8 @@ function nativeAssetRequirements(publicDocument) {
     ...nativeSupplementalAudioAssetRequirements(publicDocument),
     ...nativeVideoAssetRequirements(publicDocument),
     ...nativeAudioTextAssetRequirements(publicDocument),
-    ...(publicDocument.kind === "mark-the-words" ? nativeMarkWordsAssetRequirements(publicDocument) : []),
+    ...(publicDocument.kind === "multi-part" ? nativeMultiPartAssetRequirements(publicDocument) : []),
+        ...(publicDocument.kind === "mark-the-words" ? nativeMarkWordsAssetRequirements(publicDocument) : []),
     ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
     ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
     ...(publicDocument.kind === "listening" ? nativeListeningAssetRequirements(publicDocument) : []),
@@ -791,6 +783,7 @@ async function nativeCatalog(dependencies, sql, parsedRoute) {
 export function createBuilderNativeActivitiesHandler(overrides = {}) {
   const dependencies = {
     getDatabase: overrides.getDatabase || getBuilderSql,
+    teacherAssetsReady: overrides.teacherAssetsReady || builderTeacherAnswerAssetsReady,
     authorize: overrides.authorize || requireBuilderUser,
     resolveAdapter: overrides.resolveAdapter || resolveNativeActivityAdapter,
     resolveKind: overrides.resolveKind || resolveNativeActivityKind,
@@ -856,6 +849,7 @@ export function createBuilderNativeActivitiesHandler(overrides = {}) {
         if (!["GET", "HEAD"].includes(event.httpMethod) || !uuidV4.test(parsedRoute.assetId)) return json(405, { error: "method_not_allowed" });
         const result = await assetResponse(dependencies, sql, parsedRoute, parsedRoute.assetId);
         if (!result) return json(404, { error: "asset_not_found" });
+        if (result.asset.asset_role === "native_teacher_answer") return serveProtectedNativeAnswer({ storage: dependencies.storage(), asset: result.asset, method: event.httpMethod });
         const location = await dependencies.storage().signedGetUrl({ profile: "private", objectKey: result.asset.object_key, ttlSeconds: previewTtlSeconds });
         return { statusCode: 302, headers: { Location: location, "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff" }, body: "" };
       }

@@ -166,6 +166,7 @@ export function nativeSupplementalAudioAssetRequirements(publicDocument) {
 
 export function nativeActivityUsesManagedAssetSlot(publicDocument, slot) {
   const interaction = publicDocument?.parts?.[0]?.interaction;
+  if (interaction?.kind === "multi-part" && (interaction.panels.some((panel) => panel.background?.assetSlot === slot) || interaction.sections.some((section) => nativeActivityUsesManagedAssetSlot({ parts: [{ interaction: section.interaction }] }, slot)))) return true;
   return publicDocument?.readableText?.assetSlot === slot
     || publicDocument?.video?.assetSlot === slot
     || publicDocument?.video?.worksheet?.assetSlot === slot
@@ -196,6 +197,7 @@ export function removeNativeManagedAssetReferenceIfUnused(publicDocument, slot) 
 
 export function normalizeNativeActivityPublic(input, { normalizeInteraction, expectedActivityId = null, expectedKind = null } = {}) {
   if (typeof normalizeInteraction !== "function") throw new Error("Native public interaction normalizer is required.");
+  if (input?.kind === "multi-part" && (new TextEncoder().encode(JSON.stringify(input)).length > 262144 || !Array.isArray(input.assets) || input.assets.length > 128)) throw new Error("Multi-Part aggregate content budget exceeded.");
   const value = structuredClone(object(input, "Native public activity"));
   const hasReadableText = Object.hasOwn(value, "readableText");
   const hasVideo = Object.hasOwn(value, "video");
@@ -212,6 +214,7 @@ export function normalizeNativeActivityPublic(input, { normalizeInteraction, exp
   exactKeys(value.metadata, ["title", "visibleInstructionText"], "Native public metadata");
   if (!Array.isArray(value.assets)) throw new Error("Native public assets must be an array.");
   const assets = value.assets.map(normalizeNativeManagedAssetReference);
+  if (assets.some((asset) => asset.role === "native_teacher_answer")) throw new Error("Teacher answer assets cannot enter a public document.");
   const assetIds = new Set();
   const assetSlots = new Set();
   for (const asset of assets) {

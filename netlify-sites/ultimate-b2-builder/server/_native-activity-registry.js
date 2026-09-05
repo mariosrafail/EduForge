@@ -1,3 +1,4 @@
+import { normalizeNativeMultiPartInteraction, normalizeNativeMultiPartSolution, validateNativeMultiPartTopology, assessNativeMultiPartReadiness, createEmptyNativeMultiPartInteraction } from "../../../src/data/native-activities/nativeMultiPart.js";
 import { NATIVE_ACTIVITY_KINDS, nativeActivityKindLabels } from "../../../src/data/native-activities/nativeActivityKinds.js";
 import { assessNativeMarkWordsReadiness, createEmptyNativeMarkWordsInteraction, normalizeNativeMarkWordsInteraction, normalizeNativeMarkWordsSolution, validateNativeMarkWordsTopology } from "../../../src/data/native-activities/nativeMarkWords.js";
 import {
@@ -53,6 +54,7 @@ function definition(kind, normalizeInteraction, normalizeSolution, blankInteract
 }
 
 const registry = Object.freeze({
+  "multi-part": definition("multi-part", normalizeNativeMultiPartInteraction, normalizeNativeMultiPartSolution, createEmptyNativeMultiPartInteraction, () => ({ kind: "multi-part", schemaVersion: "multi-part.v1", sections: [] }), validateNativeMultiPartTopology, assessNativeMultiPartReadiness, true),
   "mark-the-words": definition("mark-the-words", normalizeNativeMarkWordsInteraction, normalizeNativeMarkWordsSolution, createEmptyNativeMarkWordsInteraction, () => ({ kind: "mark-the-words", answers: [] }), validateNativeMarkWordsTopology, assessNativeMarkWordsReadiness),
   "open-response": definition("open-response", normalizeNativeOpenResponseInteraction, normalizeNativeOpenResponseSolution, () => ({ kind: "open-response", surface: { width: 1024, height: 582 }, artwork: [], questions: [] }), () => ({ kind: "open-response", modelAnswers: [] }), validateNativeOpenResponseTopology, assessNativeOpenResponseReadiness),
   image: definition("image", normalizeNativeImageInteraction, normalizeNativeImageSolution, () => ({ kind: "image", surface: { width: 1024, height: 582 }, images: [] }), () => ({ kind: "image" }), null, assessNativeImageReadiness),

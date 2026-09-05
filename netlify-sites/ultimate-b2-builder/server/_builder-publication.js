@@ -1,3 +1,4 @@
+import { deliverNativeTeacherAnswer } from "./_builder-native-answer-delivery.js";
 import { createHash } from "node:crypto";
 import { createBookAssetStorage } from "../../../lib/book-assets/storage.js";
 import { componentPublicationAssetStorageTarget } from "../../../lib/book-assets/publication-asset-storage.js";
@@ -21,7 +22,7 @@ function route(event) {
   const pathname = String(event.path || "").split("?")[0];
   let match = pathname.match(/(?:\/builder\/api\/publication|\/\.netlify\/functions\/builder-publication)\/books\/([^/]+)\/components\/([^/]+)(?:\/(prepare|publish))?\/?$/);
   if (match) return { boundary: "builder", bookSlug: decodeURIComponent(match[1]), componentSlug: decodeURIComponent(match[2]), action: match[3] || "status" };
-  match = pathname.match(/(?:\/builder\/preview\/releases|\/\.netlify\/functions\/builder-publication\/preview\/releases)\/books\/([^/]+)\/components\/([^/]+)\/([0-9a-f-]+)\/(public|teacher-ui|teacher-solution|native-teacher|assets)(?:\/([^/]+))?\/?$/i);
+  match = pathname.match(/(?:\/builder\/preview\/releases|\/\.netlify\/functions\/builder-publication\/preview\/releases)\/books\/([^/]+)\/components\/([^/]+)\/([0-9a-f-]+)\/(public|teacher-ui|teacher-solution|native-teacher|native-answer|assets)(?:\/([^/]+))?\/?$/i);
   return match ? { boundary: "preview", bookSlug: decodeURIComponent(match[1]), componentSlug: decodeURIComponent(match[2]), releaseId: match[3], action: match[4], activityId: decodeURIComponent(match[5] || "") } : null;
 }
 
@@ -41,7 +42,7 @@ const assetSourceIdentity = (asset) => `${asset.sha256}.${asset.extension}.${ass
 
 export function selectComponentReleaseAsset(assetManifest, sha256, extension) {
   return (assetManifest || [])
-    .filter((candidate) => candidate.sha256 === sha256 && candidate.extension === extension && componentPublicationAssetRolePolicy(candidate.role))
+    .filter((candidate) => candidate.sha256 === sha256 && candidate.extension === extension && componentPublicationAssetRolePolicy(candidate.role) && !componentPublicationAssetRolePolicy(candidate.role).teacherOnly)
     .sort((left, right) => assetSourceIdentity(left).localeCompare(assetSourceIdentity(right)))[0] || null;
 }
 
@@ -97,14 +98,19 @@ export function createBuilderPublicationHandler(overrides = {}) {
     try {
       const sql = dependencies.getDatabase();
       if (parsedRoute.boundary === "preview") {
-        const methodAllowed = event.httpMethod === "GET" || (parsedRoute.action === "assets" && event.httpMethod === "HEAD");
+        const methodAllowed = event.httpMethod === "GET" || (["assets", "native-answer"].includes(parsedRoute.action) && event.httpMethod === "HEAD");
         if (!methodAllowed || !UUID.test(parsedRoute.releaseId)) return json(methodAllowed ? 404 : 405, { error: "release_not_found" });
-        const previewAction = { public: "release-public", assets: "release-asset", "teacher-ui": "release-teacher-ui", "teacher-solution": "release-teacher-solution", "native-teacher": "release-native-teacher" }[parsedRoute.action];
-        const authorized = await dependencies.authorizePreview(event, sql, { action: previewAction, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, releaseId: parsedRoute.releaseId, ...(["teacher-solution", "native-teacher"].includes(parsedRoute.action) ? { activityId: parsedRoute.activityId } : {}) });
+        const previewAction = { public: "release-public", assets: "release-asset", "teacher-ui": "release-teacher-ui", "teacher-solution": "release-teacher-solution", "native-teacher": "release-native-teacher", "native-answer": "release-native-teacher" }[parsedRoute.action];
+        const authorized = await dependencies.authorizePreview(event, sql, { action: previewAction, bookSlug: parsedRoute.bookSlug, componentSlug: parsedRoute.componentSlug, releaseId: parsedRoute.releaseId, ...(["teacher-solution", "native-teacher", "native-answer"].includes(parsedRoute.action) ? { activityId: parsedRoute.activityId } : {}) });
         if (!authorized) return json(401, { error: "Unauthorized" });
         const release = await dependencies.loadRelease(sql, parsedRoute);
         if (!release) return json(404, { error: "release_not_found" });
         let verified; try { verified = verifyImmutableRelease(release); } catch { return json(409, { error: "release_integrity_failed" }); }
+        if (parsedRoute.action === "native-answer") {
+          try { return await deliverNativeTeacherAnswer({ release, verified, activityId: parsedRoute.activityId, sectionId: event.queryStringParameters?.sectionId || null, method: event.httpMethod,
+            storage: dependencies.storage(), loadPin: (asset) => dependencies.loadAssetPin(sql, { ...parsedRoute, ...asset }) }); }
+          catch { return json(404, { error: "native_teacher_answer_not_found" }, { "Cache-Control": "private, no-store", Vary: "Cookie" }); }
+        }
         if (parsedRoute.action === "assets") {
           const match = parsedRoute.activityId.match(/^([a-f0-9]{64})\.(png|jpg|webp|mp3|mp4|pdf|ttf|wav|gaf)$/);
           const asset = match && selectComponentReleaseAsset(release.asset_manifest, match[1], match[2]);
