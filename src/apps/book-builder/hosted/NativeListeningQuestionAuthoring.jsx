@@ -1,3 +1,6 @@
+import { useRef, useState } from "react";
+import { oldschoolQuestionPanel } from "../../../data/native-activities/nativeOldschoolQuestionSurface.js";
+import { NativeOldschoolQuestionComposition, NativeOldschoolQuestionArtworkControls } from "./NativeOldschoolQuestionVisualControls.jsx";
 import { Plus, Trash2, Upload } from "lucide-react";
 
 import { StageSelectionFrame } from "../../../components/builder-studio/StageSelectionFrame.jsx";
@@ -9,7 +12,10 @@ import { NativeOpenResponseResponseControls } from "./NativeOpenResponseResponse
 import { NativeBulkGenerator } from "./NativeBulkGenerator.jsx";
 import { useNativeListeningResponseFonts } from "./useNativeListeningResponseFonts.js";
 
-export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDraft, interaction, questions, cues, snippets, selectedQuestion, selectedArtwork, selectedSnippet, selectedSnippetAudioReference, selection, selectedArea, surface, assetUrl, uploading, setSelectedQuestionId, setSelectedSnippetId, setSelection, mutatePublic, mutateTeacher, addQuestion, removeQuestion, moveQuestion, uploadArtwork, uploadSnippetAudio, removeSnippetAudio, addSnippet, removeSnippet, removeArtwork, commitArea, bookSlug, componentSlug, onMessage, generateBulk = null }) {
+export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDraft, interaction, questions, cues, snippets, selectedQuestion, selectedArtwork, selectedSnippet, selectedSnippetAudioReference, selection, selectedArea, surface, assetUrl, uploading, setUploading, setSelectedQuestionId, setSelectedSnippetId, setSelection, mutatePublic, mutateTeacher, addQuestion, removeQuestion, moveQuestion, uploadArtwork, uploadSnippetAudio, removeSnippetAudio, addSnippet, removeSnippet, removeArtwork, commitArea, bookSlug, componentSlug, onMessage, generateBulk = null }) {
+  const oldschool = interaction.kind === "oldschool-listening";
+  const [zoom, setZoom] = useState(1);
+  const pan = useRef(null);
   const { fonts, recordUploadedFont, setAnswerFont } = useNativeListeningResponseFonts({ bookSlug, componentSlug, mutatePublic, selectedQuestionId: selectedQuestion?.id, onMessage });
   const surfaceDocument = {
     ...publicDraft,
@@ -115,11 +121,11 @@ export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDra
         </div>
       ) : null}
       {mode === "visual" ? (
-        <div className="native-or-layout studio-or-layout">
+        <><div hidden={!oldschool}>{oldschool ? <NativeOldschoolQuestionComposition interaction={interaction} mutatePublic={mutatePublic} setSelection={setSelection} /> : null}</div><div className="native-or-layout studio-or-layout">
           <div className="studio-canvas-column">
             <div className="studio-canvas-toolbar has-contextual-controls">
               <div className="native-or-toolbar-actions">
-                <label className="native-or-upload studio-upload-action">
+                {oldschool ? <NativeOldschoolQuestionArtworkControls publicDraft={publicDraft} selectedArtwork={selectedArtwork} mutatePublic={mutatePublic} setSelection={setSelection} bookSlug={bookSlug} componentSlug={componentSlug} onMessage={onMessage} onPendingChange={(pending) => setUploading(pending ? "question-image" : "")} /> : <label className="native-or-upload studio-upload-action">
                   <Upload />
                   <span>{uploading === "artwork" ? "Uploading…" : "Upload graphic"}</span>
                   <input
@@ -131,10 +137,12 @@ export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDra
                       event.target.value = "";
                     }}
                   />
-                </label>
-                <StudioButton onClick={addSnippet} disabled={!cues.length || snippets.length >= 32}>
+                </label>}
+                {!oldschool ? <StudioButton onClick={addSnippet} disabled={!cues.length || snippets.length >= 32}>
                   <Plus /> Add Show Text Hotspot
-                </StudioButton>
+                </StudioButton> : null}
+                {oldschool ? <label>Zoom<select aria-label="Question canvas zoom" value={zoom} onChange={(event) => setZoom(Number(event.target.value))}>{[.5, .75, 1, 1.25, 1.5, 2].map((value) => <option key={value} value={value}>{Math.round(value * 100)}%</option>)}</select></label> : null}
+                {oldschool && snippets.length ? <p>Compatibility: existing Show Text hotspots remain editable.</p> : null}
                 <section className="native-or-layers" aria-label="Artwork Layers">
                   <strong>Artwork Layers</strong>
                   <div>
@@ -147,11 +155,12 @@ export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDra
                 </section>
               </div>
             </div>
-            <div className="studio-canvas-viewport">
-              <div className="studio-artboard-wrap">
+            <div className="studio-canvas-viewport" onPointerDown={(event) => { if (!oldschool || event.button !== 1) return; event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); pan.current = { id: event.pointerId, x: event.clientX, y: event.clientY, left: event.currentTarget.scrollLeft, top: event.currentTarget.scrollTop }; }} onPointerMove={(event) => { const value = pan.current; if (!value || value.id !== event.pointerId) return; event.preventDefault(); event.currentTarget.scrollLeft = value.left - event.clientX + value.x; event.currentTarget.scrollTop = value.top - event.clientY + value.y; }} onPointerUp={() => { pan.current = null; }} onPointerCancel={() => { pan.current = null; }} onAuxClick={(event) => { if (oldschool && event.button === 1) event.preventDefault(); }}>
+              <div className="studio-artboard-wrap" style={oldschool ? { width: `${zoom * 100}%` } : undefined}>
                 <NativeOpenResponseFontSurface
                   className="studio-artboard"
                   document={surfaceDocument}
+                  panel={oldschool ? oldschoolQuestionPanel(interaction, { authoring: true }) : null}
                   assetUrl={assetUrl}
                   selected={selection}
                   onSelect={(value) => {
@@ -306,7 +315,7 @@ export function NativeListeningQuestionAuthoring({ mode, publicDraft, teacherDra
               </div>
             ) : null}
           </div>
-        </div>
+        </div></>
       ) : null}
     </div>
   );

@@ -46,6 +46,7 @@ export function useNativeListeningQuestionAuthoring({ oldschool, publicDraft, te
         mutateProjectedSingleChoice(nextPublic, nextTeacher, alignNativeSingleChoiceAnswers);
       } else {
         current.questions.push(createNativeOpenResponseQuestion(id, current.questions.length));
+        if (current.questionSurface) { current.questionSurface.promptQuestionIds.push(id); current.questionSurface.responseQuestionIds.push(id); }
         nextTeacher.parts[0].solution.modelAnswers.push({ questionId: id, text: "" });
       }
     });
@@ -59,6 +60,8 @@ export function useNativeListeningQuestionAuthoring({ oldschool, publicDraft, te
       else {
         nextPublic.parts[0].interaction.questions = nextPublic.parts[0].interaction.questions.filter((entry) => entry.id !== selectedQuestion.id);
         nextTeacher.parts[0].solution.modelAnswers = nextTeacher.parts[0].solution.modelAnswers.filter((entry) => entry.questionId !== selectedQuestion.id);
+        const membership = nextPublic.parts[0].interaction.questionSurface;
+        if (membership) for (const key of ["promptQuestionIds", "responseQuestionIds"]) membership[key] = membership[key].filter((id) => id !== selectedQuestion.id);
       }
     });
     setSelectedQuestionId(questions[index + 1]?.id || questions[index - 1]?.id || null); setQuestionSelection(null);
@@ -85,7 +88,13 @@ export function useNativeListeningQuestionAuthoring({ oldschool, publicDraft, te
     const result = generateNativeBulkCandidate({ kind: questionMode, source, publicDocument: projectedPublic, teacherDocument: projectedTeacher, ...options });
     const nextPublic = clone(publicDraft); const nextTeacher = clone(teacherDraft);
     nextPublic.parts[0].interaction.questions = result.publicDocument.parts[0].interaction.questions;
-    if (questionMode === "open-response") nextTeacher.parts[0].solution.modelAnswers = result.teacherDocument.parts[0].solution.modelAnswers;
+    if (questionMode === "open-response") {
+      nextTeacher.parts[0].solution.modelAnswers = result.teacherDocument.parts[0].solution.modelAnswers;
+      if (nextPublic.parts[0].interaction.questionSurface) {
+        const panel = result.publicDocument.parts[0].interaction.presentation.panels[0];
+        nextPublic.parts[0].interaction.questionSurface = { promptQuestionIds: panel.promptQuestionIds || panel.questionIds, responseQuestionIds: panel.responseQuestionIds || panel.questionIds };
+      }
+    }
     else {
       const generatedPresentation = result.publicDocument.parts[0].interaction.presentation;
       if (generatedPresentation) nextPublic.parts[0].interaction.presentation = generatedPresentation;

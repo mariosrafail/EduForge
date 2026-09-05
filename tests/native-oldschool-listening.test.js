@@ -11,6 +11,8 @@ import { createNativeOpenResponseQuestion } from "../src/data/native-activities/
 import { assessNativeOldschoolListeningReadiness, nativeOldschoolListeningAssetRequirements, normalizeNativeOldschoolListeningInteraction } from "../src/data/native-activities/nativeOldschoolListening.js";
 import { switchNativeOldschoolListeningQuestionMode } from "../src/data/native-activities/nativeOldschoolListeningAuthoring.js";
 import { createNativeSingleChoiceQuestion } from "../src/data/native-activities/nativeSingleChoice.js";
+import { oldschoolQuestionPanel, setOldschoolQuestionMembership } from "../src/data/native-activities/nativeOldschoolQuestionSurface.js";
+import { nativeOldschoolListeningQuestionPublicDocument } from "../src/data/native-activities/nativeOldschoolListening.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import legacyListeningAuthoring from "../src/data/ultimate-b2/authoring/unit-01-reading-exercise-2.listening.json" with { type: "json" };
 
@@ -49,6 +51,31 @@ test("Oldschool Listening is a distinct registered kind with blank paired docume
   assert.equal(publicDocument.parts[0].interaction.panels[1].kind, "synchronized-page");
   assert.equal(publicDocument.parts[0].interaction.questionMode, "open-response");
   assert.deepEqual(teacherDocument.parts[0].solution, { kind: "oldschool-listening", questionMode: "open-response", modelAnswers: [] });
+});
+
+test("Oldschool prompt visibility round-trips independently of answers and semantic topology", () => {
+  const { definition, publicDocument, teacherDocument } = completePair();
+  const before = structuredClone(publicDocument);
+  const interaction = publicDocument.parts[0].interaction;
+  const question = interaction.questions[0];
+  setOldschoolQuestionMembership(interaction, question.id, "prompt", false);
+  const restored = definition.normalizePublic(JSON.parse(JSON.stringify(publicDocument)));
+  assert.deepEqual(restored.parts[0].interaction.questionSurface, { promptQuestionIds: [], responseQuestionIds: [question.id] });
+  assert.deepEqual(restored.parts[0].interaction.questions, before.parts[0].interaction.questions);
+  assert.deepEqual(restored.parts[0].interaction.cues, before.parts[0].interaction.cues);
+  assert.deepEqual(restored.parts[0].interaction.snippetHotspots, before.parts[0].interaction.snippetHotspots);
+  assert.equal(definition.validatePair(restored, teacherDocument), true);
+  assert.equal(definition.assessReadiness(restored, teacherDocument).ready, true);
+  const projection = nativeOldschoolListeningQuestionPublicDocument(restored);
+  assert.deepEqual(projection.parts[0].interaction.presentation.panels[0].promptQuestionIds, []);
+  setOldschoolQuestionMembership(restored.parts[0].interaction, question.id, "prompt", true);
+  assert.deepEqual(oldschoolQuestionPanel(restored.parts[0].interaction).promptQuestionIds, [question.id]);
+  const old = definition.normalizePublic(before);
+  assert.equal(Object.hasOwn(old.parts[0].interaction, "questionSurface"), false, "legacy projection identity has no injected visibility defaults");
+  for (const invalid of [null, {}, { promptQuestionIds: [question.id, question.id], responseQuestionIds: [] }, { promptQuestionIds: ["unknown"], responseQuestionIds: [] }, { promptQuestionIds: [], responseQuestionIds: [], modelAnswers: [] }]) {
+    interaction.questionSurface = invalid;
+    assert.throws(() => definition.normalizePublic(publicDocument));
+  }
 });
 
 test("legacy Oldschool Listening documents without a discriminator normalize deterministically as Open Response", () => {

@@ -465,6 +465,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
   };
   const { addRegion: addPageRegion, updateRegion: updatePageRegion, removeRegion: removePageRegion, clearMappings: clearPageMappings, clearCueMappings: clearSelectedCueMappings } = createOldschoolMappingActions({ selectedCue, selectedRegionId, mutatePublic, setSelectedRegionId });
   const save = async () => {
+    if (oldschool && uploading === "question-image") return;
     setState((current) => ({ ...current, saving: true, message: "Saving…" }));
     try {
       const value = await saveNativeActivityPair({
@@ -569,6 +570,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
               surface: questionSurface,
               assetUrl: previewAssetUrl,
               uploading,
+              setUploading,
               setSelectedQuestionId,
               setSelectedSnippetId,
               setSelection: setQuestionSelection,
@@ -621,7 +623,7 @@ export function NativeListeningEditor({ bookSlug, componentSlug, activityId, pla
           </p>
         ) : null}
       </StudioTabWorkspace>
-      <StudioSaveBar dirty={dirty} saving={state.saving} message={state.message} ready={readyToSave} issues={readinessIssues} disabled={!dirty || state.saving || !readyToSave} reason={!dirty ? "No unsaved changes" : !readyToSave ? "Resolve all authoring issues before saving" : ""} onSave={save} />
+      <StudioSaveBar dirty={dirty} saving={state.saving} message={state.message} ready={readyToSave} issues={readinessIssues} disabled={!dirty || state.saving || !readyToSave || oldschool && uploading === "question-image"} reason={!dirty ? "No unsaved changes" : !readyToSave ? "Resolve all authoring issues before saving" : ""} onSave={save} />
     </section>
   );
 }

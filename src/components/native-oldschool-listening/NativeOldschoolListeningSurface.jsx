@@ -1,3 +1,4 @@
+import { NATIVE_OPEN_RESPONSE_LEGACY_PANEL_ID } from "../../data/native-activities/nativeOpenResponse.js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { LegacyListeningPlayer } from "../listening-player/LegacyListeningPlayer.jsx";
@@ -78,7 +79,7 @@ export function NativeOldschoolListeningSurface({ publicDocument, assetUrl = () 
     const first = interaction.cues.find((cue) => cue.id === hotspot.cueIds[0]);
     if (first && audioRef.current) { audioRef.current.currentTime = first.startMs / 1_000; setCurrentMs(first.startMs); }
   }, [interaction.cues, interaction.snippetHotspots]);
-  const hotspotPresentation = useMemo(() => ({ hotspots: interaction.snippetHotspots.map((hotspot) => ({ ...hotspot, panelId: questionMode === "single-choice" ? interaction.presentation?.panels[0]?.id || null : null, activityArea: hotspot.area })), activeHotspotId: null, onToggle: selectSnippet }), [interaction.presentation, interaction.snippetHotspots, questionMode, selectSnippet]);
+  const hotspotPresentation = useMemo(() => ({ hotspots: interaction.snippetHotspots.map((hotspot) => ({ ...hotspot, panelId: questionMode === "single-choice" ? interaction.presentation?.panels[0]?.id || null : interaction.questionSurface ? NATIVE_OPEN_RESPONSE_LEGACY_PANEL_ID : null, activityArea: hotspot.area })), activeHotspotId: null, onToggle: selectSnippet }), [interaction.presentation, interaction.questionSurface, interaction.snippetHotspots, questionMode, selectSnippet]);
   const onQuestionState = useCallback((state) => { if (state?.reveal) setRevealState(state.reveal); }, []);
   const questionPresentation = useMemo(() => presentation ? { command: presentation.command, onStateChange: onQuestionState } : null, [onQuestionState, presentation?.command]);
 

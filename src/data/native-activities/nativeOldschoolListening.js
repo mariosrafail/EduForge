@@ -1,3 +1,4 @@
+import { normalizeOldschoolQuestionSurface, oldschoolQuestionPanel } from "./nativeOldschoolQuestionSurface.js";
 import { isNativeChildId } from "./nativeChildIdentity.js";
 import {
   assessNativeOpenResponseReadiness,
@@ -112,9 +113,10 @@ export function normalizeNativeOldschoolListeningInteraction(input, { assets = [
   const questionMode = hasQuestionMode ? value.questionMode : "open-response";
   if (!NATIVE_OLDSCHOOL_LISTENING_QUESTION_MODES.includes(questionMode)) throw new Error("Oldschool Listening question mode is invalid.");
   const legacyQuestions = questionMode === "open-response" && !Object.hasOwn(value, "artwork");
+  const hasQuestionSurface = questionMode === "open-response" && Object.hasOwn(value, "questionSurface");
   const hasPresentation = questionMode === "single-choice" && Object.hasOwn(value, "presentation");
   if (hasPresentation && (!Array.isArray(value.presentation?.panels) || value.presentation.panels.length !== 1)) throw new Error("Oldschool Listening Multiple Choice visual presentation must use the fixed Panel 1 surface.");
-  exactKeys(value, ["kind", ...(hasQuestionMode ? ["questionMode"] : []), "audioAssetSlot", "audioDurationMs", "panels", ...(questionMode === "open-response" && !legacyQuestions ? ["artwork"] : []), "questions", ...(hasPresentation ? ["presentation"] : []), "cues", "snippetHotspots"], "Oldschool Listening interaction");
+  exactKeys(value, ["kind", ...(hasQuestionMode ? ["questionMode"] : []), "audioAssetSlot", "audioDurationMs", "panels", ...(questionMode === "open-response" && !legacyQuestions ? ["artwork"] : []), "questions", ...(hasQuestionSurface ? ["questionSurface"] : []), ...(hasPresentation ? ["presentation"] : []), "cues", "snippetHotspots"], "Oldschool Listening interaction");
   if (value.kind !== "oldschool-listening") throw new Error("Oldschool Listening interaction kind is invalid.");
   if (!Array.isArray(value.questions) || value.questions.length > NATIVE_OLDSCHOOL_LISTENING_LIMITS.questions) throw new Error("Oldschool Listening question count is invalid.");
   if (!Array.isArray(value.cues) || value.cues.length > NATIVE_OLDSCHOOL_LISTENING_LIMITS.cues) throw new Error("Oldschool Listening cue count is invalid.");
@@ -159,6 +161,7 @@ export function normalizeNativeOldschoolListeningInteraction(input, { assets = [
     ],
     ...(questionMode === "open-response" ? { artwork: questionSurface.artwork } : {}),
     questions: questionSurface.questions,
+    ...(hasQuestionSurface ? { questionSurface: normalizeOldschoolQuestionSurface(value.questionSurface, questionSurface.questions) } : {}),
     ...(questionMode === "single-choice" && questionSurface.presentation ? { presentation: questionSurface.presentation } : {}),
     cues,
     snippetHotspots: snippets,
@@ -185,7 +188,9 @@ export function nativeOldschoolListeningQuestionPublicDocument(publicDocument) {
     ...publicDocument,
     kind: questionMode,
     parts: [{ ...publicDocument.parts[0], interaction: questionMode === "open-response"
-      ? { kind: "open-response", surface: { width: interaction.panels[0].sourceWidth, height: interaction.panels[0].sourceHeight }, artwork: interaction.artwork || [], questions: interaction.questions }
+      ? interaction.questionSurface
+        ? { kind: "open-response", questions: interaction.questions, presentation: { kind: "panels", panels: [oldschoolQuestionPanel(interaction)] } }
+        : { kind: "open-response", surface: { width: interaction.panels[0].sourceWidth, height: interaction.panels[0].sourceHeight }, artwork: interaction.artwork || [], questions: interaction.questions }
       : { kind: "single-choice", questions: interaction.questions, ...(interaction.presentation ? { presentation: interaction.presentation } : {}) } }],
   };
 }

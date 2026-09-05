@@ -15,6 +15,7 @@ export function switchNativeOldschoolListeningQuestionMode(publicDocument, teach
   interaction.questions = [];
   delete interaction.artwork;
   delete interaction.presentation;
+  delete interaction.questionSurface;
   if (requestedMode === "open-response") interaction.artwork = [];
   teacherDocument.parts[0].solution = requestedMode === "open-response"
     ? { kind: "oldschool-listening", questionMode: "open-response", modelAnswers: [] }
