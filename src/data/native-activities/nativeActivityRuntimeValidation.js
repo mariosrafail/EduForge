@@ -1,4 +1,5 @@
 import { normalizeNativeActivityPublic } from "./nativeActivityPublic.js";
+import { normalizeNativeMarkWordsInteraction, normalizeNativeMarkWordsSolution, validateNativeMarkWordsTopology } from "./nativeMarkWords.js";
 import { normalizeNativeActivityTeacher, validateNativeActivityDocumentPair } from "./nativeActivityTeacher.js";
 import { normalizeNativeImageInteraction } from "./nativeImage.js";
 import { normalizeNativeOpenResponseInteraction, normalizeNativeOpenResponseSolution, validateNativeOpenResponseTopology } from "./nativeOpenResponse.js";
@@ -9,7 +10,7 @@ import { normalizeNativeOldschoolListeningInteraction, normalizeNativeOldschoolL
 import { normalizeNativeDragDropInteraction, normalizeNativeDragDropSolution, validateNativeDragDropTopology } from "./nativeDragDrop.js";
 
 export function normalizeNativeRuntimePublicDocument(document, { activityId, kind }) {
-  const normalizeInteraction = kind === "open-response"
+  const normalizeInteraction = kind === "mark-the-words" ? normalizeNativeMarkWordsInteraction : kind === "open-response"
     ? normalizeNativeOpenResponseInteraction
     : kind === "image"
       ? normalizeNativeImageInteraction
@@ -29,14 +30,15 @@ export function normalizeNativeRuntimePublicDocument(document, { activityId, kin
 }
 
 export function normalizeNativeRuntimeTeacherDocument(document, { activityId, kind, publicDocument }) {
-  if (!["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop"].includes(kind)) throw new Error("Native runtime Teacher document is unsupported.");
+  if (!["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop", "mark-the-words"].includes(kind)) throw new Error("Native runtime Teacher document is unsupported.");
   const normalized = normalizeNativeActivityTeacher(document, {
     expectedActivityId: activityId,
     expectedKind: kind,
-    normalizeSolution: kind === "open-response" ? normalizeNativeOpenResponseSolution : kind === "single-choice" ? normalizeNativeSingleChoiceSolution : kind === "complete-sentences" ? normalizeNativeCompleteSentencesSolution : kind === "listening" ? normalizeNativeListeningSolution : kind === "oldschool-listening" ? normalizeNativeOldschoolListeningSolution : normalizeNativeDragDropSolution,
+    normalizeSolution: kind === "mark-the-words" ? normalizeNativeMarkWordsSolution : kind === "open-response" ? normalizeNativeOpenResponseSolution : kind === "single-choice" ? normalizeNativeSingleChoiceSolution : kind === "complete-sentences" ? normalizeNativeCompleteSentencesSolution : kind === "listening" ? normalizeNativeListeningSolution : kind === "oldschool-listening" ? normalizeNativeOldschoolListeningSolution : normalizeNativeDragDropSolution,
   });
   validateNativeActivityDocumentPair(publicDocument, normalized);
-  if (kind === "open-response") validateNativeOpenResponseTopology(publicDocument, normalized);
+  if (kind === "mark-the-words") validateNativeMarkWordsTopology(publicDocument, normalized);
+  else if (kind === "open-response") validateNativeOpenResponseTopology(publicDocument, normalized);
   else if (kind === "single-choice") validateNativeSingleChoiceTopology(publicDocument, normalized);
   else if (kind === "complete-sentences") validateNativeCompleteSentencesTopology(publicDocument, normalized);
   else if (kind === "listening") validateNativeListeningTopology(publicDocument, normalized);

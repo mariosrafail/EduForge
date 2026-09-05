@@ -49,9 +49,10 @@ function videoIsComplete(video) {
   return Boolean(video?.assetSlot && video.cues?.length && video.durationMs > 0 && video.cues.every((cue) => cue.endMs <= video.durationMs));
 }
 
-export function NativeVideoEditor({ bookSlug, componentSlug, activityId, publicDraft, mutatePublic, onIncompleteChange, onIntentChange, onStatusChange }) {
+export function NativeVideoEditor({ bookSlug, componentSlug, activityId, publicDraft, mutatePublic, onIncompleteChange, onIntentChange, onStatusChange, onUploadStateChange }) {
   const [enabled, setEnabled] = useState(Boolean(publicDraft.video));
   const [uploading, setUploading] = useState(false);
+  useEffect(() => { onUploadStateChange?.(Boolean(uploading)); return () => onUploadStateChange?.(false); }, [uploading, onUploadStateChange]);
   const [pendingCues, setPendingCues] = useState(publicDraft.video?.cues || []);
   const video = publicDraft.video || null;
   const reference = video ? publicDraft.assets.find((asset) => asset.slot === video.assetSlot) : null;

@@ -23,6 +23,16 @@ test("standard web safety scanner accepts learner-only assets and rejects answer
   assert.ok(teacherReviewResult.findings.some((finding) => finding.label === "publisher resource path"));
 });
 
+test("Student bundle scanner rejects serialized and minified Mark the Words keys", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "hhplms-mark-words-bundle-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(path.join(root, "leak.js"), 'const a={correctWordIds:["word-00000000000000000000000000000001"]}; const b={"correctWordIds":[]};');
+  const result = await scanWebBundle(root);
+  assert.ok(result.findings.some((finding) => finding.label === "serialized answer-key field"));
+  assert.ok(result.findings.some((finding) => finding.label === "hardcoded correct-word ID array"));
+  assert.equal((await scanWebBundle(root, { allowTeacherAnswers: true })).matchCount, 0);
+});
+
 test("public Viewer uses an authorized dynamic solution provider while Android Teacher keeps its generated pack", async () => {
   const [hostedProvider, androidProvider, config] = await Promise.all([
     readFile("src/apps/android-teacher-offline/hostedAuthorizedTeacherSolutions.js", "utf8"),

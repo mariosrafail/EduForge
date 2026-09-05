@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Upload } from "lucide-react";
 
 import { StudioField } from "../../../components/builder-studio/StudioControls.jsx";
 import { uploadBuilderFont } from "./builderNativeActivityApi.js";
 
-export function NativeActivityFontControls({ bookSlug, componentSlug, fonts, selectedSlot, onSelect, onUploaded, onMessage, label = "Answer font" }) {
+export function NativeActivityFontControls({ bookSlug, componentSlug, fonts, selectedSlot, onSelect, onUploaded, onMessage, label = "Answer font", onUploadStateChange }) {
   const [uploading, setUploading] = useState(false);
+  useEffect(() => { onUploadStateChange?.(uploading); return () => onUploadStateChange?.(false); }, [uploading, onUploadStateChange]);
   const selectedFont = fonts.find((font) => font.slot === selectedSlot) || null;
 
   const upload = async (file) => {

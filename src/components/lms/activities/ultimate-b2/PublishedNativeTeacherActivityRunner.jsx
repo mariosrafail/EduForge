@@ -1,3 +1,4 @@
+import { NativeMarkWordsTeacherSurface } from "../../../native-mark-words/NativeMarkWordsTeacherSurface.jsx";
 import { useEffect, useState } from "react";
 
 import { NativeImageLearnerContent, NativeImagePresentation } from "../../../native-image/NativeImageSurface.jsx";
@@ -11,7 +12,7 @@ import { NativeOldschoolListeningTeacherSurface } from "../../../native-oldschoo
 import { NativeDragDropTeacherSurface } from "../../../native-drag-drop/NativeDragDropTeacherSurface.jsx";
 import { loadPublishedNativeTeacherDocument, publishedNativeAssetUrl } from "virtual:component-publication";
 
-const teacherDocumentKinds = new Set(["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop"]);
+const teacherDocumentKinds = new Set(["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop", "mark-the-words"]);
 
 export function PublishedNativeTeacherActivityRunner({ entry, publication, showMetadataHeader = true, presentation = null }) {
   const [teacherState, setTeacherState] = useState({ kind: "idle", document: null });
@@ -34,6 +35,7 @@ export function PublishedNativeTeacherActivityRunner({ entry, publication, showM
   const errorLabel = ["open-response", "listening", "oldschool-listening"].includes(entry.kind) ? "Teacher model answers are unavailable." : "Teacher answers are unavailable.";
   return <NativeReadableTextPresentation document={document} assetUrl={assetUrl} presentation={presentation}>{(activityPresentation, audioHotspotPresentation) => <article className="published-native-activity" data-native-kind={entry.kind} data-release-id={publication.releaseId} data-native-metadata={showMetadataHeader || undefined}>
     {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p className="native-activity-visible-instruction">{document.metadata.visibleInstructionText}</p> : null}</header> : null}
+    {entry.kind === "mark-the-words" && teacherState.document ? <NativeMarkWordsTeacherSurface publicDocument={document} teacherDocument={teacherState.document} assetUrl={assetUrl} identity={publication.releaseId} presentation={activityPresentation} /> : null}
     {entry.kind === "image" ? <NativeImagePresentation document={document} assetUrl={assetUrl} className="native-runtime-surface" audioHotspotPresentation={audioHotspotPresentation} /> : null}
     {entry.kind === "image" && showMetadataHeader ? <NativeImageLearnerContent document={document} /> : null}
     {teacherDocumentKinds.has(entry.kind) && teacherState.kind === "loading" ? <p role="status">{loadingLabel}</p> : null}

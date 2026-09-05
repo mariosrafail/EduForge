@@ -1,3 +1,4 @@
+import { exercisePublishedMarkWords } from "./lms-native-mark-words-playwright.mjs";
 import assert from "node:assert/strict";
 import { readFile, stat } from "node:fs/promises";
 import { createServer } from "node:http";
@@ -9,7 +10,7 @@ import { localPlaywrightLaunchOptions } from "./android-teacher/playwright-launc
 import { compilePublicationV2Fixture, publicationV2Fixture } from "../tests/fixtures/publication-v2.js";
 
 const root = path.resolve("dist");
-const compiled = compilePublicationV2Fixture();
+const compiled = compilePublicationV2Fixture({ markWords: true });
 const releaseId = "10000000-0000-4000-8000-000000000097";
 const publication = {
   releaseId,
@@ -179,6 +180,7 @@ try {
     assert.ok(metrics.surfaceOverflow.x <= 1 && metrics.surfaceOverflow.y <= 1, JSON.stringify(metrics));
     assert.ok(metrics.documentOverflowX <= 1, JSON.stringify(metrics));
   }
+  await exercisePublishedMarkWords({ page, origin: `http://127.0.0.1:${port}`, publication, compiled });
 } finally {
   await browser?.close();
   await new Promise((resolve) => server.close(resolve));

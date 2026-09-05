@@ -17,7 +17,7 @@ export function buildNativeFinalSubmission({ assignmentId, target, responses = {
       schemaVersion: target?.capability?.responseSchemaVersion,
       items: questions
         .filter((question) => !["single-choice", "drag-drop"].includes(target?.nativeKind) || responses[question.id])
-        .map((question) => ({ id: question.id, value: responses[question.id] || "" })),
+        .map((question) => ({ id: question.id, value: responses[question.id] || (target?.nativeKind === "mark-the-words" ? [] : "") })),
     },
   };
 }

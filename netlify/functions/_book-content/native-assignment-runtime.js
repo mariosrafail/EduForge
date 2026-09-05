@@ -7,6 +7,7 @@ import { nativeCompleteSentencesAcceptedTexts, NATIVE_COMPLETE_SENTENCES_EXACT_E
 import { nativeOpenResponseModelAnswerTexts } from "../../../src/data/native-activities/nativeOpenResponse.js";
 import { nativeSingleChoiceCorrectOptionIds, nativeSingleChoiceSelectionMode } from "../../../src/data/native-activities/nativeSingleChoice.js";
 import { normalizeNativeLineEndings } from "../../../src/data/native-activities/nativePedagogicalText.js";
+import { normalizeMarkWordsResponse, scoreMarkWordsResponse, markWordsReview } from "./mark-words-response.js";
 
 export const NATIVE_ASSIGNMENT_TARGET_KIND = "published_native";
 export const NATIVE_RESPONSE_SCHEMA_VERSION = "native-response.v1";
@@ -270,6 +271,7 @@ function dragDropReview(publicDocument, teacherDocument, payload = {}) {
 }
 
 const capabilities = Object.freeze({
+  "mark-the-words": Object.freeze({ kind: "mark-the-words", assignable: true, submittable: true, reviewMode: "auto-scored", responseSchemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, normalizeResponse: normalizeMarkWordsResponse, evaluateResponse: scoreMarkWordsResponse, teacherReviewProjection: markWordsReview }),
   "open-response": Object.freeze({
     kind: "open-response",
     assignable: true,
@@ -350,7 +352,8 @@ export function containsClientTeacherMaterial(value) {
   if (Array.isArray(value)) return value.some(containsClientTeacherMaterial);
   if (!value || typeof value !== "object") return false;
   const forbidden = new Set(["acceptedAnswers", "acceptedTexts", "modelAnswer", "modelAnswers", "modelAnswerTexts", "correctOptionId", "correctOptionIds", "correctAnswers", "mappings", "solution", "teacherDocument", "teacherProjection"]);
-  return Object.entries(value).some(([key, child]) => forbidden.has(key) || containsClientTeacherMaterial(child));
+  const normalizedForbidden = new Set([...forbidden, "correctWordIds", "isCorrect", "answerCount", "markedSource"].map((key) => key.toLowerCase().replace(/[^a-z0-9]/g, "")));
+  return Object.entries(value).some(([key, child]) => normalizedForbidden.has(key.toLowerCase().replace(/[^a-z0-9]/g, "")) || containsClientTeacherMaterial(child));
 }
 
 async function releaseRow(sql, { releaseId, requireActive = false }) {

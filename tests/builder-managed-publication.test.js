@@ -217,3 +217,20 @@ test("managed page materialization verifies its canonical mutable source and imm
     expectedContentType: "image/png",
   });
 });
+
+test("managed Workbook publishes Mark the Words under its existing compatibility descriptor", async () => {
+  const { createMarkWordsFixture } = await import("./fixtures/native-mark-words.js");
+  const activityId = "ultimate-b2-wb-u1-p1-o99";
+  const input = managedSourcesWithActivity(componentSlug, pageId, activityId, "Unused private fixture");
+  const pair = createMarkWordsFixture({ activityId, pageId });
+  const entry = input.native.activities[activityId]; entry.index.kind = "mark-the-words";
+  input.native.index.payload.activities[0].kind = "mark-the-words"; input.native.index.sha256 = builderDocumentSha256(input.native.index.payload);
+  entry.public = { payload: pair.publicDocument, revision: 4, sha256: builderDocumentSha256(pair.publicDocument) };
+  entry.teacher = { payload: pair.teacherDocument, revision: 4, sha256: builderDocumentSha256(pair.teacherDocument) };
+  const compiled = compileUltimateB2ManagedComponentRelease(input, componentSlug);
+  assert.equal(compiled.publicProjection.nativeActivities[activityId].kind, "mark-the-words");
+  assert.equal(compiled.releaseSha256, compileUltimateB2ManagedComponentRelease(input, componentSlug).releaseSha256);
+  const verified = verifyUltimateB2ManagedComponentRelease(releaseRow(compiled), componentSlug);
+  assert.deepEqual(verified.publicProjection.nativeActivities[activityId].document, pair.publicDocument);
+  assert.doesNotMatch(JSON.stringify(verified.publicProjection), /correctWordIds/);
+});

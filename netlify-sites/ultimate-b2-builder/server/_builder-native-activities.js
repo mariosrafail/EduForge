@@ -1,3 +1,4 @@
+import { nativeMarkWordsAssetRequirements } from "../../../src/data/native-activities/nativeMarkWords.js";
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
 
@@ -479,6 +480,7 @@ async function savePair(dependencies, sql, auth, parsedRoute, event) {
         ...nativeSupplementalAudioAssetRequirements(publicDocument),
         ...nativeVideoAssetRequirements(publicDocument),
         ...nativeAudioTextAssetRequirements(publicDocument),
+        ...(publicDocument.kind === "mark-the-words" ? nativeMarkWordsAssetRequirements(publicDocument) : []),
         ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
         ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
         ...(publicDocument.kind === "listening" ? nativeListeningAssetRequirements(publicDocument) : []),
@@ -631,6 +633,7 @@ function nativeAssetRequirements(publicDocument) {
     ...nativeSupplementalAudioAssetRequirements(publicDocument),
     ...nativeVideoAssetRequirements(publicDocument),
     ...nativeAudioTextAssetRequirements(publicDocument),
+    ...(publicDocument.kind === "mark-the-words" ? nativeMarkWordsAssetRequirements(publicDocument) : []),
     ...(publicDocument.kind === "single-choice" ? nativeSingleChoicePresentationAssetRequirements(publicDocument) : []),
     ...(publicDocument.kind === "complete-sentences" ? nativeCompleteSentencesAssetRequirements(publicDocument) : []),
     ...(publicDocument.kind === "listening" ? nativeListeningAssetRequirements(publicDocument) : []),

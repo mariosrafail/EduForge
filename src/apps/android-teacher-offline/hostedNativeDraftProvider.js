@@ -68,7 +68,7 @@ export async function loadHostedNativeDraftPublicActivity(activityId, { context 
 }
 
 export async function loadHostedNativeDraftTeacherActivity(publicEntry, { context = resolveHostedViewerRuntimeContext(), identity = currentIdentity(), fetchImpl = globalThis.fetch, signal } = {}) {
-  if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW || !["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop"].includes(publicEntry?.kind)) return null;
+  if (context.kind !== HOSTED_VIEWER_RUNTIME_MODES.BUILDER_PREVIEW || !["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop", "mark-the-words"].includes(publicEntry?.kind)) return null;
   const activityId = publicEntry.document.activityId;
   const payload = await fetchEnvelope(nativeDraftPath(activityId, "teacher", context.authorization, identity), { fetchImpl, signal });
   if (!payload) throw new Error("Native Teacher draft is unavailable.");
@@ -76,7 +76,7 @@ export async function loadHostedNativeDraftTeacherActivity(publicEntry, { contex
 }
 
 export function shouldLoadHostedNativeDraftTeacherActivity(publicEntry, teacherMode) {
-  return Boolean(teacherMode && ["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop"].includes(publicEntry?.kind));
+  return Boolean(teacherMode && ["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop", "mark-the-words"].includes(publicEntry?.kind));
 }
 
 export function hostedNativeDraftAssetUrl(activityId, assetId, context = resolveHostedViewerRuntimeContext(), identity = currentIdentity()) {

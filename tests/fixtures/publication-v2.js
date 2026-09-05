@@ -1,3 +1,4 @@
+import { appendMarkWordsPublicationFixture } from "./native-mark-words.js";
 import repositoryHotspots from "../../src/data/ultimate-b2/authoring/studentsBookHotspots.json" with { type: "json" };
 import { builderDocumentSha256 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-content-security.js";
 import { compileUltimateB2ComponentReleaseV2 } from "../../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
@@ -187,5 +188,6 @@ export function createPublicationV2FixtureSources({ prompt = "Why is an immutabl
 }
 
 export function compilePublicationV2Fixture(options) {
-  return compileUltimateB2ComponentReleaseV2(createPublicationV2FixtureSources(options));
+  const sources = createPublicationV2FixtureSources(options);
+  return compileUltimateB2ComponentReleaseV2(options?.markWords ? appendMarkWordsPublicationFixture(sources) : sources);
 }

@@ -15,9 +15,10 @@ function detachReadableText(document) {
   audioSlots.forEach((audioSlot) => removeNativeManagedAssetReferenceIfUnused(document, audioSlot));
 }
 
-export function NativeReadableTextEditor({ bookSlug, componentSlug, activityId, publicDraft, mutatePublic, previewUrl, onIncompleteChange, onIntentChange, onStatusChange }) {
+export function NativeReadableTextEditor({ bookSlug, componentSlug, activityId, publicDraft, mutatePublic, previewUrl, onIncompleteChange, onIntentChange, onStatusChange, onUploadStateChange }) {
   const [enabled, setEnabled] = useState(Boolean(publicDraft.readableText));
   const [uploading, setUploading] = useState(false);
+  useEffect(() => { onUploadStateChange?.(Boolean(uploading)); return () => onUploadStateChange?.(false); }, [uploading, onUploadStateChange]);
   const [hotspotsIncomplete, setHotspotsIncomplete] = useState(false);
   const readableText = publicDraft.readableText || null;
   const reference = readableText ? publicDraft.assets.find((asset) => asset.slot === readableText.assetSlot) : null;

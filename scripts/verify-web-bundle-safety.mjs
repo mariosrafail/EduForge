@@ -21,7 +21,8 @@ const prohibitedPatterns = [
   ["Ruffle runtime", /@ruffle-rs|RufflePlayer|ruffle_web/gi],
   ["AIR runtime", /Adobe AIR|AIR runtime/gi],
   ["answer record field", /\b(?:normalizedAnswerRecords|answerRecords|explicitAnswerEvidence|publisherAnswerValue|decodedPublisherValue)\b/g],
-  ["serialized answer-key field", /["'](?:acceptedAnswers|acceptedAnswer|correctAnswers|correctAnswer)["']\s*:/g],
+  ["serialized answer-key field", /["'](?:acceptedAnswers|acceptedAnswer|correctAnswers|correctAnswer|correctWordIds)["']\s*:/g],
+  ["hardcoded correct-word ID array", /\bcorrectWordIds\s*:\s*\[\s*["']word-/g],
   ["hardcoded answer value", /(?:\{|,)answer\s*:\s*(?:`[^`]+`|"[^"]+"|'[^']+')/g],
   ["hardcoded accepted-answer array", /\bacceptedAnswers\s*:\s*\[\s*(?:`[^`]+`|"[^"]+"|'[^']+')/g],
   ["known legacy listening answer", /three point five/gi],
@@ -32,6 +33,7 @@ const prohibitedPatterns = [
 const teacherAnswerPatternLabels = new Set([
   "answer record field",
   "serialized answer-key field",
+  "hardcoded correct-word ID array",
   "hardcoded answer value",
   "hardcoded accepted-answer array",
   "known legacy listening answer",

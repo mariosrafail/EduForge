@@ -1,0 +1,27 @@
+.native-mark-words { width: 100%; min-height: 0; overflow: auto; padding: 12px; }
+.native-mark-words-passage { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0 0 1em; }
+.native-mark-words-word { display: inline; padding: 0; margin: 0; border: 0; border-radius: 0; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; line-height: inherit; cursor: pointer; touch-action: pan-y; }
+.native-mark-words-word:disabled { opacity: 1; cursor: default; }
+.native-mark-words[data-marking="underline"] .native-mark-words-word[aria-pressed="true"] { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .18em; }
+.native-mark-words[data-marking="highlight"] .native-mark-words-word[aria-pressed="true"] { background: #fce58c; }
+.native-mark-words-word:focus-visible, .native-mark-words-hit:focus-visible { outline: 2px dashed #075eb5; outline-offset: 2px; }
+.native-mark-words-stage-slot { display: grid; place-items: center; min-height: 0; width: 100%; }
+.native-mark-words-stage { position: relative; width: 100%; }
+.native-mark-words-stage > img { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.teacher-offline-embedded-activity :is(.hosted-native-draft-activity,.published-native-activity)[data-native-kind="mark-the-words"] { height: 100%; min-height: 0; }
+.teacher-offline-embedded-activity .native-mark-words { height: 100%; }
+.teacher-offline-embedded-activity .native-mark-words[data-presentation="image-hotspot"] { display: flex; flex-direction: column; overflow: hidden; }
+.teacher-offline-embedded-activity .native-mark-words-stage-slot { flex: 1; container-type: size; overflow: hidden; }
+.teacher-offline-embedded-activity .native-mark-words-stage { width: min(100cqw, calc(100cqh * var(--mark-words-ratio))); }
+.native-mark-words-hit, .native-mark-words-mark { position: absolute; padding: 0; margin: 0; border: 0; background: transparent; border-radius: 0; box-sizing: border-box; }
+.native-mark-words-hit { cursor: pointer; touch-action: pan-y; }
+.native-mark-words-hit:disabled { cursor: default; opacity: 1; }
+.native-mark-words-mark { pointer-events: none; }
+.native-mark-words[data-marking="underline"] .native-mark-words-mark[data-selected] { border-bottom: 2px solid currentColor; }
+.native-mark-words[data-marking="highlight"] .native-mark-words-mark[data-selected] { background: #fce58c80; }
+.native-mark-words-navigation { display: flex; gap: 12px; align-items: center; justify-content: center; font-size: 16px; margin-bottom: 12px; }
+.native-mark-words-editor .native-mark-words { border: 1px solid #cbd5e1; border-radius: 8px; }
+.native-mark-words-canvas { position: relative; width: 100%; background: #f1f5f9; }
+.native-mark-words-canvas > img { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.native-mark-words-authoring-hit { position: absolute; padding: 0; border: 1px solid #075eb5; background: #075eb51a; color: #12304b; }
+.native-mark-words-authoring-mark { position: absolute; border-bottom: 2px solid #d14500; pointer-events: none; }

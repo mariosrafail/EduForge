@@ -20,6 +20,7 @@ import {
   normalizeUltimateB2PublicReleaseV2Projection,
   normalizeUltimateB2ReleaseV2SourceSnapshot,
   normalizeUltimateB2TeacherReleaseV2Projection,
+  ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS,
   ULTIMATE_B2_COMPONENT_RELEASE_V2_EXPANDED_NATIVE_KINDS,
   ULTIMATE_B2_COMPONENT_RELEASE_V2_COMPLETE_SENTENCES_NATIVE_KINDS,
   ULTIMATE_B2_COMPONENT_RELEASE_V2_INITIAL_NATIVE_KINDS,
@@ -115,6 +116,7 @@ test("v2 compatibility variants and capability sets are frozen and reproducible"
       { name: "page-lifecycle-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_DRAG_DROP_NATIVE_KINDS },
       { name: "oldschool-listening-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS },
       { name: "native-media-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_OLDSCHOOL_LISTENING_NATIVE_KINDS },
+      { name: "mark-words-expanded", nativeKinds: ULTIMATE_B2_COMPONENT_RELEASE_V2_MARK_WORDS_NATIVE_KINDS },
     ],
   );
   for (const variant of ULTIMATE_B2_PUBLICATION_V2_COMPATIBILITY_VARIANTS) {

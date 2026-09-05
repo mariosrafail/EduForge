@@ -1,3 +1,5 @@
+import { NativeMarkWordsStudentSurface } from "../../../native-mark-words/NativeMarkWordsStudentSurface.jsx";
+import { NativeMarkWordsTeacherSurface } from "../../../native-mark-words/NativeMarkWordsTeacherSurface.jsx";
 import { NativeImageLearnerContent, NativeImagePresentation } from "../../../native-image/NativeImageSurface.jsx";
 import { NativeOpenResponseStudentSurface } from "../../../native-open-response/NativeOpenResponseStudentSurface.jsx";
 import { NativeOpenResponseTeacherSurface } from "../../../native-open-response/NativeOpenResponseTeacherSurface.jsx";
@@ -22,6 +24,10 @@ export function HostedNativeDraftActivityRunner({ activityId, state, teacherMode
   const assetUrl = (assetId) => hostedNativeDraftAssetUrl(activityId, assetId, runtimeContext, identity);
   return <NativeReadableTextPresentation document={document} assetUrl={assetUrl} presentation={presentation}>{(activityPresentation, audioHotspotPresentation) => <article className="hosted-native-draft-activity" data-native-kind={kind} data-native-draft="true" data-native-metadata={showMetadataHeader || undefined}>
     {showMetadataHeader ? <header><h2>{document.metadata.title}</h2>{document.metadata.visibleInstructionText ? <p className="native-activity-visible-instruction">{document.metadata.visibleInstructionText}</p> : null}</header> : null}
+    {kind === "mark-the-words" && !teacherMode ? <NativeMarkWordsStudentSurface document={document} assetUrl={assetUrl} /> : null}
+    {kind === "mark-the-words" && teacherMode && state.teacher.kind === "loading" ? <p role="status">Loading Teacher answers…</p> : null}
+    {kind === "mark-the-words" && teacherMode && !["ready", "loading"].includes(state.teacher.kind) ? <p role="alert">Teacher answers are unavailable.</p> : null}
+    {kind === "mark-the-words" && teacherMode && state.teacher.kind === "ready" && state.teacher.entry ? <NativeMarkWordsTeacherSurface publicDocument={document} teacherDocument={state.teacher.entry.document} assetUrl={assetUrl} presentation={activityPresentation} /> : null}
     {kind === "image" ? <NativeImagePresentation document={document} assetUrl={assetUrl} className="native-runtime-surface" audioHotspotPresentation={audioHotspotPresentation} /> : null}
     {kind === "image" && showMetadataHeader ? <NativeImageLearnerContent document={document} /> : null}
     {kind === "open-response" && (!teacherMode || state.teacher.kind !== "ready") ? <NativeOpenResponseStudentSurface document={document} assetUrl={assetUrl} audioHotspotPresentation={audioHotspotPresentation} /> : null}

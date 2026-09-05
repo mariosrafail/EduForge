@@ -1,3 +1,5 @@
+import { nativeDocumentPair } from "./hosted-native-activity-document-fixtures.mjs";
+import { exerciseMarkWordsAuthoring, exerciseMarkWordsHostedViewer } from "./hosted-native-activity-mark-words.mjs";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { createReadStream } from "node:fs";
@@ -69,19 +71,6 @@ async function openStudentsUnitOnePage(viewer, navigation = null) {
   await wait(viewer.locator(".teacher-offline-library").waitFor()); assert.equal(await wait(viewer.getByRole("button", { name: "Students Book", exact: true }).getAttribute("aria-pressed")), "true");
   await click(viewer.getByRole("button", { name: /^Open Unit 1:/ }), "Open Unit 1"); await wait(viewer.getByRole("heading", { name: "Unit 1", exact: true }).waitFor());
   await click(viewer.locator(".teacher-unit-page-card").first(), "Student Unit 1 page card"); await wait(viewer.locator(".teacher-offline-page-stage").waitFor());
-}
-function nativeDocumentPair(activityId, kind, pageId, title) {
-  const interaction = kind === "open-response" ? { kind, surface: { width: 1024, height: 582 }, artwork: [], questions: [] }
-    : kind === "image" ? { kind, surface: { width: 1024, height: 582 }, images: [] }
-      : kind === "complete-sentences" ? { kind, items: [], presentation: { kind: "image-hotspot", panels: [{ id: `panel-${"0".repeat(31)}1`, backgroundAssetSlot: "", sourceWidth: 1024, sourceHeight: 582, hotspots: [] }] } }
-        : kind === "listening" ? { kind, audioAssetSlot: "", audioDurationMs: 0, panels: [{ id: "panel-1", kind: "questions", sourceWidth: 1024, sourceHeight: 582 }, { id: "panel-2", kind: "synchronized-transcript", backgroundAssetSlot: "", sourceWidth: 1024, sourceHeight: 1801, transcriptArea: { x: 72, y: 120, width: 880, height: 1500 } }], artwork: [], questions: [], cues: [], snippetHotspots: [] }
-          : kind === "oldschool-listening" ? { kind, audioAssetSlot: "", audioDurationMs: 0, panels: [{ id: "panel-1", kind: "questions", sourceWidth: 1024, sourceHeight: 582 }, { id: "panel-2", kind: "synchronized-page", pageAssetSlot: "", sourceWidth: 1024, sourceHeight: 1400, altText: "" }], artwork: [], questions: [], cues: [], snippetHotspots: [] }
-          : kind === "drag-drop" ? { kind, words: [], presentation: { bankWordStyle: { fontFamily: "Arial", fontSize: 18, color: "#172033", fontAssetSlot: null }, placedAnswerStyle: { fontFamily: "Arial", fontSize: 21, color: "#172033", fontAssetSlot: null } }, panels: [] }
-        : { kind, questions: [] };
-  const solution = kind === "open-response" || kind === "listening" || kind === "oldschool-listening" ? { kind, modelAnswers: [] } : kind === "single-choice" ? { kind, correctAnswers: [] } : kind === "complete-sentences" ? { kind, answers: [] } : kind === "drag-drop" ? { kind, mappings: [] } : { kind };
-  const publicDocument = { schemaVersion: "1.0", activityId, kind, metadata: { title, visibleInstructionText: "" }, placement: { pageId }, assets: [], parts: [{ id: "part-1", interaction }] };
-  const teacherDocument = { schemaVersion: "1.0", activityId, kind, parts: [{ id: "part-1", solution }] };
-  return { publicRevision: 1, teacherRevision: 1, publicDocument, teacherDocument };
 }
 const legacyPair = nativeDocumentPair(legacyActivityId, "open-response", "ub2-sb-unit-1-part-1", "Legacy checksum fixture");
 legacyPair.publicDocument.metadata.visibleInstructionText = "Deprecated native instruction must stay hidden.";
@@ -206,7 +195,7 @@ const server = createServer(async (request, response) => {
     if (!asset) { assetId = `10000000-0000-4000-8000-${String(uploadSequence++).padStart(12, "0")}`; asset = { ...upload, checksumSha256 }; nativeAssets.set(assetId, asset); nativeAssetByContent.set(contentIdentity, assetId); }
     const dimensions = upload.type === "audio/mpeg" || upload.type === "video/mp4" || upload.type === "application/pdf"
       ? { width: null, height: null }
-      : upload.name.startsWith("choice-")
+      : /^(?:choice-|words-)/.test(upload.name)
         ? await sharp(upload.bytes).metadata().then(({ width, height }) => ({ width, height }))
         : upload.name.startsWith("readable-")
           ? { width: 1000, height: 1800 }
@@ -257,7 +246,7 @@ try {
     const nativePreview = url.pathname.match(/^\/preview\/native-activities\/books\/ultimate-b2\/components\/ultimate-b2-students-book\/activities\/([a-z0-9-]+)\/(public|teacher)$/);
     if (nativePreview) {
       const state = nativeDocuments.get(nativePreview[1]); const audience = nativePreview[2];
-      if (!state || !nativeIndex.activities.some((entry) => entry.activityId === nativePreview[1]) || (audience === "teacher" && !["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop"].includes(state.publicDocument.kind))) return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
+      if (!state || !nativeIndex.activities.some((entry) => entry.activityId === nativePreview[1]) || (audience === "teacher" && !["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop", "mark-the-words"].includes(state.publicDocument.kind))) return route.fulfill({ status: 404, contentType: "application/json", body: "{}" });
       const document = state[`${audience}Document`]; const revision = state[`${audience}Revision`];
       return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: nativePreview[1], kind: state.publicDocument.kind, audience, schemaVersion: "1.0", revision, document }) });
     }
@@ -895,5 +884,8 @@ try {
   const revealedViewerDragTargets = viewer.locator(".native-drag-drop-teacher-target[data-revealed]"); const viewerDragTargets = viewer.locator(".native-drag-drop-teacher-target"); assert.equal(await revealedViewerDragTargets.count(), 0); assert.equal(await viewer.getByText("First", { exact: true }).count(), 1, "the public reference bank is visible but no mapped target answer is pre-revealed"); await viewerDragTargets.first().click(); await revealedViewerDragTargets.first().waitFor(); assert.equal(await revealedViewerDragTargets.count(), 1); const viewerDragShowNext = viewer.getByRole("button", { name: "Show Next", exact: true }); await viewerDragShowNext.click(); await revealedViewerDragTargets.nth(1).waitFor(); assert.equal(await revealedViewerDragTargets.count(), 2); await viewerDragShowNext.click(); await viewer.getByAltText("Second panel background").waitFor(); assert.equal(await revealedViewerDragTargets.count(), 1); assert.equal(await viewerDragShowNext.isDisabled(), true); const viewerDragPrevious = viewer.getByRole("button", { name: "Previous activity part", exact: true }); await viewerDragPrevious.click(); await viewer.getByAltText("First panel background").waitFor(); assert.equal(await revealedViewerDragTargets.count(), 2); const viewerDragReload = viewer.getByRole("button", { name: "Reload", exact: true }); await viewerDragReload.click(); await viewerDragTeacher.waitFor(); await revealedViewerDragTargets.first().waitFor({ state: "detached" }); assert.equal(await revealedViewerDragTargets.count(), 0); const viewerDragShowAll = viewer.getByRole("button", { name: "Show All", exact: true }); await viewerDragShowAll.click(); await revealedViewerDragTargets.nth(1).waitFor(); assert.equal(await revealedViewerDragTargets.count(), 2); assert.equal(await viewerDragShowAll.isDisabled(), true); const viewerDragNext = viewer.getByRole("button", { name: "Next activity part", exact: true }); await viewerDragNext.click(); await viewer.getByAltText("Second panel background").waitFor(); assert.equal(await revealedViewerDragTargets.count(), 1); await viewerDragReload.click(); await viewerDragTeacher.waitFor(); await revealedViewerDragTargets.first().waitFor({ state: "detached" }); assert.equal(await revealedViewerDragTargets.count(), 0); await page.getByRole("button", { name: "Close Review" }).click();
   await exercisePersistedVisualRefinements(page, { completeSentencesId, listeningId });
   await exerciseDragDropExtensions(page, { dragDropId, savedDragDrop });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  const markWordsId = await exerciseMarkWordsAuthoring(page, { screenshotRoot, savedPair: (title) => [...nativeDocuments.values()].find((pair) => pair.publicDocument.metadata.title === title) });
+  await exerciseMarkWordsHostedViewer(page, { activityId: markWordsId, screenshotRoot });
   assert.equal(requestedPaths.some((value) => /xml|iwb|import\/prepare/i.test(value)), false); process.stdout.write(`Hosted Unit Extra management plus native draft authoring and real Viewer acceptance passed for ${openResponseId}, ${imageId}, ${singleChoiceId}, ${onePanelChoiceId}, ${completeSentencesId}, ${listeningId}, ${oldschoolId}, and ${dragDropId}.\n`);
 } finally { await browser?.close(); await new Promise((resolve) => server.close(resolve)); }

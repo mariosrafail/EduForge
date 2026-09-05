@@ -612,3 +612,27 @@ test("isolated PostgreSQL reads a legacy native payload by its persisted checksu
   assert.equal("locked" in afterRead.payload.parts[0].interaction.artwork[0], false);
   assert.equal(afterRead.payload_sha256, legacyChecksum);
 });
+
+test("isolated PostgreSQL persists Mark the Words pairs and immutable revisions with conflicts and idempotency", { skip: !enabled }, async (t) => {
+  const schema = `builder_native_${randomBytes(8).toString("hex")}`;
+  const admin = new Pool({ connectionString: testDatabaseUrl, max: 1 }); await admin.query(`create schema "${schema}"`);
+  const pool = new Pool({ connectionString: scoped(testDatabaseUrl, schema), max: 5 });
+  t.after(async () => { await pool.end(); await admin.query(`drop schema if exists "${schema}" cascade`); await admin.end(); });
+  await applyCanonicalProductionMigrations(pool);
+  await pool.query("insert into builder_users(id,full_name,email,password_hash) values($1,'Words Actor','words@example.test','not-a-login-hash')", [actor]);
+  const sql = tag(pool); const handler = createBuilderNativeActivitiesHandler({ getDatabase: () => sql, authorize: async () => ({ builderUser: { id: actor } }), logger: { error() {} } });
+  const mutationId = randomUUID(); const request = event({ kind: "mark-the-words", mutationId });
+  const createdResponse = await handler(request); assert.equal(createdResponse.statusCode, 200, createdResponse.body);
+  const created = JSON.parse(createdResponse.body); assert.equal(JSON.parse((await handler(request)).body).activityId, created.activityId);
+  const load = async (role) => (await pool.query("select payload from builder_component_documents where document_type=$1 and document_key=$2", [`native_activity_${role}`, created.activityId])).rows[0].payload;
+  const { generateNativeMarkWordsBulkCandidate } = await import("../../src/data/native-activities/nativeMarkWordsBulkAuthoring.js");
+  const pair = generateNativeMarkWordsBulkCandidate({ source: "1. I *watch* my watch.", publicDocument: await load("public"), teacherDocument: await load("teacher") });
+  const body = { publicDocument: pair.publicDocument, teacherDocument: pair.teacherDocument, expectedPublicRevision: 1, expectedTeacherRevision: 1, clientMutationId: randomUUID() };
+  const saved = await handler(pairEvent(created.activityId, body)); assert.equal(saved.statusCode, 200, saved.body);
+  assert.equal(JSON.parse((await handler(pairEvent(created.activityId, body))).body).idempotent, true);
+  assert.equal((await handler(pairEvent(created.activityId, { ...body, clientMutationId: randomUUID() }))).statusCode, 409);
+  assert.deepEqual(await load("public"), pair.publicDocument); assert.deepEqual(await load("teacher"), pair.teacherDocument);
+  assert.doesNotMatch(JSON.stringify(await load("public")), /correctWordIds/);
+  const revisions = await pool.query("select document_type,revision from builder_component_documents where document_key=$1 order by document_type", [created.activityId]);
+  assert.deepEqual(revisions.rows.map((row) => Number(row.revision)), [2, 2]);
+});

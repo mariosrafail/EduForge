@@ -1,3 +1,4 @@
+import { createMarkWordsFixture, markWordsFixtureId } from "../fixtures/native-mark-words.js";
 import assert from "node:assert/strict";
 import { randomBytes, randomUUID } from "node:crypto";
 import test from "node:test";
@@ -121,7 +122,7 @@ test("published native assignment remains release-pinned through submit, review,
     componentId: scope.component_id,
     builderId,
     releaseNumber: 99,
-    fixture: { prompt: "Release A prompt", teacherAnswer: "Release A protected answer" },
+    fixture: { markWords: true, prompt: "Release A prompt", teacherAnswer: "Release A protected answer" },
   });
   await publishRelease(pool, { packageId: scope.package_id, componentId: scope.component_id, releaseId: releaseA.releaseId, revision: 1, builderId });
 
@@ -144,6 +145,9 @@ test("published native assignment remains release-pinned through submit, review,
   const teacherUser = { ...teacher, role: "teacher" };
   const studentUser = { ...student, school_id: teacher.school_id, role: "student" };
 
+  const markCreation = await createAssignment(sql, { idempotencyKey: "mark-words-integration", classIds: [classRow.id], target: { kind: "published_native", releaseId: releaseA.releaseId, nativeActivityId: markWordsFixtureId } }, teacherUser);
+  assert.equal(markCreation.statusCode, 200, markCreation.body);
+  const markAssignment = JSON.parse(markCreation.body).assignment;
   const catalog = await listAssignmentTargets(sql, teacherUser);
   assert.equal(catalog.find((item) => item.target.nativeActivityId === publicationV2Fixture.openResponseId)?.assignable, true);
   assert.equal(catalog.find((item) => item.target.nativeActivityId === publicationV2Fixture.imageId)?.assignable, false);
@@ -326,6 +330,23 @@ test("published native assignment remains release-pinned through submit, review,
   assert.equal(Number(choiceAfterReview.score_percent), 50);
   assert.equal(choiceAfterReview.status, "submitted");
   assert.equal(choiceAfterReview.teacher_feedback, "Server score retained");
+
+  const markPair = createMarkWordsFixture();
+  const markItems = markPair.publicDocument.parts[0].interaction.items;
+  const markAnswers = markPair.teacherDocument.parts[0].solution.answers;
+  const markResponse = { schemaVersion: "native-response.v1", items: markAnswers.map((answer) => ({ id: answer.itemId, value: [...answer.correctWordIds].reverse() })) };
+  const crossPassage = structuredClone(markResponse); crossPassage.items[0].value = [markItems[1].words[0].id];
+  assert.equal((await submitActivity(sql, { assignmentId: markAssignment.id, response: crossPassage }, studentUser)).statusCode, 400);
+  assert.equal((await submitActivity(sql, { assignmentId: markAssignment.id, score: 100, response: markResponse }, studentUser)).statusCode, 400);
+  const marked = await submitActivity(sql, { assignmentId: markAssignment.id, response: markResponse }, studentUser);
+  assert.equal(marked.statusCode, 200, marked.body); assert.equal(JSON.parse(marked.body).submission.scorePercent, 100);
+  assert.equal((await submitActivity(sql, { assignmentId: markAssignment.id, response: markResponse }, studentUser)).statusCode, 409);
+  const markStored = (await pool.query("select response_payload, score_percent from activity_submissions where activity_assignment_id=$1", [markAssignment.id])).rows[0];
+  assert.equal(markStored.response_payload.kind, "mark-the-words"); assert.deepEqual(markStored.response_payload.items[0].value, markAnswers[0].correctWordIds);
+  const restoredMark = (await listAssignmentsForStudent(sql, student.id, studentUser)).find((item) => item.id === markAssignment.id);
+  assert.equal(restoredMark.target.releaseId, releaseA.releaseId); assert.doesNotMatch(JSON.stringify(restoredMark), /correctWordIds/);
+  const markResults = JSON.parse((await getAssignmentResults(sql, markAssignment.id)).body);
+  assert.equal(markResults.rows[0].implementationMode, "auto-scored"); assert.match(markResults.rows[0].answerDetails[0].answer, /watch \(word 2\)/);
 
   await assert.rejects(pool.query(`
     insert into activity_submissions(

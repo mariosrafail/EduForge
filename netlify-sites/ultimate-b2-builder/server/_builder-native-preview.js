@@ -11,7 +11,7 @@ import { serveBuilderPrivateFont } from "./_builder-private-font-response.js";
 const SAFE_ID = /^[a-z0-9][a-z0-9-]{0,127}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const previewTtlSeconds = 5 * 60;
-const NATIVE_TEACHER_PREVIEW_KINDS = new Set(["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop"]);
+const NATIVE_TEACHER_PREVIEW_KINDS = new Set(["open-response", "single-choice", "complete-sentences", "listening", "oldschool-listening", "drag-drop", "mark-the-words"]);
 
 function decode(value) { try { return decodeURIComponent(value); } catch { return ""; } }
 

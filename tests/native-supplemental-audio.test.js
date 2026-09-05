@@ -30,8 +30,8 @@ function publicDocument(kindName = "open-response") {
   return { kind, document };
 }
 
-test("Supplemental MP3 is one strict public capability on the six allowlisted native kinds", () => {
-  assert.deepEqual(NATIVE_SUPPLEMENTAL_AUDIO_KINDS, ["image", "open-response", "single-choice", "complete-sentences", "listening", "drag-drop"]);
+test("Supplemental MP3 is one strict public capability on the seven allowlisted native kinds", () => {
+  assert.deepEqual(NATIVE_SUPPLEMENTAL_AUDIO_KINDS, ["image", "open-response", "single-choice", "complete-sentences", "listening", "drag-drop", "mark-the-words"]);
   for (const kindName of NATIVE_SUPPLEMENTAL_AUDIO_KINDS) {
     const { kind, document } = publicDocument(kindName);
     const normalized = kind.normalizePublic(document);

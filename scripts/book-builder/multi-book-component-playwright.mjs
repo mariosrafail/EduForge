@@ -1,3 +1,5 @@
+import { managedHotspots } from "./hosted-native-activity-document-fixtures.mjs";
+import { exerciseMarkWordsAuthoring } from "./hosted-native-activity-mark-words.mjs";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, stat } from "node:fs/promises";
@@ -349,13 +351,6 @@ const publicBucket = {
 const builderWorker = createBuilderWorker({
   handlers: { pages: builderPagesHandler, previewAuthorization: builderAuthorizationHandler, preview: builderPreviewHandler, unitExtraAssets: builderUnitExtraAssetsHandler },
 });
-
-function managedHotspots(componentSlug) {
-  return {
-    bookSlug: "ultimate-b2", componentSlug, resource: "hotspots", documentKey: "default", schemaVersion: "1.0", revision: 0, source: "repository",
-    document: { schemaVersion: "1.0", packageSlug: "ultimate-b2", componentSlug, pages: {} },
-  };
-}
 
 async function fulfillWorkerResponse(route, response) {
   const location = response.headers.get("Location");
@@ -826,6 +821,8 @@ try {
   const overrideObjectRequestCount = teacherUiObjectRequests.length;
   await page.getByRole("button", { name: "Close Review" }).click();
 
+  await page.goto(`${origin}/#/books/ultimate-b2/components/${components.workbook}/activities`, { waitUntil: "domcontentloaded" });
+  await exerciseMarkWordsAuthoring(page, { screenshotRoot: path.resolve("test-results"), title: "Workbook Mark the Words", visual: false });
   assert.deepEqual(consoleErrors, [], [...failedResponses, ...failedRequests].join("\n"));
   const fallbackFailureStart = failedResponses.length;
   const fallbackConsoleStart = consoleErrors.length;

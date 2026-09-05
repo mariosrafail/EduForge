@@ -25,11 +25,12 @@ const formatDuration = (milliseconds) => {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
 };
 
-export function NativeSupplementalAudioEditor({ bookSlug, componentSlug, activityId, publicDraft, mutatePublic, previewUrl, onIncompleteChange, onIntentChange, onStatusChange }) {
+export function NativeSupplementalAudioEditor({ bookSlug, componentSlug, activityId, publicDraft, mutatePublic, previewUrl, onIncompleteChange, onIntentChange, onStatusChange, onUploadStateChange }) {
   const supplementalAudio = publicDraft.supplementalAudio || null;
   const [enabled, setEnabled] = useState(Boolean(supplementalAudio));
   const [referenceEnabled, setReferenceEnabled] = useState(Boolean(supplementalAudio?.reference));
   const [uploading, setUploading] = useState("");
+  useEffect(() => { onUploadStateChange?.(Boolean(uploading)); return () => onUploadStateChange?.(false); }, [uploading, onUploadStateChange]);
   const audioAsset = supplementalAudio ? publicDraft.assets.find((asset) => asset.slot === supplementalAudio.assetSlot) : null;
   const reference = supplementalAudio?.reference || null;
   const referenceAsset = reference ? publicDraft.assets.find((asset) => asset.slot === reference.assetSlot) : null;
