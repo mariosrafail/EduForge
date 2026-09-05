@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { expect } from "@playwright/test";
 import sharp from "sharp";
-import { openStudentsUnitOnePage } from "./native-authoring-regressions.mjs";
 
 export async function authorHostedSharedCanvas(page, editor) {
   const bytes = await sharp({ create: { width: 1200, height: 800, channels: 3, background: "#e4eef6" } }).png().toBuffer();
@@ -50,8 +49,7 @@ export async function reviewHostedComposition(page, activityId) {
   await page.locator(".builder-save-state").getByText("Saved", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Review", exact: true }).click();
   const viewer = page.frameLocator(".unified-builder-review-dialog iframe");
-  await expect(viewer.locator(".teacher-offline-library, .teacher-offline-page-stage").first()).toBeVisible({ timeout: 30000 });
-  if (await viewer.locator(".teacher-offline-library").isVisible()) await openStudentsUnitOnePage(viewer);
+  await expect(viewer.locator(".teacher-offline-page-stage")).toBeVisible({ timeout: 30000 });
   await viewer.getByRole("button", { name: "Composition launch", exact: true }).click({ force: true });
   await expect(viewer.locator(".native-multi-part")).toBeVisible();
   await viewer.getByRole("button", { name: "Next activity part", exact: true }).click();
