@@ -49,6 +49,7 @@ export function NativeOldschoolListeningSurface({ publicDocument, assetUrl = () 
   const [muted, setMuted] = useState(false);
   const [audioError, setAudioError] = useState(false);
   const [focusedCueIds, setFocusedCueIds] = useState([]);
+  const [seekVersion, setSeekVersion] = useState(0);
   const [revealState, setRevealState] = useState({ supported: teacherMode, total: interaction.questions.length, revealed: 0, pristine: true });
   const audioRef = useRef(null); const viewportApiRef = useRef(null); const pageCanvasRef = useRef(null); const lastCommand = useRef(null); const raf = useRef(0); const lastSample = useRef(0); const manualScroll = useRef(false);
   const audioReference = referenceForSlot(publicDocument, interaction.audioAssetSlot);
@@ -56,12 +57,23 @@ export function NativeOldschoolListeningSurface({ publicDocument, assetUrl = () 
   const questionMode = nativeOldschoolListeningQuestionMode(interaction);
   const activeCue = useMemo(() => findNativeOldschoolListeningCue(interaction.cues, currentMs), [currentMs, interaction.cues]);
   const highlightedCueIds = focusedCueIds.length ? focusedCueIds : activeCue ? [activeCue.id] : [];
-  const onManualScrollStateChange = useCallback((active) => { manualScroll.current = active; }, []);
+  const followCue = interaction.cues.find((entry) => entry.id === highlightedCueIds[0]);
+  const followKey = `${followCue?.id || ""}:${seekVersion}`;
+  const currentFollowKey = useRef(followKey);
+  currentFollowKey.current = followKey;
+  const manuallyPositionedCue = useRef(null);
+  const onManualScrollStateChange = useCallback((active) => {
+    manualScroll.current = active;
+    manuallyPositionedCue.current = currentFollowKey.current;
+    const pane = viewportApiRef.current?.viewport;
+    if (active && pane) pane.scrollTo({ top: pane.scrollTop, behavior: "instant" });
+  }, []);
+  const followGeometry = JSON.stringify({ targetY: nativeOldschoolListeningCueScrollY(followCue), regions: followCue?.highlightRegions || [], sourceHeight: interaction.panels[1].sourceHeight });
 
   const selectSnippet = useCallback((id) => {
     const hotspot = interaction.snippetHotspots.find((entry) => entry.id === id);
     if (!hotspot) return;
-    setFocusedCueIds(hotspot.cueIds); setView("page");
+    setFocusedCueIds(hotspot.cueIds); setView("page"); setSeekVersion((value) => value + 1);
     const first = interaction.cues.find((cue) => cue.id === hotspot.cueIds[0]);
     if (first && audioRef.current) { audioRef.current.currentTime = first.startMs / 1_000; setCurrentMs(first.startMs); }
   }, [interaction.cues, interaction.snippetHotspots]);
@@ -81,24 +93,24 @@ export function NativeOldschoolListeningSurface({ publicDocument, assetUrl = () 
 
   useEffect(() => {
     if (view !== "page" || !highlightedCueIds.length || !viewportApiRef.current || !pageCanvasRef.current || manualScroll.current) return undefined;
-    const cue = interaction.cues.find((entry) => entry.id === highlightedCueIds[0]);
-    const targetY = nativeOldschoolListeningCueScrollY(cue);
+    const { targetY, sourceHeight } = JSON.parse(followGeometry);
     let cancelled = false; let frame = 0; let observer;
     const follow = () => {
-      if (cancelled || manualScroll.current) return;
+      if (cancelled || manualScroll.current || manuallyPositionedCue.current === followKey) return;
       const pane = viewportApiRef.current?.viewport; const canvas = pageCanvasRef.current;
       if (!pane || !canvas || !(pane.clientHeight > 0) || !(canvas.offsetHeight > 0)) { frame = requestAnimationFrame(follow); return; }
-      const target = nativeOldschoolListeningScrollTarget({ targetY, sourceHeight: interaction.panels[1].sourceHeight, renderedHeight: canvas.offsetHeight, scrollTop: pane.scrollTop, viewportHeight: pane.clientHeight });
+      const target = nativeOldschoolListeningScrollTarget({ targetY, sourceHeight, renderedHeight: canvas.offsetHeight, scrollTop: pane.scrollTop, viewportHeight: pane.clientHeight });
       if (Math.abs(target - pane.scrollTop) > 1) viewportApiRef.current.scrollTo({ top: target, behavior: globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth" });
     };
     frame = requestAnimationFrame(follow);
     if (typeof ResizeObserver !== "undefined") { observer = new ResizeObserver(follow); observer.observe(pageCanvasRef.current); observer.observe(viewportApiRef.current.viewport); }
     return () => { cancelled = true; cancelAnimationFrame(frame); observer?.disconnect(); };
-  }, [highlightedCueIds.join("\0"), interaction.cues, interaction.panels, view]);
+  }, [followKey, followGeometry, view]);
 
   const reset = useCallback(() => {
     audioRef.current?.pause(); if (audioRef.current) audioRef.current.currentTime = 0;
     setPlaying(false); setCurrentMs(0); setView("questions"); setFocusedCueIds([]);
+    manualScroll.current = false; manuallyPositionedCue.current = null;
   }, []);
 
   useEffect(() => { reset(); }, [interaction.audioAssetSlot, publicDocument.activityId, reset]);
@@ -115,7 +127,7 @@ export function NativeOldschoolListeningSurface({ publicDocument, assetUrl = () 
 
   const play = () => { if (!audioRef.current || !audioUrl) return; setView("page"); setFocusedCueIds([]); if (audioRef.current.ended || currentMs >= interaction.audioDurationMs) { audioRef.current.currentTime = 0; setCurrentMs(0); } setAudioError(false); audioRef.current.play().catch(() => setAudioError(true)); };
   const pause = () => audioRef.current?.pause();
-  const seek = (nextMs) => { if (!audioRef.current || !Number.isFinite(nextMs)) return; audioRef.current.currentTime = nextMs / 1_000; setCurrentMs(nextMs); setView("page"); setFocusedCueIds([]); };
+  const seek = (nextMs) => { if (!audioRef.current || !Number.isFinite(nextMs)) return; audioRef.current.currentTime = nextMs / 1_000; setCurrentMs(nextMs); setSeekVersion((value) => value + 1); setView("page"); setFocusedCueIds([]); };
   const toggleMute = () => { const next = !muted; setMuted(next); if (audioRef.current) audioRef.current.muted = next; };
 
   return <div className="native-oldschool-listening" data-panel={view === "questions" ? 1 : 2} data-view={view}>
@@ -129,6 +141,6 @@ export function NativeOldschoolListeningSurface({ publicDocument, assetUrl = () 
     </div>
     {!audioUrl ? <p className="native-oldschool-listening-error" role="alert">Listening audio is unavailable.</p> : null}
     {audioError ? <p className="native-oldschool-listening-error" role="alert">Listening audio could not be played.</p> : null}
-    <audio ref={audioRef} hidden preload="metadata" src={audioUrl} onPlay={(event) => { pauseSiblingNativeMedia(event.currentTarget); setPlaying(true); }} onPause={() => setPlaying(false)} onTimeUpdate={() => { if (audioRef.current) setCurrentMs(Math.round(audioRef.current.currentTime * 1_000)); }} onSeeked={() => { if (audioRef.current) setCurrentMs(Math.round(audioRef.current.currentTime * 1_000)); }} onEnded={reset} onError={() => setAudioError(true)} />
+    <audio ref={audioRef} hidden preload="metadata" src={audioUrl} onPlay={(event) => { pauseSiblingNativeMedia(event.currentTarget); setPlaying(true); }} onPause={() => setPlaying(false)} onTimeUpdate={() => { if (audioRef.current) setCurrentMs(Math.round(audioRef.current.currentTime * 1_000)); }} onSeeked={() => { if (audioRef.current) { setCurrentMs(Math.round(audioRef.current.currentTime * 1_000)); setSeekVersion((value) => value + 1); } }} onEnded={reset} onError={() => setAudioError(true)} />
   </div>;
 }

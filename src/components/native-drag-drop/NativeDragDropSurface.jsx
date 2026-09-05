@@ -182,7 +182,7 @@ export function NativeDragDropStudentSurface({
     property: "--native-drag-drop-bank-fit-scale",
     sampleSelector: ".native-drag-drop-word",
     containChildren: true,
-    dependency: `${panelIndex}|${visibleWords.map((word) => `${word.id}\0${word.shortLabel}\0${word.text}`).join("\1")}|${bankFontState.status}|${bankWordStyle.fontSize}|${interaction.answerBankHeightPx || "default"}`,
+    dependency: `${panelIndex}|${visibleWords.map((word) => `${word.id}\0${word.shortLabel}\0${word.text}`).join("\u0001")}|${bankFontState.status}|${bankWordStyle.fontSize}|${interaction.answerBankHeightPx || "default"}`,
   });
   const clearFeedback = () => setIncorrectTargetId(null);
   const clearReturnTimer = () => { if (returnTimer.current) globalThis.clearTimeout(returnTimer.current); returnTimer.current = null; };
@@ -225,12 +225,18 @@ export function NativeDragDropStudentSurface({
     if (readOnly || event.button !== 0 || !visibleWordIds.includes(wordId)) return;
     const source = textMode ? event.currentTarget.querySelector("[data-drag-drop-drag-handle]") || event.currentTarget : event.currentTarget;
     const sourceRect = source.getBoundingClientRect();
+    const computed = globalThis.getComputedStyle(source);
+    const extraWidth = computed.boxSizing === "border-box" ? 0 : parseFloat(computed.paddingLeft) + parseFloat(computed.paddingRight) + parseFloat(computed.borderLeftWidth) + parseFloat(computed.borderRightWidth);
+    const extraHeight = computed.boxSizing === "border-box" ? 0 : parseFloat(computed.paddingTop) + parseFloat(computed.paddingBottom) + parseFloat(computed.borderTopWidth) + parseFloat(computed.borderBottomWidth);
+    const logicalWidth = parseFloat(computed.width) + extraWidth || source.offsetWidth;
+    const logicalHeight = parseFloat(computed.height) + extraHeight || source.offsetHeight;
     const active = {
       pointerId: event.pointerId, pointerType: event.pointerType, wordId,
       startX: event.clientX, startY: event.clientY, clientX: event.clientX, clientY: event.clientY,
       offsetX: Math.min(sourceRect.width, Math.max(0, event.clientX - sourceRect.left)),
       offsetY: Math.min(sourceRect.height, Math.max(0, event.clientY - sourceRect.top)),
       sourceRect: { left: sourceRect.left, top: sourceRect.top, width: sourceRect.width, height: sourceRect.height },
+      logicalWidth, logicalHeight, scaleX: sourceRect.width / logicalWidth, scaleY: sourceRect.height / logicalHeight,
       previewStyle: previewComputedStyle(source), moved: false, returning: false,
     };
     clearReturnTimer(); event.currentTarget.setPointerCapture?.(event.pointerId); dragRef.current = active; clearFeedback();
@@ -311,7 +317,7 @@ export function NativeDragDropStudentSurface({
     ...(interaction.answerBankHeightPx ? { "--native-drag-drop-bank-height": `${interaction.answerBankHeightPx}px` } : {}),
     ...(interaction.textPanelHeightPx ? { "--native-drag-drop-text-panel-height": `${interaction.textPanelHeightPx}px` } : {}),
   };
-  const preview = previewWord && dragPreview ? <span className={`${textMode ? "native-drag-drop-short-label" : "native-drag-drop-word"} native-drag-drop-drag-preview`} data-drag-drop-drag-preview data-returning={dragPreview.returning || undefined} aria-label={textMode ? `${previewWord.shortLabel}, ${previewWord.text}` : previewWord.text} style={{ left: dragPreview.clientX - dragPreview.offsetX, top: dragPreview.clientY - dragPreview.offsetY, width: dragPreview.sourceRect.width, height: dragPreview.sourceRect.height, minWidth: dragPreview.sourceRect.width, maxWidth: "none", minHeight: dragPreview.sourceRect.height, maxHeight: "none", ...dragPreview.previewStyle }}>{textMode ? previewWord.shortLabel : previewWord.text}</span> : null;
+  const preview = previewWord && dragPreview ? <span className={`${textMode ? "native-drag-drop-short-label" : "native-drag-drop-word"} native-drag-drop-drag-preview`} data-drag-drop-drag-preview data-returning={dragPreview.returning || undefined} aria-label={textMode ? `${previewWord.shortLabel}, ${previewWord.text}` : previewWord.text} style={{ left: dragPreview.clientX - dragPreview.offsetX, top: dragPreview.clientY - dragPreview.offsetY, width: dragPreview.logicalWidth, height: dragPreview.logicalHeight, minWidth: dragPreview.logicalWidth, maxWidth: "none", minHeight: dragPreview.logicalHeight, maxHeight: "none", ...dragPreview.previewStyle, boxSizing: "border-box", transformOrigin: "top left", transform: `scale(${dragPreview.scaleX}, ${dragPreview.scaleY})` }}>{textMode ? previewWord.shortLabel : previewWord.text}</span> : null;
   return <section className={`native-drag-drop ${presentationMode ? "native-drag-drop-teacher" : "native-drag-drop-student"}`} aria-label={document.metadata.title} data-layout-mode={textMode ? "text" : "standard"} data-configured-bank-height={interaction.answerBankHeightPx ? "true" : undefined} data-read-only={readOnly || undefined} style={rootStyle}>
     <div className="native-drag-drop-visual-region">
       <div className="native-drag-drop-workspace"><PanelArtwork document={document} panel={panel} assetUrl={assetUrl} textMode={textMode}>{targets}{!textMode ? bank : null}</PanelArtwork></div>
