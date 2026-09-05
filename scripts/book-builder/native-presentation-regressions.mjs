@@ -188,11 +188,13 @@ export async function runNativePresentationRegressions(browser, output) {
     assert.deepEqual(stored.teacherDocument, before.teacherDocument);
     await page.evaluate(() => nativePresentationFixture.rerender());
     await expect(page.getByLabel("Activity title", { exact: true })).toHaveValue("Saved supporting assets");
+    await page.getByLabel("Activity title", { exact: true }).fill("Unsaved reuse validation");
     await page.getByRole("checkbox", { name: "Reusable item" }).first().click();
     await expect(page.getByRole("checkbox", { name: "Reusable item" }).first()).toBeChecked();
-    await expect(page.getByText("Remove this item's repeated correct mappings before turning reuse off.")).toBeVisible();
+    await expect(page.getByRole("alert")).toHaveText("Remove this item's repeated correct mappings before turning reuse off.");
     await page.getByRole("radio", { name: "Standard drag-and-drop" }).check();
     await page.getByRole("radio", { name: "Text drag-and-drop" }).check();
+    await expect(page.getByRole("alert")).toHaveCount(0);
     await expect(page.getByRole("checkbox", { name: "Reusable item" }).first()).toBeChecked();
     stored.teacherDocument.parts[0].solution.mappings = [];
     await page.evaluate(() => nativePresentationFixture.rerender());

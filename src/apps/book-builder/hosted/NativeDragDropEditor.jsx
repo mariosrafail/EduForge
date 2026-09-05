@@ -69,6 +69,7 @@ function DragDropTextStyleControls({ heading, style, fonts, bookSlug, componentS
 export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {}, onSaved = () => {} }) {
   const [state, setState] = useState({ kind: "loading", message: "" });
   const [loadAttempt, setLoadAttempt] = useState(0);
+  const [mappingIssue, setMappingIssue] = useState("");
   const [publicDraft, setPublicDraft] = useState(null);
   const [teacherDraft, setTeacherDraft] = useState(null);
   const [dirty, setDirty] = useState(false);
@@ -98,7 +99,7 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
       });
       const teacherDocument = clone(teacherValue.document);
       teacherDocument.parts[0].solution = normalizeNativeDragDropSolution(teacherDocument.parts[0].solution);
-      setPublicDraft(projected); setTeacherDraft(teacherDocument); setFonts(fontLibrary); setPanelId(projected.parts[0].interaction.panels[0]?.id || null);
+      setMappingIssue(""); setPublicDraft(projected); setTeacherDraft(teacherDocument); setFonts(fontLibrary); setPanelId(projected.parts[0].interaction.panels[0]?.id || null);
       setState({ kind: "ready", publicRevision: publicValue.revision, teacherRevision: teacherValue.revision, message: "Draft saved." });
     }).catch((error) => { if (!controller.signal.aborted) setState({ kind: "error", message: error.message }); });
     return () => controller.abort();
@@ -122,7 +123,7 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
   const mappings = new Map(teacherDraft?.parts[0].solution.mappings.map((mapping) => [mapping.targetId, nativeDragDropMappingWordIds(mapping)]) || []);
   const assetUrl = (assetId) => previewRoot(bookSlug, componentSlug, activityId, assetId);
 
-  const markDirty = () => { setDirty(true); onDirtyChange(true); };
+  const markDirty = () => { setMappingIssue(""); setDirty(true); onDirtyChange(true); };
   const mutatePublic = (mutator) => { setPublicDraft((current) => { const next = clone(current); mutator(next); return next; }); markDirty(); };
   const mutatePair = (mutator) => {
     const nextPublic = clone(publicDraft); const nextTeacher = clone(teacherDraft); mutator(nextPublic, nextTeacher);
@@ -187,7 +188,7 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
 
   const setReusable = (wordId, reusable) => {
     const mappedCount = teacherDraft.parts[0].solution.mappings.filter((mapping) => nativeDragDropMappingWordIds(mapping).includes(wordId)).length;
-    if (!reusable && mappedCount > 1) { setState((current) => ({ ...current, message: "Remove this item's repeated correct mappings before turning reuse off." })); return; }
+    if (!reusable && mappedCount > 1) { setMappingIssue("Remove this item's repeated correct mappings before turning reuse off."); return; }
     mutatePublic((next) => { next.parts[0].interaction.words.find((word) => word.id === wordId).reusable = reusable; });
   };
 
@@ -196,7 +197,7 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
     const reusableWordIds = new Set(interaction.words.filter((word) => word.reusable).map((word) => word.id));
     const conflict = wordIds.map((wordId) => ({ wordId, mapping: teacherDraft.parts[0].solution.mappings.find((entry) => entry.targetId !== targetId && nativeDragDropMappingWordIds(entry).includes(wordId)) })).find(({ wordId, mapping }) => mapping && !reusableWordIds.has(wordId));
     if (conflict) {
-      setState((state) => ({ ...state, message: "That item is already correct for another target. Turn on Reusable item first." })); return;
+      setMappingIssue("That item is already correct for another target. Turn on Reusable item first."); return;
     }
     mutatePair((nextPublic, nextTeacher) => {
       nextTeacher.parts[0].solution.mappings = nextTeacher.parts[0].solution.mappings.filter((entry) => entry.targetId !== targetId);
@@ -279,6 +280,7 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
   if (state.kind === "error" || !publicDraft || !teacherDraft) return <section className="native-activity-foundation studio-error" role="alert"><p>{state.message || "Native draft is unavailable."}</p><p>The saved activity is preserved. Reload after correcting the reported problem.</p><StudioButton onClick={() => setLoadAttempt((value) => value + 1)}>Reload draft</StudioButton></section>;
 
   return <section className="native-activity-foundation native-drag-drop-editor studio-editor">
+    {mappingIssue ? <p className="builder-inline-error" role="alert">{mappingIssue}</p> : null}
     <header className="studio-editor-header"><div><span className="studio-eyebrow">{placementLabel} · Drag &amp; Drop</span><h2>{publicDraft.metadata.title}</h2><p>{readiness.ready ? "Content complete" : `${readiness.issues.length} item${readiness.issues.length === 1 ? "" : "s"} need attention`}</p></div><details className="builder-technical-details"><summary>Technical details</summary><code>{activityId}</code></details></header>
     <StudioTabWorkspace id="native-drag-drop-tabs" value={tab} onChange={(value) => { setTab(value); setDrawingTarget(false); }} tabs={tabs} label="Drag and Drop authoring modes">
 

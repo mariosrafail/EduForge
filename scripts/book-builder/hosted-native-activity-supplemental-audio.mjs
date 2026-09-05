@@ -72,7 +72,10 @@ export async function exerciseSupplementalAudio({ page, nativeDocuments, activit
   await player.waitFor();
   const [rootBox, playerBox] = await Promise.all([root.boundingBox(), player.boundingBox()]);
   assert.ok(rootBox && playerBox);
-  assert.ok(Math.abs(rootBox.x + rootBox.width - (playerBox.x + playerBox.width) - 24) < 2, "supplemental player remains right-anchored");
+  const rail = root.locator(":scope > .native-scroll-controls-rail");
+  const hasRail = await rail.count() > 0;
+  assert.ok(Math.abs(rootBox.x + rootBox.width - (playerBox.x + playerBox.width) - (hasRail ? 44 : 24)) < 2, "supplemental player remains right-anchored beside any active scroll gutter");
+  if (hasRail) assert.ok((await rail.boundingBox()).x - (playerBox.x + playerBox.width) >= 7, "supplemental player leaves the scroll gutter unobstructed");
   assert.ok(Math.abs(rootBox.y + rootBox.height - (playerBox.y + playerBox.height) - 18) < 2, "supplemental player remains bottom-anchored");
   assert.equal(await player.getByRole("button", { name: "Open supplemental audio Reference" }).count(), 1);
   assert.equal(await root.evaluate((element) => element.querySelectorAll(".native-supplemental-audio-anchor").length), 1);
