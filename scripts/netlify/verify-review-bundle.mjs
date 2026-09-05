@@ -234,7 +234,7 @@ async function verifyBuilderFunctionLayout() {
   const serverRoot = path.resolve("netlify-sites/ultimate-b2-builder/server");
   assert.deepEqual((await sourceFilesUnder(functionsRoot)).sort(), ["builder-auth.js", "builder-content.js", "builder-native-activities.js", "builder-native-preview.js", "builder-open-response-import.js", "builder-pages.js", "builder-preview-authorization.js", "builder-preview.js", "builder-publication.js", "builder-teacher-ui-assets.js", "builder-unit-extra-assets.js"]);
   assert.deepEqual((await sourceFilesUnder(serverRoot)).sort(), [
-    "_builder-auth.js", "_builder-component-registry.js", "_builder-content-registry.js", "_builder-content-security.js",
+    "_builder-activity-order.js", "_builder-auth.js", "_builder-component-registry.js", "_builder-content-registry.js", "_builder-content-security.js",
     "_builder-content-store.js", "_builder-content.js", "_builder-login-rate-limit.js", "_builder-managed-publication-compiler.js", "_builder-native-activities.js", "_builder-native-activity-store.js", "_builder-native-preview.js",
     "_builder-open-response-import-store.js", "_builder-open-response-import.js", "_builder-page-catalog.js", "_builder-pages-store.js", "_builder-pages.js", "_builder-preview-authorization-handler.js", "_builder-preview-authorization.js", "_builder-preview.js", "_builder-private-font-response.js",
     "_builder-product-publication-domain.js", "_builder-product-publication-store.js", "_builder-product-publication.js", "_builder-publication-assets.js", "_builder-publication-compiler-v2.js", "_builder-publication-compiler.js", "_builder-publication-compilers.js", "_builder-publication-pins.js", "_builder-publication-store.js", "_builder-publication.js",
