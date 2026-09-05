@@ -89,9 +89,9 @@ export async function runNativePresentationRegressions(browser, output) {
       const rect = (selector) => { const r = root.querySelector(selector).getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; };
       return { bank: root.querySelector(".native-drag-drop-bank").offsetHeight, stage: rect(".native-drag-drop-stage"), target: rect(".native-drag-drop-target"), artwork: rect(".native-drag-drop-artwork"), rows: getComputedStyle(root.querySelector(".native-drag-drop-visual-region")).gridTemplateRows };
     });
-    for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }, { width: 800, height: 600 }]) {
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 1024, height: 768 }, { width: 800, height: 600 }, { width: 640, height: 900 }]) {
       await page.setViewportSize(viewport);
-      for (const scale of [.65, .9, 1].filter((value) => 1024 * value + 16 <= viewport.width)) {
+      for (const scale of [.5, .65, .9, 1].filter((value) => 1024 * value + 16 <= viewport.width)) {
         await page.evaluate((value) => { nativePresentationFixture.setScale(value); nativePresentationFixture.reset(); }, scale);
         await expect(word(2)).toBeVisible();
         await expect.poll(async () => (await geometry()).bank).toBe(180);
@@ -105,6 +105,13 @@ export async function runNativePresentationRegressions(browser, output) {
         await word(2).click(); await target(1).click({ position: { x: 4, y: 4 } }); await expect(word(2)).toHaveCount(0);
         await expect.poll(async () => (await geometry()).bank).toBeLessThan(180);
         const partial = await geometry();
+        await expect.poll(() => page.locator(".native-drag-drop-bank").evaluate((bank) => {
+          const audio = bank.closest("[data-native-media-scope]").querySelector(".native-supplemental-audio-anchor").getBoundingClientRect();
+          return [...bank.querySelectorAll(".native-drag-drop-word")].filter((word) => {
+            const r = word.getBoundingClientRect();
+            return r.left < audio.right && r.right > audio.left && r.top < audio.bottom && r.bottom > audio.top;
+          }).map((word) => word.dataset.dragDropWordId);
+        })).toEqual([]);
         if (scale === 1) await page.screenshot({ path: `${output}/text-bank-partial.png` });
         assert.deepEqual(partial.stage, initial.stage); assert.deepEqual(partial.target, initial.target); assert.deepEqual(partial.artwork, initial.artwork);
         assert.notEqual(partial.rows, initial.rows);

@@ -153,6 +153,15 @@ function useTextBankLayout(ref, { enabled, complete, dependency }) {
     const measure = () => {
       if (!active) return;
       bank.dataset.empty = String(!items.children.length);
+      bank.style.removeProperty("padding-right");
+      const player = root.closest("[data-native-media-scope]")?.querySelector(":scope > .native-supplemental-audio-anchor");
+      const playerBounds = player?.getBoundingClientRect();
+      const bankBounds = bank.getBoundingClientRect();
+      // Reserve the player width before fitting, independently of the current bank height.
+      if (items.children.length && playerBounds?.width && bankBounds.width) {
+        const reserve = (bankBounds.right - playerBounds.left) * bank.offsetWidth / bankBounds.width + 8;
+        if (reserve > 0) bank.style.paddingRight = `${reserve}px`;
+      }
       const configured = parseFloat(getComputedStyle(root).getPropertyValue("--native-drag-drop-bank-height")) || 180;
       // Fit against the saved initial budget, never against the last shrunken height.
       bank.style.height = `${configured}px`;
@@ -225,7 +234,7 @@ export function NativeDragDropStudentSurface({
   useTextBankLayout(bankItemsRef, {
     enabled: textMode,
     complete: visibleWords.length === interaction.words.length,
-    dependency: `${panelIndex}|${visibleWords.map((word) => `${word.id}\0${word.shortLabel}\0${word.text}`).join("\u0001")}|${bankFontState.status}|${bankWordStyle.fontSize}|${interaction.answerBankHeightPx || "default"}`,
+    dependency: `${panelIndex}|${visibleWords.map((word) => `${word.id}\0${word.shortLabel}\0${word.text}`).join("\u0001")}|${bankFontState.status}|${bankWordStyle.fontSize}|${interaction.answerBankHeightPx || "default"}|${Boolean(document.supplementalAudio)}`,
   });
   const clearFeedback = () => setIncorrectTargetId(null);
   const clearReturnTimer = () => { if (returnTimer.current) globalThis.clearTimeout(returnTimer.current); returnTimer.current = null; };
