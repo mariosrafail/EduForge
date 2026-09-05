@@ -93,6 +93,7 @@ export async function runNativePresentationRegressions(browser, output) {
       await page.setViewportSize(viewport);
       for (const scale of [.5, .65, .9, 1].filter((value) => 1024 * value + 16 <= viewport.width)) {
         await page.evaluate((value) => { nativePresentationFixture.setScale(value); nativePresentationFixture.reset(); }, scale);
+        await expect.poll(async () => (await page.locator("[data-fixture-stage]").boundingBox()).width).toBeCloseTo(1024 * scale, 1);
         await expect(word(2)).toBeVisible();
         await expect.poll(async () => (await geometry()).bank).toBe(180);
         const initial = await geometry();
