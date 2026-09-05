@@ -130,6 +130,18 @@ test("handler-level authorization flows preserve tenant and resource state", { s
   const studentCookie = await createSession(pool, studentId);
   const pausedCookie = await createSession(pool, pausedStudentId);
 
+  await t.test("protected native answer GET and HEAD reject anonymous, Student role forgery and unlicensed Teachers", async () => {
+    const query = { action: "published-native-answer-asset", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", activityId: "ultimate-b2-sb-u1-p1-o902", releaseId: "30000000-0000-4000-8000-000000000001", role: "teacher", audience: "teacher" };
+    for (const method of ["GET", "HEAD"]) {
+      for (const [cookie, expected] of [["", 401], [studentCookie, 403], [otherTeacherCookie, 403]]) {
+        const response = await call(bookContentHandler, { method, query, cookie });
+        assert.equal(response.status, expected, JSON.stringify(response));
+        assert.equal(response.headers.Location, undefined);
+        assert.doesNotMatch(JSON.stringify(response.body), /object_key|teacher-answers\/|native_teacher_answer|sampleAnswer/);
+      }
+    }
+  });
+
   await t.test("operational health reports the migrated isolated database without identifiers", async () => {
     const health = await call(operationalHealthHandler);
     assert.equal(health.status, 200);

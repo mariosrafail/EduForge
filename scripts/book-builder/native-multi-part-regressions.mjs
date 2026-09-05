@@ -60,7 +60,7 @@ export async function runNativeMultiPartRegressions(browser, baseUrl, output) {
     await page.keyboard.press("Escape"); await expect(toggle).toBeFocused();
     await page.evaluate(() => document.exitFullscreen());
     await page.setViewportSize({ width: 600, height: 850 });
-    await expect.poll(async () => { const box = await page.locator(".native-image-surface").boundingBox(); const button = await toggle.boundingBox(); return button.y >= box.y + box.height; }).toBe(true);
+    await expect.poll(async () => { const box = await page.locator(".native-image-surface").boundingBox(); const button = await toggle.boundingBox(); return Boolean(box && button && button.y >= box.y + box.height); }).toBe(true);
     await toggle.click(); const popup = await page.getByRole("region", { name: "Sample answer", exact: true }).boundingBox(); assert.ok(popup.x >= 0 && popup.x + popup.width <= 600 && popup.y >= 0 && popup.y + popup.height <= 850);
     await page.keyboard.press("Escape"); await page.setViewportSize({ width: 1500, height: 950 });
     await page.evaluate(() => { multiFixture.setSample(false); multiFixture.setMultiSample(true); });
