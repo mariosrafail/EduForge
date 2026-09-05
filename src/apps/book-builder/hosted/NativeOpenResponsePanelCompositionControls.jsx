@@ -19,4 +19,3 @@ export function PanelCompositionControls({ panel, questions, onChange }) {
     })}
   </section>;
 }
-
