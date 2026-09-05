@@ -68,6 +68,41 @@ function pair() {
   return { kind, publicDocument, teacherDocument };
 }
 
+test("mixed image and text items retain stable responses, reusable mappings and managed image liveness", () => {
+  const current = pair();
+  const itemAsset = { assetId: "20000000-0000-4000-8000-000000000044", checksumSha256: "e".repeat(64), role: "activity_artwork", slot: "tick-image" };
+  current.publicDocument.assets.push(itemAsset);
+  const word = current.publicDocument.parts[0].interaction.words[0];
+  word.text = "Tick"; word.reusable = true;
+  word.image = { assetSlot: itemAsset.slot, sourceWidth: 48, sourceHeight: 64, displayWidth: 48, displayHeight: 64 };
+  const normalized = current.kind.normalizePublic(current.publicDocument);
+  assert.deepEqual(normalized.parts[0].interaction.words[0].image, word.image);
+  assert.equal(Object.hasOwn(normalized.parts[0].interaction.words[1], "image"), false);
+  const placed = placeNativeDragDropWord({}, targetIds[0], word.id, { reusable: true });
+  const repeated = placeNativeDragDropWord(placed, targetIds[1], word.id, { reusable: true });
+  assert.deepEqual(normalizeNativeDragDropResponses(repeated, normalized), repeated);
+  assert.ok(visibleNativeDragDropWordIds(wordIds, repeated, null, normalized.parts[0].interaction.words).includes(word.id));
+  assert.equal(nativeActivityUsesManagedAssetSlot(normalized, itemAsset.slot), true);
+  assert.ok(nativeDragDropAssetRequirements(normalized).some((requirement) => requirement.slot === itemAsset.slot && requirement.width === 48 && requirement.height === 64));
+  const beforeId = word.id;
+  word.image.sourceWidth = 96;
+  assert.equal(current.kind.normalizePublic(current.publicDocument).parts[0].interaction.words[0].id, beforeId);
+  removeNativeDragDropWord(current.publicDocument, current.teacherDocument, word.id);
+  assert.equal(current.publicDocument.assets.some((asset) => asset.slot === itemAsset.slot), false);
+});
+
+test("image item descriptors reject URLs, private fields, unsupported assets and unbounded sizing", () => {
+  const current = pair();
+  const word = current.publicDocument.parts[0].interaction.words[0];
+  const valid = { assetSlot: assets[0].slot, sourceWidth: 1000, sourceHeight: 600, displayWidth: 64, displayHeight: 64 };
+  for (const invalid of [{ ...valid, url: "https://example.com/tick.svg" }, { ...valid, assetSlot: "missing" }, { ...valid, sourceWidth: 8193 }, { ...valid, displayWidth: 0 }, { ...valid, displayHeight: 257 }, { ...valid, correct: true }, null]) {
+    word.image = invalid;
+    assert.throws(() => current.kind.normalizePublic(current.publicDocument));
+  }
+  word.image = valid; word.text = "";
+  assert.throws(() => current.kind.normalizePublic(current.publicDocument), /text/);
+});
+
 test("Drag & Drop blank pair and complete pair normalize strictly with Teacher-only mappings", () => {
   const kind = resolveNativeActivityKind("drag-drop");
   const blankPublic = kind.createBlankPublic({ activityId, title: "Blank", placement: { pageId: publicationV2Fixture.pageId } });

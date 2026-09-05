@@ -19,6 +19,9 @@ export const NATIVE_DRAG_DROP_LIMITS = Object.freeze({
   answerBankHeightMaximum: 420,
   textPanelHeightMinimum: 180,
   textPanelHeightMaximum: 900,
+  itemImageDimension: 8_192,
+  itemDisplayMinimum: 16,
+  itemDisplayMaximum: 256,
 });
 
 export const NATIVE_DRAG_DROP_DEFAULT_SURFACE = NATIVE_IMAGE_DEFAULT_SURFACE;
@@ -103,6 +106,21 @@ function normalizePresentation(input, assets) {
   };
 }
 
+function normalizeItemImage(input, label, assets) {
+  const hasCaption = Object.hasOwn(object(input, label), "caption");
+  exactKeys(input, ["assetSlot", "sourceWidth", "sourceHeight", "displayWidth", "displayHeight", ...(hasCaption ? ["caption"] : [])], label);
+  const reference = assets.find((asset) => asset.slot === input.assetSlot && asset.role === "activity_artwork");
+  if (!reference) throw new Error(`${label} must reference managed activity artwork.`);
+  return {
+    assetSlot: reference.slot,
+    sourceWidth: integer(input.sourceWidth, `${label}.sourceWidth`, 1, NATIVE_DRAG_DROP_LIMITS.itemImageDimension),
+    sourceHeight: integer(input.sourceHeight, `${label}.sourceHeight`, 1, NATIVE_DRAG_DROP_LIMITS.itemImageDimension),
+    displayWidth: integer(input.displayWidth, `${label}.displayWidth`, NATIVE_DRAG_DROP_LIMITS.itemDisplayMinimum, NATIVE_DRAG_DROP_LIMITS.itemDisplayMaximum),
+    displayHeight: integer(input.displayHeight, `${label}.displayHeight`, NATIVE_DRAG_DROP_LIMITS.itemDisplayMinimum, NATIVE_DRAG_DROP_LIMITS.itemDisplayMaximum),
+    ...(hasCaption ? { caption: normalizeNativeSingleLineText(input.caption, `${label}.caption`, NATIVE_DRAG_DROP_LIMITS.wordTextLength) } : {}),
+  };
+}
+
 export function createEmptyNativeDragDropInteraction() {
   return { kind: "drag-drop", words: [], presentation: structuredClone(NATIVE_DRAG_DROP_DEFAULT_PRESENTATION), panels: [] };
 }
@@ -133,7 +151,8 @@ export function normalizeNativeDragDropInteraction(input, { assets = [], commonA
     const label = `Native Drag & Drop words[${index}]`;
     const hasReusable = Object.hasOwn(word, "reusable");
     const hasShortLabel = Object.hasOwn(word, "shortLabel");
-    exactKeys(word, ["id", "text", ...(hasReusable ? ["reusable"] : []), ...(hasShortLabel ? ["shortLabel"] : [])], label);
+    const hasImage = Object.hasOwn(word, "image");
+    exactKeys(word, ["id", "text", ...(hasReusable ? ["reusable"] : []), ...(hasShortLabel ? ["shortLabel"] : []), ...(hasImage ? ["image"] : [])], label);
     if (!isNativeChildId(word.id, "word") || wordIds.has(word.id)) throw new Error("Native Drag & Drop word identity is invalid or duplicate.");
     wordIds.add(word.id);
     const reusable = hasReusable ? word.reusable : false;
@@ -141,14 +160,14 @@ export function normalizeNativeDragDropInteraction(input, { assets = [], commonA
     const shortLabel = hasShortLabel ? normalizeNativeSingleLineText(word.shortLabel, `${label}.shortLabel`, 8, { required: true }) : nativeDragDropShortLabel(index);
     if (!/^[A-Z]{1,8}$/.test(shortLabel) || shortLabels.has(shortLabel)) throw new Error("Native Drag & Drop short labels must be unique uppercase letters.");
     shortLabels.add(shortLabel);
-    return { id: word.id, text: normalizeNativePedagogicalText(word.text, `${label}.text`, NATIVE_DRAG_DROP_LIMITS.wordTextLength, { required: true }), reusable, shortLabel };
+    return { id: word.id, text: normalizeNativePedagogicalText(word.text, `${label}.text`, NATIVE_DRAG_DROP_LIMITS.wordTextLength, { required: true }), reusable, shortLabel, ...(hasImage ? { image: normalizeItemImage(word.image, `${label}.image`, assets) } : {}) };
   });
 
   const presentation = normalizePresentation(value.presentation, assets);
   const panelIds = new Set();
   const imageIds = new Set();
   const targetIds = new Set();
-  const usedAssetSlots = new Set();
+  const usedAssetSlots = new Set(words.flatMap((word) => word.image ? [word.image.assetSlot] : []));
   let targetCount = 0;
   const panels = value.panels.map((panel, panelIndex) => {
     const label = `Native Drag & Drop panels[${panelIndex}]`;
@@ -261,6 +280,11 @@ export function nativeDragDropAssetRequirements(publicDocument) {
     seen.add(image.assetSlot);
     return [{ slot: image.assetSlot, label: `Drag & Drop panel ${panelIndex + 1} image ${imageIndex + 1}` }];
   }));
+  for (const word of interaction?.words || []) {
+    if (!word.image) continue;
+    requirements.push({ slot: word.image.assetSlot, width: word.image.sourceWidth, height: word.image.sourceHeight, label: `Drag & Drop image item: ${word.text}` });
+    seen.add(word.image.assetSlot);
+  }
   for (const [style, label] of [[interaction?.presentation?.bankWordStyle, "Drag & Drop bank word font"], [interaction?.presentation?.placedAnswerStyle, "Drag & Drop placed answer font"]]) {
     const slot = style?.fontAssetSlot;
     if (slot && !seen.has(slot)) { seen.add(slot); requirements.push({ slot, mediaType: "font/ttf", label }); }
@@ -295,8 +319,10 @@ export function removeNativeDragDropPanel(publicDocument, teacherDocument, panel
 
 export function removeNativeDragDropWord(publicDocument, teacherDocument, wordId) {
   const interaction = publicDocument.parts[0].interaction;
-  if (!interaction.words.some((word) => word.id === wordId)) throw new Error("Drag & Drop word does not exist.");
+  const removed = interaction.words.find((word) => word.id === wordId);
+  if (!removed) throw new Error("Drag & Drop word does not exist.");
   interaction.words = interaction.words.filter((word) => word.id !== wordId);
+  if (removed.image) removeNativeManagedAssetReferenceIfUnused(publicDocument, removed.image.assetSlot);
   teacherDocument.parts[0].solution.mappings = teacherDocument.parts[0].solution.mappings.flatMap((mapping) => {
     const wordIds = nativeDragDropMappingWordIds(mapping).filter((candidate) => candidate !== wordId);
     return wordIds.length ? [{ targetId: mapping.targetId, wordIds }] : [];
