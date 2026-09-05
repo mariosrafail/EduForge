@@ -345,22 +345,25 @@ function normalizeDragDropCandidate(publicDocument, teacherDocument, parsed, cre
   interaction.words = parsed.map((word, index) => ({
     id: existing[index]?.id || createId("word"),
     text: word.text,
-    reusable: interaction.layoutMode === "text" ? false : existing[index]?.reusable || false,
+    reusable: existing[index]?.reusable || false,
     shortLabel: existing[index]?.shortLabel || nativeDragDropShortLabel(index),
   }));
   const targets = interaction.panels.flatMap((panel) => panel.dropTargets);
-  teacherCandidate.parts[0].solution.mappings = targets.slice(0, interaction.words.length).map((target, index) => {
-    target.capacity = 1;
-    return { targetId: target.id, wordIds: [interaction.words[index].id] };
-  });
+  const mappings = teacherCandidate.parts[0].solution.mappings;
+  const mappedTargets = new Set(mappings.map((mapping) => mapping.targetId));
+  const mappedWords = new Set(mappings.flatMap((mapping) => mapping.wordIds || [mapping.wordId]));
+  const availableWords = interaction.words.filter((word) => !mappedWords.has(word.id));
+  for (const target of targets) {
+    if (mappedTargets.has(target.id)) continue;
+    const words = availableWords.splice(0, target.capacity || 1);
+    if (words.length) mappings.push({ targetId: target.id, wordIds: words.map((word) => word.id) });
+  }
   const normalized = normalizeCandidatePair(publicCandidate, teacherCandidate, "drag-drop", normalizeNativeDragDropInteraction, normalizeNativeDragDropSolution);
   if (targets.length === normalized.teacherDocument.parts[0].solution.mappings.length) validateNativeDragDropTopology(normalized.publicDocument, normalized.teacherDocument);
-  const baseReadiness = assessNativeDragDropReadiness(normalized.publicDocument, normalized.teacherDocument);
-  const mismatch = targets.length === interaction.words.length ? [] : [`Word/target count mismatch: ${interaction.words.length} words and ${targets.length} targets.`];
-  const readiness = { ready: baseReadiness.ready && !mismatch.length, issues: [...baseReadiness.issues, ...mismatch] };
+  const readiness = assessNativeDragDropReadiness(normalized.publicDocument, normalized.teacherDocument);
   return { ...normalized, readiness, summary: {
     headline: `${parsed.length} word label${parsed.length === 1 ? "" : "s"} generated`,
-    details: [`${Math.min(targets.length, parsed.length)} existing targets mapped`, `${Math.max(0, parsed.length - targets.length)} words awaiting targets`, `${Math.max(0, targets.length - parsed.length)} targets awaiting words`],
+    details: [`${mappings.length} existing targets mapped`, `${interaction.words.filter((word) => !mappings.some((mapping) => (mapping.wordIds || [mapping.wordId]).includes(word.id))).length} unused bank words`, `${targets.length - mappings.length} targets awaiting words`],
   } };
 }
 

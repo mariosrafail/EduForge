@@ -41,8 +41,8 @@ test("Drag & Drop hotspot scaling is deterministic and clips intersecting rectan
   assert.deepEqual(scaleNativeDragDropHotspotArea({ x: -10, y: 490, width: 30, height: 30 }, { width: 1000, height: 500 }, { width: 800, height: 400 }), { area: { x: 0, y: 392, width: 16, height: 8 }, clipped: true });
 });
 
-test("append atomically adds public geometry and private multi-answer mappings", () => {
-  const current = pair({ reusable: true });
+for (const textMode of [false, true]) test(`append atomically adds geometry and private reusable mappings in ${textMode ? "text" : "standard"}`, () => {
+  const current = pair({ reusable: true, textMode });
   const before = structuredClone(current);
   const result = generateNativeDragDropHotspotImportCandidate({ source: "SOURCE 1000x500\nPANEL 1\nTARGET 1 items=1|2 x=100 y=50 width=200 height=40\nTARGET 2 items=1 x=400 y=80 width=120 height=40", ...current, createId: (prefix) => id(prefix, prefix === "target" ? 10 + resultCounter++ : 99) });
   assert.deepEqual(current, before, "preview/candidate creation never mutates drafts");

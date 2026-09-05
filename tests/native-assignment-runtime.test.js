@@ -77,10 +77,10 @@ test("Drag & Drop assignment responses validate stable target and word ownership
   assert.match(capability.normalizeResponse(publicDragDrop, { schemaVersion: NATIVE_RESPONSE_SCHEMA_VERSION, items: [{ id: "forged", value: wordIds[0] }] }).error, /invalid/);
 });
 
-test("Drag & Drop assignment runtime accepts legacy scalars and canonical arrays with exact-set target scoring", () => {
+for (const layoutMode of ["standard", "text"]) test(`Drag & Drop ${layoutMode} accepts legacy scalars and canonical arrays with exact-set target scoring`, () => {
   const targetIds = ["target-11111111111111111111111111111111", "target-22222222222222222222222222222222"];
   const wordIds = ["word-11111111111111111111111111111111", "word-22222222222222222222222222222222", "word-33333333333333333333333333333333"];
-  const publicDocument = { parts: [{ interaction: { kind: "drag-drop", layoutMode: "standard", words: [
+  const publicDocument = { parts: [{ interaction: { kind: "drag-drop", layoutMode, words: [
     { id: wordIds[0], text: "Reusable phrase", reusable: true, shortLabel: "A" },
     { id: wordIds[1], text: "Second phrase", reusable: false, shortLabel: "B" },
     { id: wordIds[2], text: "Wrong phrase", reusable: false, shortLabel: "C" },

@@ -1,3 +1,4 @@
+import { normalizeNativeActivityPublic } from "./nativeActivityPublic.js";
 import { createNativeChildId, isNativeChildId } from "./nativeChildIdentity.js";
 import {
   NATIVE_DRAG_DROP_LIMITS,
@@ -136,7 +137,7 @@ export function generateNativeDragDropHotspotImportCandidate({ source, publicDoc
     }
   }
   teacherCandidate.parts[0].solution.mappings = panels.flatMap((panel) => panel.dropTargets).map((target) => ({ targetId: target.id, wordIds: mappings.get(target.id) || [] })).filter((mapping) => mapping.wordIds.length);
-  publicCandidate.parts[0].interaction = normalizeNativeDragDropInteraction(interaction, { assets: publicCandidate.assets || [] });
+  Object.assign(publicCandidate, normalizeNativeActivityPublic(publicCandidate, { normalizeInteraction: normalizeNativeDragDropInteraction, expectedKind: "drag-drop" }));
   teacherCandidate.parts[0].solution = normalizeNativeDragDropSolution(teacherCandidate.parts[0].solution);
   validateNativeDragDropTopology(publicCandidate, teacherCandidate);
   const first = rows[0];

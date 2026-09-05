@@ -153,7 +153,7 @@ test("Drag & Drop candidate preserves target geometry, maps by ordinal, and repo
   assert.deepEqual(result.publicDocument.parts[0].interaction.panels[0].dropTargets.map((target) => target.area), pair.publicDocument.parts[0].interaction.panels[0].dropTargets.map((target) => target.area));
   const mismatch = generateNativeBulkCandidate({ kind: "drag-drop", source: "1. One *down*.", ...pair, createId });
   assert.equal(mismatch.readiness.ready, false);
-  assert.match(mismatch.readiness.issues.join(" "), /1 words and 2 targets/);
+  assert.match(mismatch.readiness.issues.join(" "), /target 2 needs 1 private correct item/);
   assert.equal(mismatch.teacherDocument.parts[0].solution.mappings.length, 1);
 });
 
@@ -169,4 +169,18 @@ test("a malformed later item causes zero candidate mutation for every supported 
     assert.throws(() => generateNativeBulkCandidate({ kind, source, ...pair, createId }));
     assert.deepEqual(pair, before, `${kind} current drafts stay unchanged`);
   }
+});
+
+
+test("Text word replacement preserves reusable mappings, multi-item capacities, and distractors", () => {
+  const pair = blank("drag-drop");
+  const words = [1, 2, 3, 4].map((number) => ({ id: createId("word"), text: `Word ${number}`, reusable: number === 1 }));
+  const targets = [1, 2, 3].map((number) => ({ id: createId("target"), area: { x: number * 100, y: 20, width: 80, height: 40 }, accessibleLabel: `Target ${number}`, capacity: number === 1 ? 2 : 1 }));
+  Object.assign(pair.publicDocument.parts[0].interaction, { layoutMode: "text", words, panels: [{ id: createId("panel"), surface: { width: 1024, height: 582 }, images: [], dropTargets: targets }] });
+  pair.teacherDocument.parts[0].solution.mappings = [{ targetId: targets[0].id, wordIds: [words[0].id, words[1].id] }, { targetId: targets[1].id, wordIds: [words[0].id] }, { targetId: targets[2].id, wordIds: [words[2].id] }];
+  const result = generateNativeBulkCandidate({ kind: "drag-drop", source: "1. *A*\n2. *B*\n3. *C*\n4. *Distractor*", ...pair, replaceExisting: true, createId });
+  assert.deepEqual(result.teacherDocument.parts[0].solution.mappings, pair.teacherDocument.parts[0].solution.mappings);
+  assert.deepEqual(result.publicDocument.parts[0].interaction.panels[0].dropTargets, targets);
+  assert.equal(result.publicDocument.parts[0].interaction.words[0].reusable, true);
+  assert.equal(result.readiness.issues.some((issue) => /mapping|target.*needs|mismatch/.test(issue)), false);
 });

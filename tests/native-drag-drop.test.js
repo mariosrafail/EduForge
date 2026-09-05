@@ -6,13 +6,14 @@ import { assertPublicBuilderDocument, builderDocumentSha256 } from "../netlify-s
 import { compileUltimateB2ComponentReleaseV2 } from "../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler-v2.js";
 import { resolveNativeActivityKind } from "../netlify-sites/ultimate-b2-builder/server/_native-activity-registry.js";
 import { nativeChildIdFromUuid } from "../src/data/native-activities/nativeChildIdentity.js";
-import { nativeActivityUsesManagedAssetSlot, removeNativeManagedAssetReferenceIfUnused } from "../src/data/native-activities/nativeActivityPublic.js";
+import { normalizeNativeActivityPublic, nativeActivityUsesManagedAssetSlot, removeNativeManagedAssetReferenceIfUnused } from "../src/data/native-activities/nativeActivityPublic.js";
 import {
   assessNativeDragDropReadiness,
   NATIVE_DRAG_DROP_DEFAULT_PRESENTATION,
   nativeDragDropAssetRequirements,
   nativeDragDropMappingWordIds,
   nativeDragDropShortLabel,
+  normalizeNativeDragDropInteraction,
   normalizeNativeDragDropResponses,
   placeNativeDragDropWord,
   reassignNativeDragDropMapping,
@@ -233,7 +234,16 @@ test("multi-answer, reusable, text layout, stable labels, heights, and legacy sh
   assert.equal(nativeDragDropShortLabel(25), "Z"); assert.equal(nativeDragDropShortLabel(26), "AA");
   assert.deepEqual(nativeDragDropMappingWordIds({ wordId: wordIds[0] }), [wordIds[0]]);
   const text = structuredClone(normalizedPublic); text.parts[0].interaction.layoutMode = "text"; text.parts[0].interaction.words[0].reusable = true;
-  assert.throws(() => current.kind.normalizePublic(text), /cannot be reusable/);
+  assert.equal(current.kind.validatePair(text, normalizedTeacher), true);
+  const textPublic = current.kind.normalizePublic(text);
+  assert.deepEqual(normalizeNativeDragDropResponses(placed, textPublic), placed);
+  const removed = removeNativeDragDropResponse(placed, targetIds[0], wordIds[0]);
+  assert.deepEqual(removed, { [targetIds[1]]: [wordIds[0]] });
+  assert.deepEqual(visibleNativeDragDropWordIds(wordIds, removed, null, textPublic.parts[0].interaction.words), wordIds);
+  text.parts[0].interaction.words[0].reusable = false;
+  assert.throws(() => current.kind.validatePair(text, normalizedTeacher), /only reusable/);
+  text.parts[0].interaction.words[0].reusable = "true";
+  assert.throws(() => current.kind.normalizePublic(text), /must be a boolean/);
 });
 
 test("Teacher reveal state supports individual, next, all, reset, and idempotent actions", () => {
@@ -248,8 +258,12 @@ test("Teacher reveal state supports individual, next, all, reset, and idempotent
 
 function source(payload, revision = 1) { return { payload, revision, sha256: builderDocumentSha256(payload) }; }
 
-test("publication v2 separates mappings and closes every Drag & Drop image asset", () => {
+for (const layoutMode of ["standard", "text"]) test(`publication v2 separates ${layoutMode} reusable mappings and closes every Drag & Drop image asset`, () => {
   const current = pair(); const sources = createPublicationV2FixtureSources();
+  current.publicDocument.parts[0].interaction.layoutMode = layoutMode;
+  current.publicDocument.parts[0].interaction.words[0].reusable = true;
+  current.publicDocument.parts[0].interaction.panels[0].dropTargets[0].capacity = 2;
+  current.teacherDocument.parts[0].solution.mappings = [{ targetId: targetIds[0], wordIds: [wordIds[0], wordIds[1]] }, { targetId: targetIds[1], wordIds: [wordIds[0]] }];
   current.publicDocument.assets.push(fontAsset);
   current.publicDocument.parts[0].interaction.presentation.bankWordStyle.fontAssetSlot = fontAsset.slot;
   const entry = { activityId, kind: "drag-drop", placement: { pageId: publicationV2Fixture.pageId }, sortOrder: 4 };
@@ -297,4 +311,29 @@ test("Builder and web/Android runtimes expose managed panels, controlled respons
   assert.match(androidProvider, /"drag-drop"/); assert.match(androidProvider, /normalizeNativeRuntimeTeacherDocument/);
   assert.match(publicContract, /interaction\?\.panels\?\.some\(\(panel\) => panel\.images/);
   assert.doesNotMatch(surface, /data-(?:answer|correct|mapping)/i);
+});
+
+
+test("canonical editor normalization retains supporting assets and permits incomplete authoring without publication readiness", () => {
+  const current = pair();
+  const readable = { assetId: "20000000-0000-4000-8000-000000000044", checksumSha256: "e".repeat(64), role: "activity_artwork", slot: "readable" };
+  const audio = { ...readable, assetId: "20000000-0000-4000-8000-000000000045", slot: "audio" };
+  Object.assign(current.publicDocument, { readableText: { kind: "image", assetSlot: readable.slot, sourceWidth: 1000, sourceHeight: 1800, altText: "Passage" }, supplementalAudio: { assetSlot: audio.slot, durationMs: 2000 } });
+  current.publicDocument.assets.push(readable, audio, fontAsset);
+  current.publicDocument.parts[0].interaction.presentation.bankWordStyle.fontAssetSlot = fontAsset.slot;
+  const open = (document) => normalizeNativeActivityPublic(document, { normalizeInteraction: normalizeNativeDragDropInteraction, expectedKind: "drag-drop", expectedActivityId: activityId });
+  const opened = open(current.publicDocument);
+  assert.deepEqual(open(opened), opened);
+  assert.deepEqual(opened.assets, current.publicDocument.assets);
+  assert.deepEqual(opened.parts[0].interaction.panels.map((panel) => panel.images.map((image) => image.area)), current.publicDocument.parts[0].interaction.panels.map((panel) => panel.images.map((image) => image.area)));
+  current.teacherDocument.parts[0].solution.mappings = [];
+  assert.doesNotThrow(() => open(opened));
+  assert.equal(current.kind.assessReadiness(opened, current.teacherDocument).ready, false);
+  assert.throws(() => current.kind.validatePair(opened, current.teacherDocument), /one private/);
+  for (const mutate of [
+    (value) => { delete value.readableText; },
+    (value) => { value.readableText.assetSlot = "missing"; },
+    (value) => { value.assets.find((asset) => asset.slot === "readable").role = "activity_font"; },
+    (value) => { value.assets.push({ ...audio, assetId: "20000000-0000-4000-8000-000000000046", slot: "orphan" }); },
+  ]) { const invalid = structuredClone(opened); mutate(invalid); assert.throws(() => open(invalid)); }
 });

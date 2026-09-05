@@ -138,7 +138,6 @@ export function normalizeNativeDragDropInteraction(input, { assets = [], commonA
     wordIds.add(word.id);
     const reusable = hasReusable ? word.reusable : false;
     if (typeof reusable !== "boolean") throw new Error(`${label}.reusable must be a boolean.`);
-    if (layoutMode === "text" && reusable) throw new Error("Text Drag & Drop items cannot be reusable.");
     const shortLabel = hasShortLabel ? normalizeNativeSingleLineText(word.shortLabel, `${label}.shortLabel`, 8, { required: true }) : nativeDragDropShortLabel(index);
     if (!/^[A-Z]{1,8}$/.test(shortLabel) || shortLabels.has(shortLabel)) throw new Error("Native Drag & Drop short labels must be unique uppercase letters.");
     shortLabels.add(shortLabel);
@@ -212,7 +211,7 @@ export function validateNativeDragDropTopology(publicDocument, teacherDocument) 
   const targets = interaction.panels.flatMap((panel) => panel.dropTargets);
   const targetIds = new Set(targets.map((target) => target.id));
   const wordIds = new Set(interaction.words.map((word) => word.id));
-  const reusableWordIds = new Set(interaction.words.filter((word) => word.reusable && interaction.layoutMode !== "text").map((word) => word.id));
+  const reusableWordIds = new Set(interaction.words.filter((word) => word.reusable).map((word) => word.id));
   const mappings = teacherDocument.parts[0].solution.mappings;
   const nonReusableUses = new Set();
   if (mappings.length !== targets.length

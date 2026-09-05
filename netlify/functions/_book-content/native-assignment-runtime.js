@@ -230,7 +230,7 @@ function normalizeDragDrop(publicDocument, rawEnvelope) {
     const targetId = String(item.id || ""); const wordIds = dragDropResponseWordIds(item.value); const target = targetById.get(targetId);
     if (!allowedTargets.has(targetId) || !target || !wordIds.length || wordIds.length > (target.capacity || 1) || new Set(wordIds).size !== wordIds.length || values.has(targetId) || wordIds.some((wordId) => !wordById.has(wordId))) return { error: `Drag & Drop response ${targetId} is invalid` };
     for (const wordId of wordIds) {
-      const reusable = interaction.layoutMode !== "text" && wordById.get(wordId)?.reusable === true;
+      const reusable = wordById.get(wordId)?.reusable === true;
       if (!reusable && usedWords.has(wordId)) return { error: `Drag & Drop response ${targetId} is invalid` };
       if (!reusable) usedWords.add(wordId);
     }

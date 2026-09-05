@@ -9,7 +9,7 @@ import { NativeDragDropTeacherSurface } from "../../../components/native-drag-dr
 import { NativeReadableTextPresentation } from "../../../components/native-readable-text/NativeReadableTextPresentation.jsx";
 import { createNativeChildId } from "../../../data/native-activities/nativeChildIdentity.js";
 import { generateNativeBulkCandidate } from "../../../data/native-activities/nativeBulkAuthoring.js";
-import { mergeNativeManagedAssetReference, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
+import { mergeNativeManagedAssetReference, normalizeNativeActivityPublic, removeNativeManagedAssetReferenceIfUnused } from "../../../data/native-activities/nativeActivityPublic.js";
 import {
   assessNativeDragDropReadiness,
   nativeDragDropMappingWordIds,
@@ -68,6 +68,7 @@ function DragDropTextStyleControls({ heading, style, fonts, bookSlug, componentS
 
 export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, placementLabel, onDirtyChange = () => {}, onSaved = () => {} }) {
   const [state, setState] = useState({ kind: "loading", message: "" });
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [publicDraft, setPublicDraft] = useState(null);
   const [teacherDraft, setTeacherDraft] = useState(null);
   const [dirty, setDirty] = useState(false);
@@ -92,15 +93,16 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
       getBuilderFontLibrary({ bookSlug, componentSlug }, { signal: controller.signal }),
     ]).then(([publicValue, teacherValue, fontLibrary]) => {
       if (controller.signal.aborted) return;
-      const projected = projectNativeActivityPublicForAuthoring(publicValue.document);
-      projected.parts[0].interaction = normalizeNativeDragDropInteraction(projected.parts[0].interaction, { assets: projected.assets });
+      const projected = normalizeNativeActivityPublic(projectNativeActivityPublicForAuthoring(publicValue.document), {
+        normalizeInteraction: normalizeNativeDragDropInteraction, expectedActivityId: activityId, expectedKind: "drag-drop",
+      });
       const teacherDocument = clone(teacherValue.document);
       teacherDocument.parts[0].solution = normalizeNativeDragDropSolution(teacherDocument.parts[0].solution);
       setPublicDraft(projected); setTeacherDraft(teacherDocument); setFonts(fontLibrary); setPanelId(projected.parts[0].interaction.panels[0]?.id || null);
       setState({ kind: "ready", publicRevision: publicValue.revision, teacherRevision: teacherValue.revision, message: "Draft saved." });
     }).catch((error) => { if (!controller.signal.aborted) setState({ kind: "error", message: error.message }); });
     return () => controller.abort();
-  }, [activityId, bookSlug, componentSlug]);
+  }, [activityId, bookSlug, componentSlug, loadAttempt]);
 
   const interaction = publicDraft?.parts[0].interaction;
   const panel = interaction?.panels.find((entry) => entry.id === panelId) || interaction?.panels[0] || null;
@@ -176,14 +178,8 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
   };
 
   const setLayoutMode = (layoutMode) => {
-    if (layoutMode === "text") {
-      const uses = new Map();
-      for (const mapping of teacherDraft.parts[0].solution.mappings) for (const wordId of nativeDragDropMappingWordIds(mapping)) uses.set(wordId, (uses.get(wordId) || 0) + 1);
-      if ([...uses.values()].some((count) => count > 1)) { setState((current) => ({ ...current, message: "Remove repeated reusable answer mappings before enabling Text drag-and-drop." })); return; }
-    }
     mutatePublic((next) => {
       const nextInteraction = next.parts[0].interaction; nextInteraction.layoutMode = layoutMode;
-      if (layoutMode === "text") nextInteraction.words.forEach((word) => { word.reusable = false; });
       if (!nextInteraction.answerBankHeightPx) nextInteraction.answerBankHeightPx = NATIVE_DRAG_DROP_DEFAULT_LAYOUT.answerBankHeightPx;
       if (!nextInteraction.textPanelHeightPx) nextInteraction.textPanelHeightPx = NATIVE_DRAG_DROP_DEFAULT_LAYOUT.textPanelHeightPx;
     });
@@ -197,19 +193,9 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
 
   const setMappingWords = (targetId, rawWordIds) => {
     const wordIds = [...new Set(rawWordIds)];
-    const current = mappings.get(targetId) || [];
-    const reusableWordIds = new Set(interaction.words.filter((word) => word.reusable && interaction.layoutMode !== "text").map((word) => word.id));
+    const reusableWordIds = new Set(interaction.words.filter((word) => word.reusable).map((word) => word.id));
     const conflict = wordIds.map((wordId) => ({ wordId, mapping: teacherDraft.parts[0].solution.mappings.find((entry) => entry.targetId !== targetId && nativeDragDropMappingWordIds(entry).includes(wordId)) })).find(({ wordId, mapping }) => mapping && !reusableWordIds.has(wordId));
     if (conflict) {
-      if (wordIds.length === 1 && current.length === 1 && nativeDragDropMappingWordIds(conflict.mapping).length === 1) {
-        mutatePair((nextPublic, nextTeacher) => {
-          const other = nextTeacher.parts[0].solution.mappings.find((entry) => entry.targetId === conflict.mapping.targetId);
-          const own = nextTeacher.parts[0].solution.mappings.find((entry) => entry.targetId === targetId);
-          other.wordIds = [current[0]]; delete other.wordId; own.wordIds = wordIds; delete own.wordId;
-          nextPublic.parts[0].interaction.panels.flatMap((entry) => entry.dropTargets).find((target) => target.id === targetId).capacity = 1;
-        });
-        return;
-      }
       setState((state) => ({ ...state, message: "That item is already correct for another target. Turn on Reusable item first." })); return;
     }
     mutatePair((nextPublic, nextTeacher) => {
@@ -290,7 +276,7 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
   };
 
   if (state.kind === "loading") return <section className="native-activity-foundation studio-loading" role="status">Loading Drag &amp; Drop editor…</section>;
-  if (state.kind === "error" || !publicDraft || !teacherDraft) return <section className="native-activity-foundation studio-error" role="alert">{state.message || "Native draft is unavailable."}</section>;
+  if (state.kind === "error" || !publicDraft || !teacherDraft) return <section className="native-activity-foundation studio-error" role="alert"><p>{state.message || "Native draft is unavailable."}</p><p>The saved activity is preserved. Reload after correcting the reported problem.</p><StudioButton onClick={() => setLoadAttempt((value) => value + 1)}>Reload draft</StudioButton></section>;
 
   return <section className="native-activity-foundation native-drag-drop-editor studio-editor">
     <header className="studio-editor-header"><div><span className="studio-eyebrow">{placementLabel} · Drag &amp; Drop</span><h2>{publicDraft.metadata.title}</h2><p>{readiness.ready ? "Content complete" : `${readiness.issues.length} item${readiness.issues.length === 1 ? "" : "s"} need attention`}</p></div><details className="builder-technical-details"><summary>Technical details</summary><code>{activityId}</code></details></header>
@@ -303,11 +289,11 @@ export function NativeDragDropEditor({ bookSlug, componentSlug, activityId, plac
       <fieldset className="native-drag-drop-layout-settings"><legend>Activity layout</legend>
         <label><input type="radio" name={`${activityId}-layout`} checked={interaction.layoutMode === "standard"} onChange={() => setLayoutMode("standard")} /> Standard drag-and-drop</label>
         <label><input type="radio" name={`${activityId}-layout`} checked={interaction.layoutMode === "text"} onChange={() => setLayoutMode("text")} /> Text drag-and-drop</label>
-        <p>{interaction.layoutMode === "text" ? "The managed text image scrolls above the bottom phrase bank. Students drag only stable A/B/… labels; text-mode items are always consumed and cannot be reusable." : "The answer bank overlays the bottom of the stable visual canvas; changing its height never moves the artwork or targets."}</p>
+        <p>{interaction.layoutMode === "text" ? "The managed text image scrolls above the bottom phrase bank. Students drag only stable A/B/… labels; reusable items remain available for other targets." : "The answer bank overlays the bottom of the stable visual canvas; changing its height never moves the artwork or targets."}</p>
         <QuickNumber label="Answer bank height (px)" value={interaction.answerBankHeightPx ?? NATIVE_DRAG_DROP_DEFAULT_LAYOUT.answerBankHeightPx} minimum={NATIVE_DRAG_DROP_LIMITS.answerBankHeightMinimum} maximum={NATIVE_DRAG_DROP_LIMITS.answerBankHeightMaximum} onChange={(value) => mutatePublic((next) => { next.parts[0].interaction.answerBankHeightPx = Math.round(Number(value)); })} />
         {interaction.layoutMode === "text" ? <QuickNumber label="Upper text-image panel height (px)" value={interaction.textPanelHeightPx ?? NATIVE_DRAG_DROP_DEFAULT_LAYOUT.textPanelHeightPx} minimum={NATIVE_DRAG_DROP_LIMITS.textPanelHeightMinimum} maximum={NATIVE_DRAG_DROP_LIMITS.textPanelHeightMaximum} onChange={(value) => mutatePublic((next) => { next.parts[0].interaction.textPanelHeightPx = Math.round(Number(value)); })} /> : null}
       </fieldset>
-      <section className="native-drag-drop-editor-list"><h3>{interaction.layoutMode === "text" ? "Labelled phrase bank" : "Shared word bank"}</h3><StudioButton onClick={addWord} disabled={interaction.words.length >= NATIVE_DRAG_DROP_LIMITS.words}><Plus aria-hidden="true" />Add word</StudioButton>{interaction.words.map((word, index) => <div className="native-drag-drop-word-row" key={word.id}><span className="native-drag-drop-editor-label" aria-label={`Stable label ${word.shortLabel}`}>{word.shortLabel}</span><textarea rows={2} aria-label={`Word ${index + 1}`} value={word.text} maxLength={NATIVE_DRAG_DROP_LIMITS.wordTextLength} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.words[index].text = event.target.value; })} /><label className="native-drag-drop-reusable"><input type="checkbox" checked={word.reusable} disabled={interaction.layoutMode === "text"} onChange={(event) => setReusable(word.id, event.target.checked)} /> Reusable item</label><button type="button" aria-label={`Move word ${index + 1} up`} disabled={!index} onClick={() => mutatePublic((next) => moveInArray(next.parts[0].interaction.words, index, -1))}>↑</button><button type="button" aria-label={`Move word ${index + 1} down`} disabled={index === interaction.words.length - 1} onClick={() => mutatePublic((next) => moveInArray(next.parts[0].interaction.words, index, 1))}>↓</button><button type="button" aria-label={`Remove word ${index + 1}`} onClick={() => deleteWord(word.id)}><Trash2 aria-hidden="true" /></button></div>)}</section>
+      <section className="native-drag-drop-editor-list"><h3>{interaction.layoutMode === "text" ? "Labelled phrase bank" : "Shared word bank"}</h3><StudioButton onClick={addWord} disabled={interaction.words.length >= NATIVE_DRAG_DROP_LIMITS.words}><Plus aria-hidden="true" />Add word</StudioButton>{interaction.words.map((word, index) => <div className="native-drag-drop-word-row" key={word.id}><span className="native-drag-drop-editor-label" aria-label={`Stable label ${word.shortLabel}`}>{word.shortLabel}</span><textarea rows={2} aria-label={`Word ${index + 1}`} value={word.text} maxLength={NATIVE_DRAG_DROP_LIMITS.wordTextLength} onChange={(event) => mutatePublic((next) => { next.parts[0].interaction.words[index].text = event.target.value; })} /><label className="native-drag-drop-reusable"><input type="checkbox" checked={word.reusable} onChange={(event) => setReusable(word.id, event.target.checked)} /> Reusable item</label><button type="button" aria-label={`Move word ${index + 1} up`} disabled={!index} onClick={() => mutatePublic((next) => moveInArray(next.parts[0].interaction.words, index, -1))}>↑</button><button type="button" aria-label={`Move word ${index + 1} down`} disabled={index === interaction.words.length - 1} onClick={() => mutatePublic((next) => moveInArray(next.parts[0].interaction.words, index, 1))}>↓</button><button type="button" aria-label={`Remove word ${index + 1}`} onClick={() => deleteWord(word.id)}><Trash2 aria-hidden="true" /></button></div>)}</section>
       <p className="studio-field-help">Reusable items remain in the standard bank and may be placed in multiple different targets, but never twice in one target.</p>
       <section className="native-drag-drop-typography-grid" aria-label="Drag and Drop typography"><h3>Shared typography</h3><DragDropTextStyleControls heading="Bank words" style={interaction.presentation.bankWordStyle} fonts={fonts} bookSlug={bookSlug} componentSlug={componentSlug} onStyleChange={(key, value) => changeTextStyle("bankWordStyle", key, value)} onFontSelect={(font) => setTextFont("bankWordStyle", font)} onFontUploaded={recordUploadedFont} onMessage={(message) => setState((current) => ({ ...current, message }))} /><DragDropTextStyleControls heading="Placed answers" style={interaction.presentation.placedAnswerStyle} fonts={fonts} bookSlug={bookSlug} componentSlug={componentSlug} onStyleChange={(key, value) => changeTextStyle("placedAnswerStyle", key, value)} onFontSelect={(font) => setTextFont("placedAnswerStyle", font)} onFontUploaded={recordUploadedFont} onMessage={(message) => setState((current) => ({ ...current, message }))} /></section>
     </div> : null}
