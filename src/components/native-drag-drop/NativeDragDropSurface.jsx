@@ -152,6 +152,7 @@ function useTextBankLayout(ref, { enabled, complete, dependency }) {
     let frame = null;
     const measure = () => {
       if (!active) return;
+      bank.dataset.empty = String(!items.children.length);
       const configured = parseFloat(getComputedStyle(root).getPropertyValue("--native-drag-drop-bank-height")) || 180;
       // Fit against the saved initial budget, never against the last shrunken height.
       bank.style.height = `${configured}px`;
@@ -162,7 +163,6 @@ function useTextBankLayout(ref, { enabled, complete, dependency }) {
       const contentHeight = [...items.children].reduce((height, child) => Math.max(height, child.offsetTop - items.offsetTop + child.offsetHeight), 0);
       const height = !items.children.length ? 0 : complete ? configured : Math.min(configured, Math.ceil(contentHeight + inset));
       root.style.setProperty("--native-drag-drop-runtime-bank-height", `${height}px`);
-      bank.dataset.empty = String(!items.children.length);
       bank.style.removeProperty("height");
       items.style.removeProperty("height");
     };

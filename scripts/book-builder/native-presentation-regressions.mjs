@@ -156,6 +156,7 @@ export async function runNativePresentationRegressions(browser, output) {
     await expect.poll(async () => (await geometry()).bank).toBe(0);
     await page.keyboard.press("Delete"); await expect(word(3)).toBeVisible();
     await expect.poll(async () => (await geometry()).bank).toBeGreaterThan(0);
+    await expect.poll(() => page.locator(".native-drag-drop-bank-items").evaluate((node) => node.scrollHeight <= node.clientHeight)).toBe(true);
     await page.evaluate(() => nativePresentationFixture.reset());
     await expect.poll(async () => (await geometry()).bank).toBe(180);
     await page.evaluate(async () => { await document.fonts.ready; document.fonts.dispatchEvent(new Event("loadingdone")); });
