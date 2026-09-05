@@ -1,4 +1,4 @@
-import { NATIVE_MULTI_PART_CHILDREN } from "./nativeMultiPartChildren.js";
+import { NATIVE_MULTI_PART_CHILDREN, nativeMultiPartTeacherChild } from "./nativeMultiPartChildren.js";
 import { isNativeChildId, createNativeChildId } from "./nativeChildIdentity.js";
 import { normalizeNativePedagogicalText } from "./nativePedagogicalText.js";
 
@@ -113,7 +113,7 @@ export function normalizeNativeMultiPartSolution(input) {
     exact(entry, ["id", "kind", "solution"], "Multi-Part Teacher section");
     if (!isNativeChildId(entry.id, "section") || seen.has(entry.id) || !NATIVE_MULTI_PART_CHILDREN[entry.kind] || entry.solution?.kind !== entry.kind) throw new Error("Multi-Part Teacher section identity or kind is invalid.");
     seen.add(entry.id);
-    return { id: entry.id, kind: entry.kind, solution: NATIVE_MULTI_PART_CHILDREN[entry.kind].normalizeSolution(entry.solution) };
+    return { id: entry.id, kind: entry.kind, solution: nativeMultiPartTeacherChild(entry.kind).normalizeSolution(entry.solution) };
   });
   return { kind: "multi-part", schemaVersion: NATIVE_MULTI_PART_VERSION, sections };
 }
@@ -124,7 +124,7 @@ export function validateNativeMultiPartTopology(publicDocument, teacherDocument)
   if (sections.length !== solutions.length || sections.some((section) => !solutions.some((entry) => entry.id === section.id && entry.kind === section.kind))) throw new Error("Multi-Part public and Teacher section identities must match exactly.");
   for (const section of sections) {
     const child = projectNativeMultiPartChild(publicDocument, section, teacherDocument);
-    NATIVE_MULTI_PART_CHILDREN[section.kind].topology(child.publicDocument, child.teacherDocument);
+    nativeMultiPartTeacherChild(section.kind).topology(child.publicDocument, child.teacherDocument);
   }
   return true;
 }
@@ -147,7 +147,7 @@ export function assessNativeMultiPartReadiness(publicDocument, teacherDocument) 
       if (!child.publicDocument.assets.some((asset) => asset.slot === reference.slot)) child.publicDocument.assets.push(reference);
       child.publicDocument.parts[0].interaction.panels[0].images = [{ id: "img-00000000000000000000000000000000", assetSlot: reference.slot, area: { x: 0, y: 0, ...panel.surface }, order: 0, altText: panel.background.altText, decorative: true, fit: "contain", locked: true }];
     }
-    const readiness = NATIVE_MULTI_PART_CHILDREN[section.kind].readiness(child.publicDocument, child.teacherDocument);
+    const readiness = nativeMultiPartTeacherChild(section.kind).readiness(child.publicDocument, child.teacherDocument);
     issues.push(...readiness.issues.map((issue) => `${section.title || section.kind}: ${issue}`));
   }
   return { ready: !issues.length, issues };
