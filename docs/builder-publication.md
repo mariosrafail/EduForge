@@ -2,6 +2,14 @@
 
 Hosted Builder publication is a data-release workflow. It does not rewrite tracked content, invoke the staging book importer, create Git commits, deploy an application, or update Android packages.
 
+Immutable Unit Extras verification preserves the presence or absence of optional
+audio fields. Historical video-only documents omit `categories.audios` and
+`extrasVisibility.audios`; explicit empty/false fields and populated audio fields
+remain explicit and fully validated. Authoring normalization still supplies audio
+defaults. Never add those defaults to an immutable projection before hashing or
+strip fields to find a matching hash. Both forms can share an existing recognized
+compatibility identity. See [the historical fixture provenance](../tests/fixtures/historical-unit-extras.md).
+
 Only `ultimate-b2/ultimate-b2-students-book` currently advertises a production publication compiler. Registered or pending components remain non-publishable until they have their own explicit compiler and runtime support.
 
 ## State model

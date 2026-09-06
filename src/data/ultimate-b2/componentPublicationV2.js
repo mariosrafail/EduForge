@@ -204,7 +204,7 @@ export function normalizeUltimateB2PublicReleaseV2Projection(value, canonicalSee
   if (includePageLifecycle && (!activePageIds || activePageIds.some((id) => !SAFE_ID.test(id)) || new Set(activePageIds).size !== activePageIds.length)) throw new Error("Public release v2 active page identities are invalid.");
   const expectedUnitExtras = unitExtras ? unitExtras.units.flatMap((unit) => [
     ...unit.categories.videos.map((entry) => `${entry.video.asset.checksumSha256}.${COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_VIDEO}`),
-    ...unit.categories.audios.map((entry) => `${entry.audio.asset.checksumSha256}.${COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_AUDIO}`),
+    ...(unit.categories.audios ?? []).map((entry) => `${entry.audio.asset.checksumSha256}.${COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_AUDIO}`),
   ]) : [];
   const actualUnitExtras = rawAssets.filter((asset) => [COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_VIDEO, COMPONENT_PUBLICATION_ASSET_ROLES.UNIT_EXTRA_AUDIO].includes(asset.role)).map((asset) => `${asset.sha256}.${asset.role}`);
   if (new Set(rawAssets.map(assetIdentity)).size !== rawAssets.length

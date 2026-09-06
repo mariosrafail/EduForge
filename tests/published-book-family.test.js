@@ -4,8 +4,9 @@ import { compilePublicationV2Fixture } from "./fixtures/publication-v2.js";
 import { publishedManagedBookFixture } from "./fixtures/published-managed-book.js";
 import { loadVerifiedPublishedBookFamily } from "../netlify/functions/_book-content/published-book-releases.js";
 import { productReleaseMemberSha256, productReleaseSourceSha256, productReleaseSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-product-publication-domain.js";
+import { historicalUnitExtrasRelease } from "./fixtures/historical-unit-extras.js";
 
-function familyFixture() {
+function familyFixture({ historical = false } = {}) {
   const productId = "10000000-0000-4000-8000-000000000100";
   const compiled = [compilePublicationV2Fixture(), publishedManagedBookFixture(), publishedManagedBookFixture("ultimate-b2-grammar-book")];
   const rows = compiled.map((release, index) => ({
@@ -16,6 +17,7 @@ function familyFixture() {
     teacher_projection: release.teacherProjection, teacher_projection_sha256: release.teacherProjectionSha256,
     asset_manifest: release.assetManifest, release_sha256: release.releaseSha256,
   }));
+  if (historical) Object.assign(rows[0], historicalUnitExtrasRelease());
   const members = rows.map((row, index) => {
     const member = { componentSlug: row.component_slug, order: index + 1, status: "included", componentReleaseId: row.id, compilerId: row.compiler_id,
       releaseSchemaVersion: row.release_schema_version, releaseSha256: row.release_sha256, compatibility: row.runtime_compatibility_sha256, unavailableReason: null };
@@ -54,4 +56,15 @@ test("missing, swapped, or corrupted family members fail closed instead of mixin
   const missing = familyFixture(); missing.rows.pop(); await assert.rejects(missing.load, /family_mismatch/);
   const swapped = familyFixture(); swapped.rows[1].id = swapped.rows[0].id; await assert.rejects(swapped.load, /family_mismatch/);
   const changed = familyFixture(); changed.productRows[1].member_sha256 = "a".repeat(64); await assert.rejects(changed.load, /fingerprint is invalid/);
+});
+
+test("a product family verifies the frozen historical video-only Students Book with exact managed members", async () => {
+  const fixture = familyFixture({ historical: true });
+  const family = await fixture.load();
+  assert.equal(family.length, 3);
+  assert.deepEqual(family[0].verified.publicProjection, historicalUnitExtrasRelease().public_projection);
+  assert.deepEqual(family.map(({ row }) => row.id), fixture.rows.map((row) => row.id));
+  fixture.rows[0].public_projection.unitExtras.units[0].categories.audios = [];
+  await assert.rejects(fixture.load, /release_integrity_failed/);
+  assert.equal(fixture.queries.some((query) => query.includes("from book_component_publication_heads")), false);
 });

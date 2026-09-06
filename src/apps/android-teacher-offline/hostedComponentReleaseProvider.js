@@ -96,7 +96,7 @@ export function publishedUnitExtraVideoUrl(publication, reference) {
 export function publishedUnitExtraAudioUrl(publication, reference) {
   if (publication.kind === "draft" && reference) {
     for (const unit of (publication.projection.unitExtras?.units || [])) {
-      const audio = unit.categories.audios.find((entry) => entry.audio.asset.assetId === reference.assetId && entry.audio.asset.checksumSha256 === reference.checksumSha256);
+      const audio = (unit.categories.audios ?? []).find((entry) => entry.audio.asset.assetId === reference.assetId && entry.audio.asset.checksumSha256 === reference.checksumSha256);
       if (audio) return authorizedHostedPreviewPath(`/preview/unit-extras/books/${publication.identity.bookSlug}/components/${publication.identity.componentSlug}/units/${unit.unitId}/audios/${audio.id}/assets/${reference.assetId}/preview`, publication.runtimeContext.authorization);
     }
     return "";

@@ -419,4 +419,8 @@ test("published native assignment remains release-pinned through submit, review,
     const { verifyPublishedBookBrowser } = await import("./_published-book-browser.mjs");
     await verifyPublishedBookBrowser({ pool, sql, teacher: teacherUser, student: studentUser });
   }
+  await t.test("historical Unit Extras endpoints verify unchanged hashes and remain pinned after newer releases", async () => {
+    const { verifyHistoricalUnitExtrasPersistence } = await import("./_historical-unit-extras.mjs");
+    await verifyHistoricalUnitExtrasPersistence({ pool, sql, scope, builderId, teacher: teacherUser, student: studentUser, classId: classRow.id, insertRelease, publishRelease });
+  });
 });

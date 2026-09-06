@@ -98,7 +98,7 @@ function normalizeUnit(value, index) {
   return { ...identity, categories: { videos, audios } };
 }
 
-function normalizePage(value, index) {
+function normalizePage(value, index, { audioDefaults }) {
   const label = `Unit Extras pages[${index}]`;
   exact(value, ["pageId", "unitId", "extrasVisibility"], label);
   const hasAudios = Object.hasOwn(value.extrasVisibility, "audios");
@@ -107,7 +107,7 @@ function normalizePage(value, index) {
   const page = ultimateB2StudentsBookAuthoringPages.find((candidate) => candidate.id === value.pageId);
   if (!page || value.unitId !== `unit-${page.unitNumber}`) throw new Error(`${label} does not belong to its Unit.`);
   if (hasAudios && typeof value.extrasVisibility.audios !== "boolean") throw new Error(`${label} audio visibility is invalid.`);
-  return { pageId: value.pageId, unitId: value.unitId, extrasVisibility: { videos: value.extrasVisibility.videos, audios: value.extrasVisibility.audios === true } };
+  return { pageId: value.pageId, unitId: value.unitId, extrasVisibility: { videos: value.extrasVisibility.videos, ...(hasAudios || audioDefaults ? { audios: value.extrasVisibility.audios === true } : {}) } };
 }
 
 export function createEmptyUltimateB2UnitExtras() {
@@ -120,7 +120,7 @@ export function normalizeUltimateB2UnitExtrasDocument(value) {
   if (!Array.isArray(value.units) || value.units.length > ULTIMATE_B2_UNIT_EXTRA_LIMITS.units || !Array.isArray(value.pages) || value.pages.length > ULTIMATE_B2_UNIT_EXTRA_LIMITS.pages) throw new Error("Unit Extras collections are invalid.");
   const units = value.units.map(normalizeUnit);
   if (new Set(units.map((unit) => unit.unitId)).size !== units.length) throw new Error("Unit Extras Unit identities must be unique.");
-  const pages = value.pages.map(normalizePage);
+  const pages = value.pages.map((page, index) => normalizePage(page, index, { audioDefaults: true }));
   if (new Set(pages.map((page) => page.pageId)).size !== pages.length) throw new Error("Unit Extras Page identities must be unique.");
   return { schemaVersion: value.schemaVersion, units, pages };
 }
@@ -173,10 +173,12 @@ export function normalizePublishedUltimateB2UnitExtras(value) {
     });
     if (new Set(videos.map((video) => video.id)).size !== videos.length || videos.some((video) => !video.video.asset)) throw new Error(`${label} videos are invalid.`);
     if (new Set(audios.map((audio) => audio.id)).size !== audios.length || audios.some((audio) => !audio.audio.asset)) throw new Error(`${label} audios are invalid.`);
-    return { ...identity, categories: { videos, audios } };
+    // Absence is part of historical immutable identity; explicit audio fields
+    // still undergo the same validation and must never be stripped.
+    return { ...identity, categories: { videos, ...(hasAudios ? { audios } : {}) } };
   });
   if (new Set(units.map((unit) => unit.unitId)).size !== units.length) throw new Error("Published Unit identities must be unique.");
-  const pages = value.pages.map(normalizePage);
+  const pages = value.pages.map((page, index) => normalizePage(page, index, { audioDefaults: false }));
   if (new Set(pages.map((page) => page.pageId)).size !== pages.length) throw new Error("Published Page identities must be unique.");
   return { schemaVersion: value.schemaVersion, units, pages };
 }
