@@ -130,7 +130,9 @@ test("local import and save endpoint persists a validated replacement without ch
   const assetRoot = path.join(directory, "src/assets/books/ultimate-b2/authoring/teacher-app");
   await mkdir(path.dirname(configPath), { recursive: true });
   await writeFile(configPath, `${JSON.stringify(emptyOverrides, null, 2)}\n`);
-  const server = await createServer({ configFile: false, appType: "custom", logLevel: "silent", plugins: [ultimateB2TeacherAppBuilderPlugin({ repositoryRoot: directory, configPath, assetRoot })], server: { host: "127.0.0.1", port: 0 } });
+  // These HTTP persistence tests read files explicitly; HMR is not under test.
+  // Avoid a repository-wide watcher scan racing fixture teardown under load.
+  const server = await createServer({ configFile: false, appType: "custom", logLevel: "silent", plugins: [ultimateB2TeacherAppBuilderPlugin({ repositoryRoot: directory, configPath, assetRoot })], server: { watch: null, host: "127.0.0.1", port: 0 } });
   await server.listen();
   try {
     const base = `http://127.0.0.1:${server.httpServer.address().port}`;

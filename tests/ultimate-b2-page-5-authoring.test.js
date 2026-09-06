@@ -39,7 +39,9 @@ async function fixtureServer() {
     writeFile(teacherAnswersPath, `${JSON.stringify(teacherAnswers, null, 2)}\n`),
     writeFile(imageAssetPath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"/>\n"),
   ]);
-  const server = await createServer({ configFile: false, appType: "custom", logLevel: "silent", plugins: [ultimateB2Page5BuilderPlugin({ openResponsePath, imagePath, teacherAnswersPath, imageAssetPath, publisherSourceDirectory: page5PublisherSourceDirectory })], server: { host: "127.0.0.1", port: 0 } });
+  // These HTTP persistence tests read files explicitly; HMR is not under test.
+  // Avoid a repository-wide watcher scan racing fixture teardown under load.
+  const server = await createServer({ configFile: false, appType: "custom", logLevel: "silent", plugins: [ultimateB2Page5BuilderPlugin({ openResponsePath, imagePath, teacherAnswersPath, imageAssetPath, publisherSourceDirectory: page5PublisherSourceDirectory })], server: { watch: null, host: "127.0.0.1", port: 0 } });
   await server.listen();
   return { directory, server, base: `http://127.0.0.1:${server.httpServer.address().port}`, openResponsePath, imagePath, imageAssetPath, teacherAnswersPath };
 }
