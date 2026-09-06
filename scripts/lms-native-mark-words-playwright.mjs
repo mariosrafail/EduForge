@@ -16,6 +16,10 @@ export async function exercisePublishedMarkWords({ page, origin, publication, co
   await page.route("**/.netlify/functions/book-content?**", async (route) => {
     const action = new URL(route.request().url()).searchParams.get("action");
     if (action === "assignments") return route.fulfill({ json: { assignments: [assignment] } });
+    if (action === "student-assignment") {
+      assert.equal(new URL(route.request().url()).searchParams.get("assignmentId"), assignmentId);
+      return route.fulfill({ json: { assignment: { ...assignment, assignmentId } } });
+    }
     if (action !== "submit") return route.continue();
     const body = route.request().postDataJSON(); assert.deepEqual(Object.keys(body).sort(), ["assignmentId", "response"]);
     assert.equal(body.assignmentId, assignmentId); const normalized = capability.normalizeResponse(entry.document, body.response); assert.equal(normalized.error, undefined);
