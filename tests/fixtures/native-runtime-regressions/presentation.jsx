@@ -2,6 +2,7 @@ import React, { Profiler, useCallback, useState } from "react";
 import { createRoot } from "react-dom/client";
 import TeacherOfflineEmbeddedActivity from "../../../src/apps/android-teacher-offline/TeacherOfflineEmbeddedActivity.jsx";
 import { NativeDragDropEditor } from "../../../src/apps/book-builder/hosted/NativeDragDropEditor.jsx";
+import { NativeSingleChoiceEditor } from "../../../src/apps/book-builder/hosted/NativeSingleChoiceEditor.jsx";
 import { NativeDragDropStudentSurface } from "../../../src/components/native-drag-drop/NativeDragDropSurface.jsx";
 import { NativeDragDropTeacherSurface } from "../../../src/components/native-drag-drop/NativeDragDropTeacherSurface.jsx";
 import { NativeReadableTextPresentation } from "../../../src/components/native-readable-text/NativeReadableTextPresentation.jsx";
@@ -29,8 +30,9 @@ function Fixture() {
   const presentation = { command, onStateChange: stateChange };
   const assetUrl = globalThis.nativePresentationFixture.assetUrl;
   return <Profiler id="activity" onRender={(_, phase, duration) => globalThis.nativePresentationFixture.commits.push({ phase, duration, at: performance.now() })}>
-    <div data-fixture-stage style={{ width: mode === "editor" ? 1100 : 1024, height: mode === "editor" ? "auto" : 582, transform: `scale(${scale})`, transformOrigin: "top left", position: "relative" }} data-version={version}>
-      {mode === "editor" ? <NativeDragDropEditor key={version} bookSlug="ultimate-b2" componentSlug="ultimate-b2-students-book" activityId={pair.publicDocument.activityId} /> : mode === "choice" ? <TeacherOfflineEmbeddedActivity activityId={choice.publicDocument.activityId} title="Choice regression" runtimeContext={{ kind: "builder-preview", teacherPreview: true }} activityPresentationCommand={command} onActivityPresentationStateChange={stateChange} /> : <NativeReadableTextPresentation document={pair.publicDocument} assetUrl={assetUrl} presentation={presentation}>{(childPresentation) => mode === "teacher" ? <NativeDragDropTeacherSurface publicDocument={pair.publicDocument} teacherDocument={pair.teacherDocument} assetUrl={assetUrl} presentation={childPresentation} /> : <NativeDragDropStudentSurface key={version} document={pair.publicDocument} assetUrl={assetUrl} resetToken={command?.token} />}</NativeReadableTextPresentation>}
+    <div data-fixture-stage style={{ width: mode.endsWith("editor") ? 1100 : 1024, height: mode.endsWith("editor") ? "auto" : 582, transform: `scale(${scale})`, transformOrigin: "top left", position: "relative" }} data-version={version}>
+      {mode === "choice-editor" ? <NativeSingleChoiceEditor bookSlug="ultimate-b2" componentSlug="ultimate-b2-students-book" activityId={choice.publicDocument.activityId} /> :
+      mode === "editor" ? <NativeDragDropEditor key={version} bookSlug="ultimate-b2" componentSlug="ultimate-b2-students-book" activityId={pair.publicDocument.activityId} /> : mode === "choice" ? <TeacherOfflineEmbeddedActivity activityId={choice.publicDocument.activityId} title="Choice regression" runtimeContext={{ kind: "builder-preview", teacherPreview: true }} activityPresentationCommand={command} onActivityPresentationStateChange={stateChange} /> : <NativeReadableTextPresentation document={pair.publicDocument} assetUrl={assetUrl} presentation={presentation}>{(childPresentation) => mode === "teacher" ? <NativeDragDropTeacherSurface publicDocument={pair.publicDocument} teacherDocument={pair.teacherDocument} assetUrl={assetUrl} presentation={childPresentation} /> : <NativeDragDropStudentSurface key={version} document={pair.publicDocument} assetUrl={assetUrl} resetToken={command?.token} />}</NativeReadableTextPresentation>}
     </div>
   </Profiler>;
 }

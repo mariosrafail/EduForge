@@ -5,8 +5,9 @@ import { publishedManagedBookFixture } from "./fixtures/published-managed-book.j
 import { loadVerifiedPublishedBookFamily } from "../netlify/functions/_book-content/published-book-releases.js";
 import { productReleaseMemberSha256, productReleaseSourceSha256, productReleaseSha256 } from "../netlify-sites/ultimate-b2-builder/server/_builder-product-publication-domain.js";
 import { historicalUnitExtrasRelease } from "./fixtures/historical-unit-extras.js";
+import { historicalCombinedRelease } from "./fixtures/historical-combined.js";
 
-function familyFixture({ historical = false } = {}) {
+function familyFixture({ historical = false, studentsRelease = null } = {}) {
   const productId = "10000000-0000-4000-8000-000000000100";
   const compiled = [compilePublicationV2Fixture(), publishedManagedBookFixture(), publishedManagedBookFixture("ultimate-b2-grammar-book")];
   const rows = compiled.map((release, index) => ({
@@ -18,6 +19,7 @@ function familyFixture({ historical = false } = {}) {
     asset_manifest: release.assetManifest, release_sha256: release.releaseSha256,
   }));
   if (historical) Object.assign(rows[0], historicalUnitExtrasRelease());
+  if (studentsRelease) Object.assign(rows[0], studentsRelease);
   const members = rows.map((row, index) => {
     const member = { componentSlug: row.component_slug, order: index + 1, status: "included", componentReleaseId: row.id, compilerId: row.compiler_id,
       releaseSchemaVersion: row.release_schema_version, releaseSha256: row.release_sha256, compatibility: row.runtime_compatibility_sha256, unavailableReason: null };
@@ -65,6 +67,16 @@ test("a product family verifies the frozen historical video-only Students Book w
   assert.deepEqual(family[0].verified.publicProjection, historicalUnitExtrasRelease().public_projection);
   assert.deepEqual(family.map(({ row }) => row.id), fixture.rows.map((row) => row.id));
   fixture.rows[0].public_projection.unitExtras.units[0].categories.audios = [];
+  await assert.rejects(fixture.load, /release_integrity_failed/);
+  assert.equal(fixture.queries.some((query) => query.includes("from book_component_publication_heads")), false);
+});
+
+test("combined historical family fails on its exact tampered member without looking up component latests", async () => {
+  const fixture = familyFixture({ studentsRelease: historicalCombinedRelease() });
+  const family = await fixture.load();
+  assert.equal(family.length, 3);
+  assert.deepEqual(family[0].verified.publicProjection, historicalCombinedRelease().public_projection);
+  fixture.rows[0].public_projection.nativeActivities["ultimate-b2-sb-u1-p1-o97"].document.audioTextHotspots.hotspots[0].focusLayout = "fixed-aspect";
   await assert.rejects(fixture.load, /release_integrity_failed/);
   assert.equal(fixture.queries.some((query) => query.includes("from book_component_publication_heads")), false);
 });

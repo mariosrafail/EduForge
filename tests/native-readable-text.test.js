@@ -83,7 +83,7 @@ test("Audio / Readable-Text hotspots are strict, public, visual-surface-bound ma
     document.readableText = readableText;
     document.audioTextHotspots = { hotspots: [audioHotspot] };
     const normalized = kind.normalizePublic(document);
-    assert.deepEqual(normalized.audioTextHotspots, { hotspots: [{ ...audioHotspot, focusLayout: "natural-width" }] });
+    assert.deepEqual(normalized.audioTextHotspots, { hotspots: [audioHotspot] });
     assert.deepEqual(nativeAudioTextAssetRequirements(normalized), [{ slot: audioReference.slot, mediaType: "audio/mpeg", label: "Audio hotspot 1" }]);
     assert.doesNotThrow(() => assertPublicBuilderDocument(normalized));
     assert.doesNotMatch(JSON.stringify(normalized), /modelAnswer|correctOption|teacher|https?:\/\//i);
@@ -123,10 +123,10 @@ test("Readable-Text hotspots use one canonical no-audio value without phantom as
   }
 });
 
-test("existing MP3-bearing Readable-Text hotspot identity remains unchanged", () => {
+test("existing explicit MP3-bearing Readable-Text hotspot identity remains unchanged", () => {
   const kind = resolveNativeActivityKind("open-response");
   const document = kind.createBlankPublic({ activityId: "open-audio", title: "Audio focus", placement: { pageId } });
-  document.assets = [reference, audioReference]; document.readableText = readableText; document.audioTextHotspots = { hotspots: [audioHotspot] };
+  document.assets = [reference, audioReference]; document.readableText = readableText; document.audioTextHotspots = { hotspots: [{ ...audioHotspot, focusLayout: "natural-width" }] };
   assert.equal(builderDocumentSha256(kind.normalizePublic(document)), "959f16588051594b880f9f011cb77e902e1860e312eaa25ac378088d14c8d474");
 });
 

@@ -140,7 +140,7 @@ export function normalizeNativeAudioTextHotspots(input, publicDocument) {
         panelId: entry.panelId,
         activityArea: area(entry.activityArea, `${label}.activityArea`, target, { circular: true }),
         readableFocusArea: normalizedFocusArea,
-        focusLayout: nativeAudioTextFocusLayout(entry),
+        ...(hasFocusLayout ? { focusLayout: entry.focusLayout } : {}),
         audioAssetSlot: audio?.slot || "",
         label: entry.label.trim(),
       };

@@ -8,7 +8,7 @@ import { childId, presentationPair } from "../../tests/fixtures/native-runtime-r
 
 // Only the data providers and unused legacy branches are substituted. The embedded
 // fitter, hosted native runner, Teacher surface and shared presentation are real.
-function localProviders() {
+export function localProviders() {
   const modules = {
     "virtual:ultimate-b2-multiple-choice-presentation": "export default null;",
     "virtual:ultimate-b2-hosted-open-response-drafts": "export const useHostedOpenResponseDraft = () => null; export const useHostedOpenResponseImport = () => ({});",

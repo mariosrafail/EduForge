@@ -1,4 +1,5 @@
 import { runNativeMultiPartRegressions } from "./native-multi-part-regressions.mjs";
+import { runHistoricalFocusRegressions } from "./native-historical-focus-regressions.mjs";
 import assert from "node:assert/strict";
 import { mkdir, writeFile } from "node:fs/promises";
 import { createServer } from "vite";
@@ -82,6 +83,7 @@ try {
   }
   for (const entry of evidence.filter((item) => item.kind === "listening")) assert.ok(entry.visible && entry.top > 0, JSON.stringify(entry));
   await runNativePresentationRegressions(browser, output);
+  await runHistoricalFocusRegressions(browser, output);
   await runNativeDragImageRegressions(browser, server.resolvedUrls.local[0], output);
   await runNativeMultiPartRegressions(browser, server.resolvedUrls.local[0], output);
   console.log("Native runtime browser regressions passed.");

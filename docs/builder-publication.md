@@ -10,6 +10,13 @@ defaults. Never add those defaults to an immutable projection before hashing or
 strip fields to find a matching hash. Both forms can share an existing recognized
 compatibility identity. See [the historical fixture provenance](../tests/fixtures/historical-unit-extras.md).
 
+The same presence invariant applies to native audio/text hotspot `focusLayout`:
+published normalization preserves historical absence and strictly retains explicit
+`fixed-aspect`/`natural-width` choices. Runtime presentation infers a missing mode
+without adding it to the document; the authoring control saves explicit choices.
+See [the combined historical fixture](../tests/fixtures/historical-combined.md)
+for full source/public/Teacher/asset/aggregate canonical regression evidence.
+
 Only `ultimate-b2/ultimate-b2-students-book` currently advertises a production publication compiler. Registered or pending components remain non-publishable until they have their own explicit compiler and runtime support.
 
 ## State model

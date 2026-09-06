@@ -423,4 +423,8 @@ test("published native assignment remains release-pinned through submit, review,
     const { verifyHistoricalUnitExtrasPersistence } = await import("./_historical-unit-extras.mjs");
     await verifyHistoricalUnitExtrasPersistence({ pool, sql, scope, builderId, teacher: teacherUser, student: studentUser, classId: classRow.id, insertRelease, publishRelease });
   });
+  await t.test("combined historical family preserves exact focus identity, endpoint security and assignment pins", async () => {
+    const { verifyHistoricalCombinedPersistence } = await import("./_historical-combined.mjs");
+    await verifyHistoricalCombinedPersistence({ pool, sql, scope, builderId, teacher: teacherUser, student: studentUser, classId: classRow.id, insertRelease, publishRelease });
+  });
 });
