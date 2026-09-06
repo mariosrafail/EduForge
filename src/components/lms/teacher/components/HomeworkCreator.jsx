@@ -1,6 +1,7 @@
 import { BookOpen, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { createHomework, createHomeworkRequestKey } from "../../../../services/assignmentsApi.js";
+import { createAssignment, createHomework, createHomeworkRequestKey } from "../../../../services/assignmentsApi.js";
+import { PublishedHomeworkPicker } from "./PublishedHomeworkPicker.jsx";
 import { Card } from "../../Shared.jsx";
 import {
   addSelectedHomeworkActivity,
@@ -8,6 +9,7 @@ import {
   homeworkPackageCompatibilityIssue,
   homeworkItemRequest,
   removeSelectedHomeworkActivity,
+  moveSelectedHomeworkActivity,
 } from "../homeworkUiModel.js";
 
 export function HomeworkCreator({ currentUser, classes = [], activityOptions = [], catalogLoading = false, catalogUnavailable = false, onCreated, onError }) {
@@ -20,12 +22,13 @@ export function HomeworkCreator({ currentUser, classes = [], activityOptions = [
   const [selectedActivities, setSelectedActivities] = useState([]);
   const [requestKey, setRequestKey] = useState(createHomeworkRequestKey);
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
 
   const compatibleOptions = useMemo(
     () => compatibleHomeworkActivityOptions(activityOptions, classes, selectedClassIds),
     [activityOptions, classes, selectedClassIds],
   );
-  const assignableOptions = compatibleOptions.options;
+  const assignableOptions = useMemo(() => compatibleOptions.options.filter((activity) => activity.label.toLowerCase().includes(search.toLowerCase())), [compatibleOptions, search]);
   const packageIssue = useMemo(
     () => homeworkPackageCompatibilityIssue(classes, selectedClassIds, selectedActivities),
     [classes, selectedActivities, selectedClassIds],
@@ -70,10 +73,10 @@ export function HomeworkCreator({ currentUser, classes = [], activityOptions = [
     if (!selectedClassIds.length) return onError?.("Choose at least one class.");
     if (catalogUnavailable) return onError?.("Assignable activities are temporarily unavailable.");
     if (packageIssue.conflict) return onError?.(packageIssue.message);
-    if (selectedActivities.length < 2) return onError?.("Select at least two activities for this Homework.");
+    if (!selectedActivities.length) return onError?.("Select at least one activity.");
     setSaving(true);
     try {
-      const homework = await createHomework({
+      const request = {
         idempotencyKey: requestKey,
         teacherId: currentUser.id,
         title: title.trim(),
@@ -81,8 +84,15 @@ export function HomeworkCreator({ currentUser, classes = [], activityOptions = [
         worksheetLinks,
         dueAt: dueDate ? `${dueDate}T23:59:00` : null,
         classIds: selectedClassIds,
-        items: selectedActivities.map(homeworkItemRequest),
-      });
+      };
+      let homework;
+      if (selectedActivities.length === 1) {
+        const item = selectedActivities[0];
+        await createAssignment({ ...request, ...(item.targetKind === "published_native" ? { target: item.target } : { activityId: item.activityId }) });
+        homework = { title: request.title, itemCount: 1, kind: "assignment" };
+      } else {
+        homework = await createHomework({ ...request, items: selectedActivities.map(homeworkItemRequest) });
+      }
       setTitle("");
       setTeacherNotes("");
       setWorksheetLinks("");
@@ -103,12 +113,16 @@ export function HomeworkCreator({ currentUser, classes = [], activityOptions = [
         <div className="card-heading">
           <div>
             <span className="eyebrow"><BookOpen size={15} /> Create Homework</span>
-            <h2>One Homework, multiple activities</h2>
-            <p>Select at least two eligible legacy or published-native activities. Selection order becomes the student order.</p>
+            <h2>Assign exercises from a book</h2>
+            <p>Choose one exercise for an assignment or several for one Homework. Selection order becomes the student order.</p>
           </div>
-          <button className="primary-action" type="submit" disabled={saving || catalogUnavailable || Boolean(packageIssue.conflict)}>{saving ? "Creating..." : "Create Homework"}</button>
+          <button className="primary-action" type="submit" disabled={saving || !selectedActivities.length || catalogUnavailable || Boolean(packageIssue.conflict)}>{saving ? "Creating..." : selectedActivities.length === 1 ? "Create assignment" : "Create Homework"}</button>
         </div>
 
+        <PublishedHomeworkPicker ownerId={currentUser?.id} selected={selectedActivities} disabled={saving} onToggle={(option) => {
+          setSelectedActivities((current) => current.some((item) => item.id === option.id) ? removeSelectedHomeworkActivity(current, option.id) : addSelectedHomeworkActivity(current, option));
+          changed();
+        }} />
         <div className="teacher-book-assign-grid">
           <label>
             Homework title
@@ -119,6 +133,7 @@ export function HomeworkCreator({ currentUser, classes = [], activityOptions = [
             <input type="date" value={dueDate} onChange={update(setDueDate)} />
           </label>
           <div className="homework-activity-picker">
+            <label>Search alternative activity list<input type="search" value={search} onChange={(event) => setSearch(event.target.value)} /></label>
             <label htmlFor="homework-activity-select">Activity</label>
             <div>
               <select id="homework-activity-select" value={pickerId} disabled={catalogUnavailable || catalogLoading || Boolean(compatibleOptions.conflict)} onChange={(event) => setPickerId(event.target.value)}>
@@ -157,10 +172,12 @@ export function HomeworkCreator({ currentUser, classes = [], activityOptions = [
           <strong>Selected activities ({selectedActivities.length})</strong>
           {selectedActivities.length === 0 && <p>No activities selected yet.</p>}
           <ol>
-            {selectedActivities.map((activity) => (
+            {selectedActivities.map((activity, index) => (
               <li key={activity.id}>
-                <span><b>{activity.title}</b><small>{activity.packageTitle} / {activity.component} · {activity.targetKind === "published_native" ? "Published native" : "Book activity"}</small></span>
-                <button type="button" className="danger-action compact-action" onClick={() => removeActivity(activity.id)} aria-label={`Remove ${activity.title}`}>
+                <span><b>{activity.title}</b><small>{activity.packageTitle} / {activity.component} · {activity.printedLabel ? `Page ${activity.printedLabel}` : activity.targetKind === "published_native" ? "Published native" : "Book activity"}</small></span>
+                <button type="button" disabled={saving || index === 0} aria-label={`Move ${activity.title} up`} onClick={() => { setSelectedActivities((current) => moveSelectedHomeworkActivity(current, index, -1)); changed(); }}>↑</button>
+                <button type="button" disabled={saving || index === selectedActivities.length - 1} aria-label={`Move ${activity.title} down`} onClick={() => { setSelectedActivities((current) => moveSelectedHomeworkActivity(current, index, 1)); changed(); }}>↓</button>
+                <button type="button" disabled={saving} className="danger-action compact-action" onClick={() => removeActivity(activity.id)} aria-label={`Remove ${activity.title}`}>
                   <Trash2 size={15} /> Remove
                 </button>
               </li>

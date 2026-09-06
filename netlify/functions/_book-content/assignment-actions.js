@@ -4,8 +4,10 @@ import {
   containsClientTeacherMaterial,
   listPublishedNativeAssignmentTargets,
   nativeTargetToStudent,
+  nativeAssignmentCapability,
   resolveNativeAssignmentTarget,
 } from "./native-assignment-runtime.js";
+import { publishedBookReadModel } from "./published-book-model.js";
 import {
   classTargetPackageConflictResponse,
   verifyDirectStudentTargetEntitlements,
@@ -221,6 +223,7 @@ export async function createAssignment(sql, body, currentUser = null) {
   if (activityId && requestedNativeTarget) return badRequest("Choose either a legacy activityId or a published native target");
   if (activityId && !isValidUuid(activityId)) return invalidUuidResponse("activityId");
   if (body.target && !requestedNativeTarget) return badRequest("target.kind must be published_native");
+  if (body.locator !== undefined || body.native_book_locator !== undefined) return badRequest("A book locator must be supplied inside the published native target");
   if (requestedNativeTarget && containsClientTeacherMaterial(body)) return badRequest("Teacher/model-answer material is not accepted from clients");
   if (isTeacher(currentUser) && body.teacherId && String(body.teacherId) !== String(currentUser.id)) return forbidden();
   if (isAdmin(currentUser)) {
@@ -263,7 +266,7 @@ export async function createAssignment(sql, body, currentUser = null) {
   let nativeTarget = null;
   if (requestedNativeTarget) {
     nativeTarget = await resolveNativeAssignmentTarget(sql, currentUser, requestedNativeTarget, { requireActive: true });
-    if (nativeTarget.error) return json(nativeTarget.statusCode || 400, { error: nativeTarget.error });
+    if (nativeTarget.error) return json(nativeTarget.statusCode || 400, { error: nativeTarget.error, code: nativeTarget.code || "published_target_unavailable" });
     if (!nativeTarget.capability?.assignable) return forbidden("This published native activity is not assignable");
   } else {
     const activityRows = await sql`
@@ -313,6 +316,7 @@ export async function createAssignment(sql, body, currentUser = null) {
   const targetKind = nativeTarget ? NATIVE_ASSIGNMENT_TARGET_KIND : "legacy_activity";
   const nativeReleaseId = nativeTarget?.row.id || null;
   const nativeActivityId = nativeTarget?.nativeActivityId || null;
+  const nativeBookLocator = nativeTarget?.locator ? JSON.stringify(nativeTarget.locator) : null;
   const canonicalTitle = nativeTarget?.publicEntry.document?.metadata?.title || activity?.title;
 
   const inserted = [];
@@ -326,6 +330,7 @@ export async function createAssignment(sql, body, currentUser = null) {
         target_kind,
         native_release_id,
         native_activity_id,
+        native_book_locator,
         teacher_id,
         class_id,
         student_id,
@@ -343,6 +348,7 @@ export async function createAssignment(sql, body, currentUser = null) {
         ${targetKind},
         ${nativeReleaseId},
         ${nativeActivityId},
+        ${nativeBookLocator}::jsonb,
         ${teacherId},
         ${classId},
         null,
@@ -372,6 +378,7 @@ export async function createAssignment(sql, body, currentUser = null) {
         target_kind,
         native_release_id,
         native_activity_id,
+        native_book_locator,
         teacher_id,
         class_id,
         student_id,
@@ -389,6 +396,7 @@ export async function createAssignment(sql, body, currentUser = null) {
         ${targetKind},
         ${nativeReleaseId},
         ${nativeActivityId},
+        ${nativeBookLocator}::jsonb,
         ${teacherId},
         null,
         ${studentId},
@@ -413,7 +421,7 @@ export async function createAssignment(sql, body, currentUser = null) {
 
 export async function listTeacherAssignments(sql, teacherId = "", currentUser = null) {
   const rows = await sql`
-    select aa.id, aa.homework_id, aa.homework_item_id,
+    select aa.id, aa.homework_id, aa.homework_item_id, aa.native_book_locator,
            aa.target_kind, aa.activity_id, aa.native_release_id, aa.native_activity_id,
            aa.teacher_id, aa.class_id, aa.student_id, aa.assigned_at, aa.due_at, aa.status,
            aa.title as assignment_title, aa.teacher_notes, aa.worksheet_links, aa.attached_files,
@@ -469,10 +477,10 @@ export async function listTeacherAssignments(sql, teacherId = "", currentUser = 
   return rows.map(assignmentRowToUi);
 }
 
-export async function listAssignmentsForStudent(sql, studentId, currentUser) {
+export async function listAssignmentsForStudent(sql, studentId, currentUser, { assignmentId = null, includeBook = false } = {}) {
   if (!studentId) return [];
   const rows = await sql`
-    select aa.id, aa.homework_id, aa.homework_item_id,
+    select aa.id, aa.homework_id, aa.homework_item_id, aa.native_book_locator,
            aa.target_kind, aa.native_release_id, aa.native_activity_id, aa.assigned_at, aa.due_at, aa.status,
            aa.title as assignment_title, aa.teacher_notes, aa.worksheet_links, aa.attached_files,
            a.id as activity_id, a.title as activity_title, a.slug as activity_slug, a.activity_type,
@@ -508,6 +516,7 @@ export async function listAssignmentsForStudent(sql, studentId, currentUser) {
       limit 1
     ) latest on true
     where aa.school_id = ${currentUser.school_id}
+      and (${assignmentId}::uuid is null or aa.id=${assignmentId}::uuid)
       and (aa.student_id = ${studentId}
        or aa.class_id in (select class_id from class_students where student_id = ${studentId} and coalesce(status, 'active') = 'active'))
     order by aa.assigned_at desc
@@ -521,13 +530,21 @@ export async function listAssignmentsForStudent(sql, studentId, currentUser) {
   }
 
   const nativeTargets = new Map();
+  const nativeBooks = new Map();
+  const requestCache = new Map();
   for (const row of rows.filter((candidate) => candidate.target_kind === NATIVE_ASSIGNMENT_TARGET_KIND)) {
     const target = await resolveNativeAssignmentTarget(sql, currentUser, {
       kind: NATIVE_ASSIGNMENT_TARGET_KIND,
       releaseId: row.native_release_id,
       nativeActivityId: row.native_activity_id,
-    }, { requireActive: false });
-    if (!target.error) nativeTargets.set(String(row.id), nativeTargetToStudent(target, row.native_activity_id));
+    }, { requireActive: false, requestCache });
+    if (!target.error) {
+      nativeTargets.set(String(row.id), nativeTargetToStudent(target, row.native_activity_id));
+      if (includeBook) {
+        const capabilities = Object.fromEntries(Object.entries(target.verified.publicProjection.nativeActivities || {}).map(([id, entry]) => [id, nativeAssignmentCapability(entry.kind, entry.document)]));
+        nativeBooks.set(String(row.id), publishedBookReadModel(target.row, target.verified.publicProjection, capabilities, row.native_book_locator?.productReleaseId || null));
+      }
+    }
   }
 
   return rows.filter((row) => row.target_kind !== NATIVE_ASSIGNMENT_TARGET_KIND || nativeTargets.has(String(row.id))).map((row) => ({
@@ -535,6 +552,8 @@ export async function listAssignmentsForStudent(sql, studentId, currentUser) {
     assignmentId: row.id,
     homeworkId: row.homework_id || null,
     homeworkItemId: row.homework_item_id || null,
+    bookLocator: row.native_book_locator || null,
+    ...(includeBook && nativeBooks.has(String(row.id)) ? { book: nativeBooks.get(String(row.id)) } : {}),
     assignedAt: row.assigned_at,
     dueAt: row.due_at,
     status: row.status,

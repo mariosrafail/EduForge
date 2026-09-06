@@ -119,7 +119,8 @@ export function buildHomeworkActivityOptions(packageTrees = [], nativeTargets = 
       id: identity,
       identity,
       targetKind: "published_native",
-      target: { kind: "published_native", releaseId: releaseId.toLowerCase(), nativeActivityId },
+      target: { kind: "published_native", releaseId: releaseId.toLowerCase(), nativeActivityId,
+        ...(native.placements?.length === 1 ? { locator: { pageId: native.placements[0].pageId, hotspotId: native.placements[0].hotspotId, ...(native.productReleaseId ? { productReleaseId: native.productReleaseId } : {}) } } : {}) },
       title,
       label: `${[packageTitle, componentTitle, title].filter(Boolean).join(" / ")} (${native.nativeKind}${native.assignable ? "" : ", display only"})`,
       packageId,
@@ -216,7 +217,9 @@ export function homeworkItemSelection(item, activityOptions = []) {
   const optionId = item.targetKind === "published_native"
     ? `published_native:${item.nativeReleaseId}:${item.nativeActivityId}`
     : `legacy_activity:${item.activityId}`;
-  return activityOptions.find((option) => option.id === optionId) || {
+  const activeOption = activityOptions.find((option) => option.id === optionId);
+  if (activeOption) return { ...activeOption, target: { ...activeOption.target, ...(item.bookLocator ? { locator: item.bookLocator } : {}) } };
+  return {
     id: optionId,
     identity: optionId,
     activityId: item.activityId || null,
@@ -225,6 +228,7 @@ export function homeworkItemSelection(item, activityOptions = []) {
       kind: "published_native",
       releaseId: item.nativeReleaseId,
       nativeActivityId: item.nativeActivityId,
+      ...(item.bookLocator ? { locator: item.bookLocator } : {}),
     } : { kind: "legacy_activity", activityId: item.activityId },
     title: item.title,
     label: item.title,

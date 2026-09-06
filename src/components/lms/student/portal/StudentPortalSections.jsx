@@ -47,12 +47,12 @@ export function BookPackageSelector({ bookPackages, selectedPackageSlug, onSelec
   );
 }
 
-export function StudentBooks({ openActivity, completedActivities, bookPackages = [], selectedPackageSlug = "ultimate-b2", selectedBookSubview = null, onSelectPackage, bookSourceMessage = "", selectedBookId = null, selectedPageUnitId = null, selectedPageNumber = null, selectedPageId = null, onSelectBook, onSelectBookPage, onSelectBookSubview, onLicenseActivated }) {
+export function StudentBooks({ currentUser, openActivity, completedActivities, bookPackages = [], selectedPackageSlug = "ultimate-b2", selectedBookSubview = null, onSelectPackage, bookSourceMessage = "", selectedBookId = null, selectedPageUnitId = null, selectedPageNumber = null, selectedPageId = null, onSelectBook, onSelectBookPage, onSelectBookSubview, onLicenseActivated }) {
   const [activationCode, setActivationCode] = useState("");
   const [activationStatus, setActivationStatus] = useState("");
   const [activationError, setActivationError] = useState("");
   const [activationBusy, setActivationBusy] = useState(false);
-  const bookPackage = bookPackages.find((item) => (item.slug || item.id) === selectedPackageSlug) || bookPackages[0] || null;
+  const bookPackage = bookPackages.find((item) => (item.slug || item.id) === selectedPackageSlug) || null;
   const selectedComponent = findBookComponentById(bookPackage, selectedBookId);
   const hasSelectedPage = Boolean(selectedPageId || selectedPageNumber);
 
@@ -117,6 +117,7 @@ export function StudentBooks({ openActivity, completedActivities, bookPackages =
         selectedPageNumber={selectedPageNumber}
         onSelectComponent={onSelectBook}
         onSelectBookPage={onSelectBookPage}
+        currentUser={currentUser}
         onSelectSubview={onSelectBookSubview}
         onBackToBooks={() => onSelectBook?.(null)}
         onStartExercise={(exercise) => openActivity(exercise, "books")}

@@ -38,7 +38,7 @@ export function publishedHotspotActions(publication, identity) {
 export function publishedNativeAssetUrl(publication, reference) {
   if (publication.kind !== "published" || !reference) return "";
   const asset = publication.projection.assets.find((candidate) => candidate.sha256 === reference.checksumSha256 && candidate.role === reference.role);
-  return asset ? publishedReleaseAssetPath(asset, publication.releaseId) : "";
+  return asset ? publishedReleaseAssetPath(asset, publication.releaseId, publication) : "";
 }
 
 export function publishedUnitExtraVideoUrl(publication, reference) {
@@ -48,14 +48,14 @@ export const publishedUnitExtraAudioUrl = publishedUnitExtraVideoUrl;
 
 export async function loadPublishedNativeTeacherDocument(publication, activityId, { signal } = {}) {
   if (publication.kind !== "published") throw new Error("Published release is unavailable.");
-  const payload = await getPublishedNativeTeacherDocument({ releaseId: publication.releaseId, activityId, signal });
+  const payload = await getPublishedNativeTeacherDocument({ bookSlug: publication.bookSlug, componentSlug: publication.componentSlug, releaseId: publication.releaseId, activityId, signal });
   if (payload.releaseId !== publication.releaseId || payload.activityId !== activityId) throw new Error("Teacher release identity mismatch.");
   return payload.document;
 }
 
 export function publishedNativeTeacherAssetUrl(publication, activityId, sectionId = null) {
   if (publication.kind !== "published") return "";
-  const query = new URLSearchParams({ action: "published-native-answer-asset", bookSlug: "ultimate-b2", componentSlug: "ultimate-b2-students-book", releaseId: publication.releaseId, activityId });
+  const query = new URLSearchParams({ action: "published-native-answer-asset", bookSlug: publication.bookSlug || "ultimate-b2", componentSlug: publication.componentSlug || "ultimate-b2-students-book", releaseId: publication.releaseId, activityId });
   if (sectionId) query.set("sectionId", sectionId);
   return `/.netlify/functions/book-content?${query}`;
 }

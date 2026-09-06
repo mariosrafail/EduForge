@@ -6,7 +6,7 @@ import { COMPONENT_PUBLICATION_ASSET_ROLES, isPublicProjectionComponentPublicati
 
 export const ULTIMATE_B2_COMPONENT_RELEASE_SCHEMA_VERSION = "1.0";
 export const ULTIMATE_B2_COMPONENT_RELEASE_COMPILER_ID = "ultimate-b2-students-book-v1";
-export const ULTIMATE_B2_PUBLISHED_ASSET_PATH = /^\/\.netlify\/functions\/book-content\?action=published-release-asset&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&releaseId=([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})&sha256=([a-f0-9]{64})&extension=(png|jpg|webp|mp3|mp4|pdf|ttf)$/i;
+export const ULTIMATE_B2_PUBLISHED_ASSET_PATH = /^\/\.netlify\/functions\/book-content\?action=published-release-asset&bookSlug=ultimate-b2&componentSlug=ultimate-b2-(?:students-book|workbook|grammar-book)&releaseId=([0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})&sha256=([a-f0-9]{64})&extension=(png|jpg|webp|mp3|mp4|pdf|ttf)$/i;
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -65,13 +65,14 @@ function normalizeAsset(value, label) {
   return { sha256: value.sha256, extension, mediaType: value.mediaType, role: value.role };
 }
 
-export function publishedReleaseAssetPath(asset, releaseId) {
+export function publishedReleaseAssetPath(asset, releaseId, { bookSlug = "ultimate-b2", componentSlug = "ultimate-b2-students-book" } = {}) {
   exactObject(asset, ["sha256", "extension", "mediaType", "role"], "Published release asset");
   const extension = String(asset.extension || "").toLowerCase();
   const expectedMediaType = { png: "image/png", jpg: "image/jpeg", webp: "image/webp", mp3: "audio/mpeg", mp4: "video/mp4", pdf: "application/pdf", ttf: "font/ttf" }[extension];
   if (!SHA256.test(String(asset.sha256 || "")) || !expectedMediaType || asset.mediaType !== expectedMediaType || !isPublicProjectionComponentPublicationAssetRole(asset.role)) throw new Error("Published release asset identity is invalid");
   if (!UUID.test(String(releaseId || ""))) throw new Error("Published release identity is invalid");
-  return `/.netlify/functions/book-content?action=published-release-asset&bookSlug=ultimate-b2&componentSlug=ultimate-b2-students-book&releaseId=${releaseId}&sha256=${asset.sha256}&extension=${extension}`;
+  if (bookSlug !== "ultimate-b2" || !["ultimate-b2-students-book", "ultimate-b2-workbook", "ultimate-b2-grammar-book"].includes(componentSlug)) throw new Error("Published component identity is invalid");
+  return `/.netlify/functions/book-content?action=published-release-asset&bookSlug=${bookSlug}&componentSlug=${componentSlug}&releaseId=${releaseId}&sha256=${asset.sha256}&extension=${extension}`;
 }
 
 function normalizeReleaseImport(input, activityId, questionIds) {

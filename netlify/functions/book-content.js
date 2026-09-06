@@ -35,7 +35,7 @@ import {
   getDashboardMetrics, withDashboardMetricsHeaders
 } from "./_book-content/dashboard-metrics.js";
 import { getTeacherGradeAnalytics } from "./_book-content/teacher-grade-analytics.js";
-import { getActiveComponentRelease, getPublishedNativeTeacherAnswer, getPublishedNativeTeacherDocument, getPublishedReleaseAsset } from "./_book-content/publication-actions.js";
+import { routePublishedBookRead } from "./_book-content/publication-read-routes.js";
 
 export {
   stripStudentAnswerKeys,
@@ -79,17 +79,8 @@ export async function handler(event) {
     }
     const currentUser = auth.currentUser;
 
-    if (["GET", "HEAD"].includes(event.httpMethod) && query.action === "published-native-answer-asset") {
-      if (requestsHiddenPhaseOneComponent(query)) return json(404, { error: "Component not found" });
-      const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
-      const accessError = roleError || await verifyPackageAccess(sql, currentUser, { packageSlug: query.bookSlug });
-      return accessError || getPublishedNativeTeacherAnswer(sql, query, { method: event.httpMethod });
-    }
-    if (event.httpMethod === "HEAD" && query.action === "published-release-asset") {
-      if (requestsHiddenPhaseOneComponent(query)) return json(404, { error: "Component not found" });
-      const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: query.bookSlug });
-      return accessError || getPublishedReleaseAsset(sql, query);
-    }
+    const publicationRead = await routePublishedBookRead(sql, currentUser, event, query);
+    if (publicationRead) return publicationRead;
 
     if (event.httpMethod === "GET") {
       if (query.action === "dashboard-metrics") {
@@ -103,19 +94,6 @@ export async function handler(event) {
       }
       if (query.action === "teacher-activity-solutions") {
         return getTeacherActivitySolutions(sql, currentUser, query);
-      }
-      if (query.action === "active-component-release") {
-        const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: query.bookSlug });
-        return accessError || getActiveComponentRelease(sql, query);
-      }
-      if (query.action === "published-native-teacher") {
-        const roleError = requireResourceRole(currentUser, ["teacher", "admin"]);
-        const accessError = roleError || await verifyPackageAccess(sql, currentUser, { packageSlug: query.bookSlug });
-        return accessError || getPublishedNativeTeacherDocument(sql, query);
-      }
-      if (query.action === "published-release-asset") {
-        const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: query.bookSlug });
-        return accessError || getPublishedReleaseAsset(sql, query);
       }
       if (query.action === "asset-access") {
         return getBookAssetAccess(sql, currentUser, query, {

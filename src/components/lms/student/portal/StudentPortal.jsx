@@ -220,6 +220,7 @@ export function StudentPortal({
         {activeSection === "dashboard" && <StudentDashboard goToSection={goToSection} currentUser={currentUser} metricsState={metricsState} />}
         {activeSection === "books" && (
           <StudentBooks
+            currentUser={currentUser}
             openActivity={openActivity}
             completedActivities={completedActivities}
             bookPackages={bookPackages}

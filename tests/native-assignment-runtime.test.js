@@ -329,7 +329,7 @@ test("Student assignment workspace adapts Drag & Drop targets to the existing co
   assert.match(contract, /flatMap\(\(panel\) => panel\.dropTargets/);
   assert.match(contract, /\["single-choice", "drag-drop"\]\.includes/);
   assert.match(source, /responses=\{nativeResponses\}/);
-  assert.match(source, /onResponsesChange=\{setNativeResponses\}/);
+  assert.match(source, /onResponsesChange=\{\(responses\) => \{ setNativeResponses\(responses\); setDirty\(true\); \}\}/);
   assert.match(source, /buildNativeFinalSubmission/);
 });
 
@@ -365,6 +365,7 @@ function nativeSql(release) {
     calls.push({ text, values });
     if (text.includes("from book_component_releases release") || text.includes("from book_component_publication_heads head")) return [release];
     if (text.includes("from book_packages bp")) return [{ id: release.book_package_id }];
+    if (text.includes("left join book_product_publication_heads")) return [{ package_id: release.book_package_id, package_slug: release.package_slug, package_title: release.package_title, product_release_id: null }];
     return [];
   };
   sql.calls = calls;
@@ -431,7 +432,7 @@ test("published-native catalog returns no release targets when the teacher has n
     id: "teacher", school_id: "other-school", role: "teacher",
   });
   assert.deepEqual(targets, []);
-  assert.equal(calls.length, 2);
+  assert.equal(calls.length, 1);
 });
 
 test("immutable release verification diagnoses every document and aggregate hash mismatch after variant resolution", async (t) => {
@@ -773,7 +774,7 @@ test("Teacher creation persists the canonical active release target and rejects 
     target: { kind: "published_native", releaseId: release.id, nativeActivityId: publicationV2Fixture.openResponseId },
   };
   const created = await createAssignment(sql, body, teacher);
-  assert.equal(created.statusCode, 200);
+  assert.equal(created.statusCode, 200, created.body);
   assert.equal(JSON.parse(created.body).assignment.nativeReleaseId, release.id);
   const insert = calls.find((call) => call.text.includes("insert into activity_assignments"));
   assert.match(insert.text, /target_kind/);

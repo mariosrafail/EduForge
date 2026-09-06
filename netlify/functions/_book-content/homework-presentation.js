@@ -54,6 +54,7 @@ export function assembleTeacherHomeworks({ headers = [], items = [], assignments
         activityId: item.activity_id,
         nativeReleaseId: item.native_release_id,
         nativeActivityId: item.native_activity_id,
+        bookLocator: item.native_book_locator || null,
         title: item.title,
         activitySlug: item.activity_slug || null,
         activityType: item.activity_type || null,

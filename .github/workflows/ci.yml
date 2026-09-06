@@ -120,6 +120,10 @@ jobs:
       - run: npm ci
       - name: Run isolated PostgreSQL integration tests
         run: npm run test:integration
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Verify published book assignment browser flows against isolated PostgreSQL
+        run: npm run test:published-book-assignments
       - name: Remove temporary integration schemas
         if: always()
         run: npm run test:integration:cleanup

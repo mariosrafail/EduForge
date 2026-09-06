@@ -10,6 +10,8 @@ import { reviewSubmission } from "../../netlify/functions/_book-content/class-ac
 import { getAssignmentResults, submitActivity } from "../../netlify/functions/_book-content/submission-actions.js";
 import { compilePublicationV2Fixture, publicationV2Fixture } from "../fixtures/publication-v2.js";
 import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
+import { listPublishedBooks, getStudentAssignmentDetail, getPublishedBookActivity } from "../../netlify/functions/_book-content/published-book-actions.js";
+import { publishedManagedBookFixture } from "../fixtures/published-managed-book.js";
 
 const { Pool } = pg;
 const databaseUrl = process.env.TEST_DATABASE_URL || "";
@@ -30,7 +32,7 @@ function tagged(executor) {
 }
 
 async function insertRelease(pool, { packageId, componentId, builderId, releaseNumber, fixture }) {
-  const compiled = compilePublicationV2Fixture(fixture);
+  const compiled = fixture.compiled || compilePublicationV2Fixture(fixture);
   const releaseId = randomUUID();
   await pool.query(`
     insert into book_component_releases(
@@ -157,15 +159,41 @@ test("published native assignment remains release-pinned through submit, review,
   assert.equal(catalog.find((item) => item.target.nativeActivityId === publicationV2Fixture.imageId)?.assignable, false);
   assert.doesNotMatch(JSON.stringify(catalog), /Release A protected answer/);
 
+  for (const componentSlug of ["ultimate-b2-workbook", "ultimate-b2-grammar-book"]) {
+    const componentId = (await pool.query("select id from book_components where book_package_id=$1 and slug=$2", [scope.package_id, componentSlug])).rows[0].id;
+    const release = await insertRelease(pool, { packageId: scope.package_id, componentId, builderId, releaseNumber: 99, fixture: { compiled: publishedManagedBookFixture(componentSlug) } });
+    await publishRelease(pool, { packageId: scope.package_id, componentId, releaseId: release.releaseId, revision: 1, builderId });
+    if (componentSlug.endsWith("grammar-book")) {
+      assert.equal((await getPublishedBookActivity(sql, studentUser, { bookSlug: "ultimate-b2", componentSlug, releaseId: release.releaseId, activityId: "ultimate-b2-gb-unit-1-page-1-o1" })).statusCode, 404);
+    }
+  }
+  const booksResponse = await listPublishedBooks(sql, teacherUser);
+  assert.equal(booksResponse.statusCode, 200, booksResponse.body);
+  const books = JSON.parse(booksResponse.body).books;
+  assert.deepEqual(books.map((book) => book.componentSlug).sort(), ["ultimate-b2-students-book", "ultimate-b2-workbook"]);
+  assert.doesNotMatch(booksResponse.body, /PRIVATE_TEACHER|protected answer|modelAnswers/);
+  const placement = books.find((book) => book.componentSlug.endsWith("students-book")).activities.find((entry) => entry.target.nativeActivityId === publicationV2Fixture.openResponseId).placements[0];
+  const locator = { pageId: placement.pageId, hotspotId: placement.hotspotId };
+  const locatedTarget = { kind: "published_native", releaseId: releaseA.releaseId, nativeActivityId: publicationV2Fixture.openResponseId, locator };
+  const invalidLocation = await createAssignment(sql, { idempotencyKey: "invalid-location", classIds: [classRow.id], target: { ...locatedTarget, locator: { ...locator, hotspotId: "wrong-hotspot" } } }, teacherUser);
+  assert.equal(invalidLocation.statusCode, 409);
+  assert.equal(JSON.parse(invalidLocation.body).code, "publication_locator_mismatch");
+  assert.equal(Number((await pool.query("select count(*) from activity_assignments where idempotency_key='invalid-location'")).rows[0].count), 0);
+
   const createResponse = await createAssignment(sql, {
     idempotencyKey: "native-integration-create",
     classIds: [classRow.id],
-    target: { kind: "published_native", releaseId: releaseA.releaseId, nativeActivityId: publicationV2Fixture.openResponseId },
+    target: locatedTarget,
   }, teacherUser);
   assert.equal(createResponse.statusCode, 200);
   const assignment = JSON.parse(createResponse.body).assignment;
   assert.equal(assignment.targetKind, "published_native");
   assert.equal(assignment.nativeReleaseId, releaseA.releaseId);
+  assert.deepEqual((await pool.query("select native_book_locator from activity_assignments where id=$1", [assignment.id])).rows[0].native_book_locator, locator);
+  for (const malformed of [[], "page", { pageId: 1, hotspotId: "hotspot" }, { ...locator, productReleaseId: null }, { ...locator, productReleaseId: 7 }, { ...locator, extra: true }]) {
+    await assert.rejects(pool.query("update activity_assignments set native_book_locator=$1::jsonb where id=$2", [JSON.stringify(malformed), assignment.id]), /activity_assignments_native_book_locator_check/);
+  }
+  await assert.rejects(pool.query("update activity_assignments set native_book_locator=$1::jsonb where id=$2", [JSON.stringify(locator), legacy.id]), /activity_assignments_native_book_locator_check/);
 
   const b1Package = (await pool.query("select id from book_packages where slug='ultimate-b1'")).rows[0];
   const b1Class = (await pool.query(`
@@ -184,7 +212,7 @@ test("published native assignment remains release-pinned through submit, review,
   const duplicateCreate = await createAssignment(sql, {
     idempotencyKey: "native-integration-create",
     classIds: [classRow.id],
-    target: { kind: "published_native", releaseId: releaseA.releaseId, nativeActivityId: publicationV2Fixture.openResponseId },
+    target: locatedTarget,
   }, teacherUser);
   assert.equal(duplicateCreate.statusCode, 200);
   assert.equal(JSON.parse(duplicateCreate.body).assignment.id, assignment.id);
@@ -235,6 +263,15 @@ test("published native assignment remains release-pinned through submit, review,
   assert.equal(hydrated.target.releaseId, releaseA.releaseId);
   assert.equal(hydrated.target.entry.document.parts[0].interaction.questions[0].prompt, "Release A prompt");
   assert.doesNotMatch(JSON.stringify(hydrated), /Release A protected answer|Release B protected answer/);
+  const detail = await getStudentAssignmentDetail(sql, studentUser, { assignmentId: assignment.id });
+  assert.equal(detail.statusCode, 200, detail.body);
+  const detailAssignment = JSON.parse(detail.body).assignment;
+  assert.deepEqual(detailAssignment.bookLocator, locator);
+  assert.equal(detailAssignment.book.releaseId, releaseA.releaseId);
+  assert.ok(detailAssignment.book.pages.some((page) => page.id === locator.pageId && page.hotspots.some((hotspot) => hotspot.id === locator.hotspotId)));
+  assert.equal(detail.headers["Cache-Control"], "private, no-store");
+  assert.equal((await getStudentAssignmentDetail(sql, { ...studentUser, id: randomUUID() }, { assignmentId: assignment.id })).statusCode, 404);
+  assert.equal((await getStudentAssignmentDetail(sql, { ...studentUser, school_id: randomUUID() }, { assignmentId: assignment.id })).statusCode, 404);
 
   const questionId = hydrated.target.entry.document.parts[0].interaction.questions[0].id;
   const rejectedScore = await submitActivity(sql, {
@@ -378,4 +415,8 @@ test("published native assignment remains release-pinned through submit, review,
       school_id,activity_assignment_id,student_id,answers,response_schema_version,response_payload,status
     ) values($1,$2,$3,'{}','native-response.v1','[]','awaiting_review')
   `, [teacher.school_id, assignment.id, student.id]), /activity_submissions_response_envelope_check/);
+  if (process.env.PUBLISHED_BOOK_BROWSER === "1") {
+    const { verifyPublishedBookBrowser } = await import("./_published-book-browser.mjs");
+    await verifyPublishedBookBrowser({ pool, sql, teacher: teacherUser, student: studentUser });
+  }
 });

@@ -13,6 +13,7 @@ import {
 } from "../../netlify/functions/_book-content/homework-actions.js";
 import { compilePublicationV2Fixture, publicationV2Fixture } from "../fixtures/publication-v2.js";
 import { applyCanonicalProductionMigrations } from "./_migration-test-helpers.mjs";
+import { listPublishedBooks } from "../../netlify/functions/_book-content/published-book-actions.js";
 
 const { Pool } = pg;
 const databaseUrl = process.env.TEST_DATABASE_URL || "";
@@ -184,12 +185,25 @@ test("Homework persists mixed ordered targets atomically and idempotently with t
     ],
   };
 
+  const book = JSON.parse((await listPublishedBooks(sql, teacherUser)).body).books[0];
+  const placement = book.activities.find((activity) => activity.target.nativeActivityId === publicationV2Fixture.openResponseId).placements[0];
+  const locator = { pageId: placement.pageId, hotspotId: placement.hotspotId };
+  request.items[1].locator = locator;
   const created = parse(await createHomework(sql, request, teacherUser));
   assert.equal(created.status, 201, JSON.stringify(created.body));
   assert.equal(created.body.homework.itemCount, 2);
   assert.deepEqual(created.body.homework.items.map((item) => item.targetKind), ["legacy_activity", "published_native"]);
   assert.equal(created.body.homework.items.every((item) => item.assignments.length === 2), true);
   const homeworkId = created.body.homework.id;
+  const createdNativeItem = created.body.homework.items.find((item) => item.targetKind === "published_native");
+  assert.deepEqual(createdNativeItem.bookLocator, locator);
+  assert.deepEqual((await pool.query("select native_book_locator from homework_items where id=$1", [createdNativeItem.id])).rows[0].native_book_locator, locator);
+  const locatedAssignments = (await pool.query("select native_book_locator from activity_assignments where homework_item_id=$1", [createdNativeItem.id])).rows;
+  assert.equal(locatedAssignments.length, 2);
+  locatedAssignments.forEach((row) => assert.deepEqual(row.native_book_locator, locator));
+  for (const malformed of [[], "page", { pageId: 1, hotspotId: "hotspot" }, { ...locator, productReleaseId: null }, { ...locator, productReleaseId: 7 }, { ...locator, extra: true }]) {
+    await assert.rejects(pool.query("update homework_items set native_book_locator=$1::jsonb where id=$2", [JSON.stringify(malformed), createdNativeItem.id]), /homework_items_native_book_locator_check/);
+  }
   assert.equal(Number((await pool.query("select count(*) from homeworks where id=$1", [homeworkId])).rows[0].count), 1);
   assert.equal(Number((await pool.query("select count(*) from homework_items where homework_id=$1", [homeworkId])).rows[0].count), 2);
   assert.equal(Number((await pool.query("select count(*) from activity_assignments where homework_id=$1", [homeworkId])).rows[0].count), 4);
@@ -227,6 +241,7 @@ test("Homework persists mixed ordered targets atomically and idempotently with t
   }), teacherUser));
   assert.equal(currentHomework.status, 200, JSON.stringify(currentHomework.body));
   currentHomework = currentHomework.body.homework;
+  assert.deepEqual(currentHomework.items.find((item) => item.targetKind === "published_native").bookLocator, locator);
   assert.equal(currentHomework.id, homeworkId);
   assert.deepEqual(new Set(currentHomework.items.map((item) => item.id)), new Set(initialItemIds.values()));
   assert.deepEqual(new Set(currentHomework.items.flatMap((item) => item.assignments.map((assignment) => assignment.id))), initialAssignmentIds);

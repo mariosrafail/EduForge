@@ -9,6 +9,9 @@ import { nativeOpenResponseModelAnswerTexts } from "../../../src/data/native-act
 import { nativeSingleChoiceCorrectOptionIds, nativeSingleChoiceSelectionMode } from "../../../src/data/native-activities/nativeSingleChoice.js";
 import { normalizeNativeLineEndings } from "../../../src/data/native-activities/nativePedagogicalText.js";
 import { normalizeMarkWordsResponse, scoreMarkWordsResponse, markWordsReview } from "./mark-words-response.js";
+import { normalizePublishedBookLocator, publishedBookReadModel, resolvePublishedBookLocator, supportedPublishedBook } from "./published-book-model.js";
+import { loadVerifiedPublishedBookFamily } from "./published-book-releases.js";
+import { isPhaseOneComponentVisible } from "../../../src/config/bookCatalogVisibility.js";
 
 export const NATIVE_ASSIGNMENT_TARGET_KIND = "published_native";
 export const NATIVE_RESPONSE_SCHEMA_VERSION = "native-response.v1";
@@ -361,10 +364,12 @@ export function containsClientTeacherMaterial(value) {
 async function releaseRow(sql, { releaseId, requireActive = false }) {
   const rows = await sql`
     select release.*, package.slug as package_slug, package.title as package_title,
-           component.slug as component_slug, component.title as component_title
+           component.slug as component_slug, component.title as component_title,
+           product_head.product_release_id
     from book_component_releases release
     join book_packages package on package.id = release.book_package_id and package.status = 'active'
     join book_components component on component.id = release.book_component_id and component.book_package_id = package.id
+    left join book_product_publication_heads product_head on product_head.book_package_id = package.id
     where release.id = ${releaseId}
       and exists (
         select 1 from book_component_publication_events event
@@ -388,18 +393,41 @@ function verifiedNative(row, nativeActivityId) {
   return { row, verified, publicEntry, teacherEntry, capability: nativeAssignmentCapability(publicEntry.kind, publicEntry.document) };
 }
 
-export async function resolveNativeAssignmentTarget(sql, currentUser, rawTarget, { requireActive = true } = {}) {
+export async function resolveNativeAssignmentTarget(sql, currentUser, rawTarget, { requireActive = true, requestCache = new Map() } = {}) {
   if (!rawTarget || rawTarget.kind !== NATIVE_ASSIGNMENT_TARGET_KIND) return { error: "target.kind must be published_native" };
-  if (Object.keys(rawTarget).some((key) => !["kind", "releaseId", "nativeActivityId"].includes(key))) return { error: "target contains unsupported fields" };
+  if (Object.keys(rawTarget).some((key) => !["kind", "releaseId", "nativeActivityId", "locator"].includes(key))) return { error: "target contains unsupported fields" };
+  let locator;
+  try { locator = normalizePublishedBookLocator(rawTarget.locator); }
+  catch { return { error: "Published activity location is invalid", statusCode: 400, code: "publication_locator_invalid" }; }
   if (!isValidUuid(rawTarget.releaseId)) return { error: "target.releaseId must be a valid UUID" };
   const nativeActivityId = String(rawTarget.nativeActivityId || "");
   if (!/^[a-z0-9][a-z0-9-]{0,127}$/.test(nativeActivityId)) return { error: "target.nativeActivityId is invalid" };
-  const row = await releaseRow(sql, { releaseId: rawTarget.releaseId, requireActive });
-  const target = verifiedNative(row, nativeActivityId);
-  if (!target) return { error: "Published native activity not found", statusCode: 404 };
-  const allowed = await accessiblePackageIds(sql, currentUser);
+  const cacheKey = `${requireActive}:${rawTarget.releaseId}`;
+  if (!requestCache.has(cacheKey)) requestCache.set(cacheKey, releaseRow(sql, { releaseId: rawTarget.releaseId, requireActive }).then((row) => row ? { row, verified: verifyImmutableComponentRelease(row) } : null));
+  const release = await requestCache.get(cacheKey);
+  const row = release?.row;
+  const publicEntry = release?.verified.publicProjection.nativeActivities?.[nativeActivityId];
+  const teacherEntry = release?.verified.teacherProjection.nativeActivities?.[nativeActivityId];
+  const target = publicEntry && teacherEntry && publicEntry.kind === teacherEntry.kind
+    ? { ...release, publicEntry, teacherEntry, capability: nativeAssignmentCapability(publicEntry.kind, publicEntry.document) } : null;
+  if (!target) return { error: requireActive ? "The selected publication is unavailable. Refresh the book before assigning." : "Published native activity not found", statusCode: 404 };
+  if (!requestCache.has("allowed")) requestCache.set("allowed", accessiblePackageIds(sql, currentUser));
+  const allowed = await requestCache.get("allowed");
   if (!allowed.includes(String(row.book_package_id))) return { error: "This account cannot access the published activity", statusCode: 403 };
-  return { ...target, nativeActivityId };
+  if (row.id !== rawTarget.releaseId.toLowerCase() || target.verified.publicProjection.bookSlug !== row.package_slug
+    || target.verified.publicProjection.componentSlug !== row.component_slug) return { error: "Published target identity does not match its component", statusCode: 409, code: "publication_identity_mismatch" };
+  if (requireActive && (row.product_release_id || locator?.productReleaseId) && supportedPublishedBook(row.package_slug, row.component_slug)) {
+      if (!requestCache.has("family")) requestCache.set("family", loadVerifiedPublishedBookFamily(sql, currentUser, { allowed }));
+      const family = await requestCache.get("family");
+      if (!family.some((member) => member.row.id === row.id && (!locator?.productReleaseId || member.productReleaseId === locator.productReleaseId))) return { error: "The selected publication changed. Refresh the book before assigning.", statusCode: 409 };
+  }
+  if (locator) {
+    try {
+      const book = publishedBookReadModel(row, target.verified.publicProjection, {}, locator.productReleaseId || null);
+      resolvePublishedBookLocator(book, nativeActivityId, locator);
+    } catch { return { error: "Published activity location does not belong to this target", statusCode: 409, code: "publication_locator_mismatch" }; }
+  }
+  return { ...target, nativeActivityId, locator };
 }
 
 export async function loadPinnedNativeAssignmentTarget(sql, assignment) {
@@ -456,6 +484,7 @@ function releaseVerificationDiagnostic(row, error) {
 
 export async function listPublishedNativeAssignmentTargets(sql, currentUser) {
   const allowed = new Set((await accessiblePackageIds(sql, currentUser)).map(String));
+  if (!allowed.size) return [];
   const rows = await sql`
     select release.*, package.slug as package_slug, package.title as package_title,
            component.slug as component_slug, component.title as component_title
@@ -463,22 +492,32 @@ export async function listPublishedNativeAssignmentTargets(sql, currentUser) {
     join book_component_releases release on release.id = head.release_id and release.book_component_id = head.book_component_id
     join book_packages package on package.id = release.book_package_id and package.status = 'active'
     join book_components component on component.id = release.book_component_id and component.book_package_id = package.id
-    where exists (
+    where package.id=any(${[...allowed]}::uuid[]) and exists (
       select 1 from book_component_publication_events event
       where event.release_id = release.id and event.book_component_id = release.book_component_id
     )
     order by package.title, component.title, release.release_number desc
   `;
+  let family = [];
+  const b2Rows = rows.filter((row) => supportedPublishedBook(row.package_slug, row.component_slug));
+  try { family = await loadVerifiedPublishedBookFamily(sql, currentUser, { allowed: [...allowed], componentRows: b2Rows }); }
+  catch (error) {
+    for (const row of b2Rows) console.error(releaseVerificationDiagnostic(row, error));
+    throw error;
+  }
+  const releases = [...rows.filter((row) => row.package_slug !== "ultimate-b2").map((row) => ({ row })), ...family];
   const targets = [];
-  for (const row of rows) {
-    if (!allowed.has(String(row.book_package_id))) continue;
+  for (const release of releases) {
+    const { row } = release;
+    if (!allowed.has(String(row.book_package_id)) || !isPhaseOneComponentVisible(row.package_slug, row.component_slug)) continue;
     let verified;
     try {
-      verified = verifyImmutableComponentRelease(row);
+      verified = release.verified || verifyImmutableComponentRelease(row);
     } catch (error) {
       console.error(releaseVerificationDiagnostic(row, error));
       throw error;
     }
+    const book = supportedPublishedBook(row.package_slug, row.component_slug) ? publishedBookReadModel(row, verified.publicProjection, {}, release.productReleaseId) : null;
     for (const [nativeActivityId, publicEntry] of Object.entries(verified.publicProjection?.nativeActivities || {})) {
       const teacherEntry = verified.teacherProjection?.nativeActivities?.[nativeActivityId];
       if (!teacherEntry || teacherEntry.kind !== publicEntry.kind) continue;
@@ -495,6 +534,8 @@ export async function listPublishedNativeAssignmentTargets(sql, currentUser) {
         componentSlug: row.component_slug,
         componentTitle: row.component_title,
         releaseNumber: Number(row.release_number),
+        productReleaseId: release.productReleaseId || null,
+        placements: book?.activities.find((activity) => activity.target.nativeActivityId === nativeActivityId)?.placements || [],
         assignable: Boolean(capability?.assignable),
         submittable: Boolean(capability?.submittable),
         reviewMode: capability?.reviewMode || "unsupported",

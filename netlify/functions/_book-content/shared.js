@@ -36,9 +36,9 @@ export function badRequest(message) {
 export function requestsHiddenPhaseOneComponent(query = {}) {
   const componentSlug = query.componentSlug || (query.action === "component" ? query.slug : "");
   return Boolean(
-    query.packageSlug
+    (query.packageSlug || query.bookSlug)
     && componentSlug
-    && !isPhaseOneComponentVisible(query.packageSlug, componentSlug)
+    && !isPhaseOneComponentVisible(query.packageSlug || query.bookSlug, componentSlug)
   );
 }
 

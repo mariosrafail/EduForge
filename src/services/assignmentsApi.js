@@ -1,26 +1,39 @@
 const jsonHeaders = { "Content-Type": "application/json" };
 
+function invalidResponse() {
+  const error = new Error("Assignments could not be loaded. Refresh and try again.");
+  error.code = "invalid_assignment_response";
+  return error;
+}
+
 async function parseJsonResponse(response) {
   const responseText = await response.text();
   let payload = {};
   try {
     payload = responseText ? JSON.parse(responseText) : {};
   } catch {
+    if (response.ok) throw invalidResponse();
+    payload = {};
+  }
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    if (response.ok) throw invalidResponse();
     payload = {};
   }
   if (!response.ok) {
-    const serverMessage = payload.detail || payload.details || payload.error || responseText || "Assignments API request failed";
+    const serverMessage = [payload.detail, payload.details, payload.error].find((value) => typeof value === "string" && value.length > 0 && value.length <= 500)
+      || "Assignments API request failed. Try again.";
     const friendlyMessage = response.status === 401
       ? "Sign in required"
       : response.status === 403
         ? "This account does not have access to this area"
-        : response.status === 503
-          ? "Database not configured, showing demo data"
-          : String(serverMessage).includes("010_assignment_live_flow")
+        : String(serverMessage).includes("010_assignment_live_flow")
             ? "Run database/010_assignment_live_flow.sql"
             : serverMessage;
     const error = new Error(friendlyMessage);
     error.status = response.status;
+    const identity = payload.code || payload.error;
+    error.code = typeof identity === "string" && /^[a-z][a-z0-9_-]{0,127}$/.test(identity)
+      ? identity : `assignment_http_${response.status}`;
     error.payload = payload;
     throw error;
   }
@@ -57,7 +70,8 @@ export async function listTeacherAssignments(teacherId) {
 
 export async function listAssignmentTargets() {
   const payload = await request("/.netlify/functions/book-content?action=assignment-targets");
-  return payload.targets || [];
+  if (!Array.isArray(payload.targets)) throw invalidResponse();
+  return payload.targets;
 }
 
 export async function listTeacherHomeworks(teacherId) {

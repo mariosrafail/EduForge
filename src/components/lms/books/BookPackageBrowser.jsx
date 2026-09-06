@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { ultimateB2Package } from "../../../data/ultimateB2DemoData.js";
 import { BookPackageComponentGrid } from "./BookPackageComponentGrid.jsx";
 import { BookComponentDetail } from "./BookComponentDetail.jsx";
-import { getComponentRouteSlug } from "../../../utils/hashRoutes.js";
-import { findBookComponentById, isBookMatch } from "./bookBrowserUtils.js";
+import { PublishedBookInteractive } from "./PublishedBookInteractive.jsx";
+import { getComponentRouteSlug, getPackageRouteSlug } from "../../../utils/hashRoutes.js";
+import { findBookComponentById, isBookMatch, getExerciseActivityKey } from "./bookBrowserUtils.js";
+import { filterPhaseOneComponents, isPhaseOneComponentVisible } from "../../../config/bookCatalogVisibility.js";
 
 export function BookPackageBrowser({
   mode = "student",
@@ -28,10 +30,17 @@ export function BookPackageBrowser({
   highlightedActivityKey = null,
   disableHighlightedActivityLaunch = false,
 }) {
-  const activePackage = bookPackage || ultimateB2Package;
+  const activePackage = useMemo(() => filterPhaseOneComponents(bookPackage || ultimateB2Package), [bookPackage]);
   const [uncontrolledSelectedComponentId, setUncontrolledSelectedComponentId] = useState(initialSelectedComponentId);
   const selectedComponentId = controlledSelectedComponentId !== undefined ? controlledSelectedComponentId : uncontrolledSelectedComponentId;
   const selectedComponent = useMemo(() => findBookComponentById(activePackage, selectedComponentId), [activePackage, selectedComponentId]);
+  const componentRouteSlug = getComponentRouteSlug(selectedComponent || {});
+  const publishedComponentSlug = selectedComponent?.slug?.startsWith("ultimate-b2-") ? selectedComponent.slug
+    : componentRouteSlug.startsWith("ultimate-b2-") ? componentRouteSlug : `ultimate-b2-${componentRouteSlug}`;
+  const publishedInteractive = !String(import.meta.env.VITE_APP_MODE || "web").includes("offline")
+    && getPackageRouteSlug(activePackage) === "ultimate-b2"
+    && isPhaseOneComponentVisible(activePackage, selectedComponent || {})
+    && ["ultimate-b2-students-book", "ultimate-b2-workbook"].includes(publishedComponentSlug);
 
   const selectComponent = (componentId) => {
     if (controlledSelectedComponentId === undefined) {
@@ -60,7 +69,17 @@ export function BookPackageBrowser({
 
   return (
     <section className={`book-package-browser ${mode === "teacher" ? "teacher-mode" : "student-mode"}`}>
-      {selectedComponent ? (
+      {selectedComponent && publishedInteractive ? (
+        <PublishedBookInteractive bookSlug={getPackageRouteSlug(activePackage)} componentSlug={publishedComponentSlug} currentUser={currentUser} mode={mode}
+          onLegacyActivity={(activityId) => {
+            const exercise = selectedComponent.units.flatMap((unit) => unit.lessons.flatMap((lesson) => lesson.exercises)).find((item) => getExerciseActivityKey(item) === activityId);
+            const launch = mode === "teacher" ? onPreviewExercise : onStartExercise;
+            if (!exercise || exercise.locked || (mode !== "teacher" && !exercise.availableToStudent) || !launch) return false;
+            launch(exercise);
+            return true;
+          }}
+          pageId={selectedPageId} pageNumber={selectedPageNumber} onSelectBookPage={onSelectBookPage} />
+      ) : selectedComponent ? (
         <BookComponentDetail
           component={selectedComponent}
           bookPackage={activePackage}

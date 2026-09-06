@@ -6,6 +6,9 @@ import { verifyImmutableComponentRelease } from "../../../netlify-sites/ultimate
 import { ultimateB2PublicationCanonicalSeeds } from "../../../netlify-sites/ultimate-b2-builder/server/_builder-publication-compiler.js";
 import { hostedTeacherImportAsSolution, normalizeUltimateB2HostedOpenResponseTeacherImport } from "../../../src/data/ultimate-b2/hostedOpenResponseImport.js";
 import { json } from "./shared.js";
+import { supportedPublishedBook } from "./published-book-model.js";
+import { deliverPublishedPinnedAsset } from "./published-pinned-asset-delivery.js";
+import { isPrivatePinnableComponentReleaseAssetRole } from "../../../src/data/ultimate-b2/componentPublicationAssetRoles.js";
 
 const SHA256 = /^[a-f0-9]{64}$/;
 const privateJson = (statusCode, body) => json(statusCode, body, { "Cache-Control": "private, no-store", Vary: "Cookie" });
@@ -40,21 +43,27 @@ function verifiedPublicProjection(row) {
 }
 
 export async function getActiveComponentRelease(sql, query) {
-  if (query.bookSlug !== "ultimate-b2" || query.componentSlug !== "ultimate-b2-students-book") return privateJson(404, { error: "Component not found" });
+  if (!supportedPublishedBook(query.bookSlug, query.componentSlug)) return privateJson(404, { error: "Component not found" });
   const row = await activeReleaseRow(sql, query);
   if (!row) return privateJson(404, { error: "no_publication" });
   const verified = verifiedPublicProjection(row);
+  if (verified.publicProjection.bookSlug !== query.bookSlug || verified.publicProjection.componentSlug !== query.componentSlug) return privateJson(404, { error: "Component not found" });
   return privateJson(200, { releaseId: row.id, releaseNumber: Number(row.release_number), releaseSha256: row.release_sha256, compatibility: row.runtime_compatibility_sha256, compilerId: row.compiler_id, releaseSchemaVersion: row.release_schema_version, projection: verified.publicProjection });
 }
 
-export async function getPublishedReleaseAsset(sql, query, { storage = createBookAssetStorage() } = {}) {
+export async function getPublishedReleaseAsset(sql, query, { storage = createBookAssetStorage(), method = "GET", range = null } = {}) {
   const extension = String(query.extension || "").toLowerCase();
-  if (query.bookSlug !== "ultimate-b2" || query.componentSlug !== "ultimate-b2-students-book" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(query.releaseId || "")) || !SHA256.test(String(query.sha256 || "")) || !["png", "jpg", "webp", "mp3", "mp4", "pdf", "ttf"].includes(extension)) return json(404, { error: "Asset not found" });
+  if (!supportedPublishedBook(query.bookSlug, query.componentSlug) || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(query.releaseId || "")) || !SHA256.test(String(query.sha256 || "")) || !["png", "jpg", "webp", "mp3", "mp4", "pdf", "ttf"].includes(extension)) return json(404, { error: "Asset not found" });
   const row = await publishedReleaseRow(sql, query);
   if (!row) return json(404, { error: "Asset not found" });
   const verified = verifiedPublicProjection(row);
   const asset = verified.publicProjection.assets.find((candidate) => candidate.sha256 === query.sha256 && candidate.extension === extension);
   if (!asset) return json(404, { error: "Asset not found" });
+  if (verified.publicProjection.bookSlug !== query.bookSlug || verified.publicProjection.componentSlug !== query.componentSlug) return privateJson(404, { error: "Asset not found" });
+  if (row.asset_storage_mode === "pinned-source-v1" && isPrivatePinnableComponentReleaseAssetRole(asset.role)) {
+    return deliverPublishedPinnedAsset(sql, query, { row, projection: verified.publicProjection, asset, storage, method, rangeHeader: range });
+  }
+  if (!["materialized-v1", "pinned-source-v1", undefined, null].includes(row.asset_storage_mode)) return privateJson(409, { error: "release_pin_integrity_failed" });
   const target = componentPublicationAssetStorageTarget({ bookSlug: query.bookSlug, componentSlug: query.componentSlug, ...asset });
   if (!target) return json(404, { error: "Asset not found" });
   if (!target.public) {
@@ -65,7 +74,7 @@ export async function getPublishedReleaseAsset(sql, query, { storage = createBoo
 }
 
 export async function getPublishedNativeTeacherDocument(sql, query) {
-  if (query.bookSlug !== "ultimate-b2" || query.componentSlug !== "ultimate-b2-students-book" || !/^[a-z0-9][a-z0-9-]{0,127}$/.test(String(query.activityId || ""))) return privateJson(404, { error: "Native Teacher activity not found" });
+  if (!supportedPublishedBook(query.bookSlug, query.componentSlug) || !/^[a-z0-9][a-z0-9-]{0,127}$/.test(String(query.activityId || ""))) return privateJson(404, { error: "Native Teacher activity not found" });
   const row = await publishedReleaseRow(sql, query);
   if (!row) return privateJson(404, { error: "Native Teacher activity not found" });
   const verified = verifiedPublicProjection(row);
@@ -88,7 +97,7 @@ export async function getPublishedTeacherSolutionOverride(sql, stableActivityId)
 }
 
 export async function getPublishedNativeTeacherAnswer(sql, query, { method = "GET", storage = createBookAssetStorage() } = {}) {
-  if (query.bookSlug !== "ultimate-b2" || query.componentSlug !== "ultimate-b2-students-book" || !/^[a-z0-9][a-z0-9-]{0,127}$/.test(String(query.activityId || "")) || !/^[0-9a-f-]{36}$/.test(String(query.releaseId || ""))) return privateJson(404, { error: "Native Teacher answer not found" });
+  if (!supportedPublishedBook(query.bookSlug, query.componentSlug) || !/^[a-z0-9][a-z0-9-]{0,127}$/.test(String(query.activityId || "")) || !/^[0-9a-f-]{36}$/.test(String(query.releaseId || ""))) return privateJson(404, { error: "Native Teacher answer not found" });
   const release = await publishedReleaseRow(sql, query);
   if (!release) return privateJson(404, { error: "Native Teacher answer not found" });
   try {

@@ -144,7 +144,7 @@ test("teacher creates Homework, student submits both activities, and teacher res
     const dueDate = new Date(Date.now() + 14 * 86_400_000).toISOString().slice(0, 10);
     await signIn(page, "teacher", teacher.email);
     await page.goto("/#teacher-assignments", { waitUntil: "domcontentloaded" });
-    await expect(page.getByRole("heading", { name: "Multi-activity Homework", exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Assignments", exact: true })).toBeVisible();
 
     const createRequests = [];
     page.on("request", (request) => {

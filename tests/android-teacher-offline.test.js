@@ -101,11 +101,15 @@ test("CI builds the teacher pack before its internal verification", async () => 
   assert.ok(teacherBuild.indexOf("build-pack.mjs") < teacherBuild.indexOf("verify-pack.mjs"));
 });
 
-test("CI installs Chromium before the first Playwright browser gate", async () => {
+test("CI installs Chromium once in each browser job before its first Playwright gate", async () => {
   const workflow = await readFile(".github/workflows/ci.yml", "utf8");
-
-  assert.equal(workflow.match(/npx playwright install --with-deps chromium/g)?.length, 1);
-  assert.match(workflow, /npx playwright install --with-deps chromium[\s\S]*npm run test:lms-native-drag-drop-layout/);
+  const unitJob = workflow.split("\n  android-debug-builds:")[0];
+  const integrationJob = workflow.split("\n  integration-database:")[1]?.split("\n  deploy-cloudflare-builder:")[0];
+  assert.ok(integrationJob);
+  assert.equal(unitJob.match(/npx playwright install --with-deps chromium/g)?.length, 1);
+  assert.equal(integrationJob.match(/npx playwright install --with-deps chromium/g)?.length, 1);
+  assert.match(unitJob, /npx playwright install --with-deps chromium[\s\S]*npm run test:lms-native-drag-drop-layout/);
+  assert.match(integrationJob, /npm run test:integration[\s\S]*npm run build[\s\S]*npx playwright install --with-deps chromium[\s\S]*npm run test:published-book-assignments/);
 });
 
 test("teacher viewport profiles use available width and height rather than device identity", () => {

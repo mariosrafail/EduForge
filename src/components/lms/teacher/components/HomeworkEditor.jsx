@@ -2,6 +2,7 @@ import { ArrowDown, ArrowUp, BookOpen, Plus, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { updateHomework } from "../../../../services/assignmentsApi.js";
 import { Card } from "../../Shared.jsx";
+import { PublishedHomeworkPicker } from "./PublishedHomeworkPicker.jsx";
 import {
   addSelectedHomeworkActivity,
   compatibleHomeworkActivityOptions,
@@ -104,6 +105,8 @@ export function HomeworkEditor({ homework, classes = [], activityOptions = [], c
         </div>
 
         {structureLocked && <div className="inline-status">Learner work already exists. Exercises, activity order, and classes are read-only to protect submissions and results.</div>}
+
+        {!structureLocked && <PublishedHomeworkPicker ownerId={homework.teacherId} selected={selectedActivities} disabled={saving} onToggle={(option) => setSelectedActivities((current) => current.some((item) => item.id === option.id) ? removeSelectedHomeworkActivity(current, option.id) : addSelectedHomeworkActivity(current, option))} />}
 
         <div className="teacher-book-assign-grid">
           <label>Homework title<input type="text" maxLength={240} required value={title} onChange={(event) => setTitle(event.target.value)} /></label>

@@ -1,0 +1,176 @@
+import assert from "node:assert/strict";
+import { createServer } from "node:http";
+import { readFile } from "node:fs/promises";
+import { resolve, extname } from "node:path";
+import { randomBytes, createHash } from "node:crypto";
+import { Readable } from "node:stream";
+import { chromium, expect } from "@playwright/test";
+import worker from "../../cloudflare/lms/worker.js";
+import { hashToken, sessionCookieName, setSqlForTests } from "../../netlify/functions/_auth-utils.js";
+import { publishedManagedPageBytes, publishedManagedPageSha256 } from "../fixtures/published-managed-book.js";
+import pageAssets from "../../src/data/ultimate-b2/generated/students-book-page-assets.json" with { type: "json" };
+
+// Real application, route handlers, auth cookies, and isolated PostgreSQL.
+// Only object storage is local: no staging credentials or remote writes.
+export async function verifyPublishedBookBrowser({ pool, sql, teacher, student }) {
+  const root = resolve("dist");
+  await readFile(resolve(root, "index.html"));
+  const sbPage = pageAssets.pages[0];
+  const sbBytes = await readFile(resolve(sbPage.repositoryPath));
+  assert.equal(createHash("sha256").update(sbBytes).digest("hex"), sbPage.checksumSha256);
+  const packageId = (await pool.query("select id from book_packages where slug='ultimate-b2'")).rows[0].id;
+  const edition = (await pool.query("insert into book_editions(book_package_id,edition_identifier,status) values($1,'browser-fixture','published') returning id", [packageId])).rows[0];
+  const importRun = (await pool.query("insert into book_asset_imports(book_package_id,edition_id,manifest_checksum_sha256,manifest_schema_version,book_version,environment,status) values($1,$2,$3,'1.0','1.0.0','test','published') returning id", [packageId, edition.id, sbPage.checksumSha256])).rows[0];
+  await pool.query("insert into book_assets(book_package_id,edition_id,import_id,stable_logical_key,asset_role,object_key,storage_profile,storage_bucket,mime_type,byte_size,checksum_sha256,edition_identifier,version,publication_status,access_level) values($1,$2,$3,$4,'page_image',$5,'private','private-assets','image/png',$6,$7,'browser-fixture','1.0.0','published','entitled')", [packageId, edition.id, importRun.id, sbPage.logicalIdentity, `publishers/hamilton-house/books/ultimate-b2/browser-fixture/${sbPage.checksumSha256}.png`, sbBytes.length, sbPage.checksumSha256]);
+  const types = { ".js": "text/javascript", ".css": "text/css", ".html": "text/html", ".png": "image/png", ".svg": "image/svg+xml", ".woff2": "font/woff2" };
+  const staticFetch = async (request) => {
+    const path = decodeURIComponent(new URL(request.url).pathname);
+    const file = resolve(root, `.${path === "/" ? "/index.html" : path}`);
+    if (!file.startsWith(`${root}/`)) return new Response("Not found", { status: 404 });
+    try { return new Response(await readFile(file), { headers: { "Content-Type": types[extname(file)] || "application/octet-stream" } }); }
+    catch { return new Response("Not found", { status: 404 }); }
+  };
+  setSqlForTests(sql);
+  const failures = [];
+  const server = createServer(async (req, res) => {
+    try {
+      const chunks = []; for await (const chunk of req) chunks.push(chunk);
+      const request = new Request(`http://127.0.0.1:${server.address().port}${req.url}`, { method: req.method, headers: req.headers, ...(!["GET", "HEAD"].includes(req.method) ? { body: Buffer.concat(chunks) } : {}) });
+      const response = await worker.fetch(request, { ASSETS: { fetch: staticFetch } });
+      res.writeHead(response.status, Object.fromEntries(response.headers));
+      if (response.body) Readable.fromWeb(response.body).pipe(res); else res.end();
+    } catch (error) { failures.push(error.message); res.writeHead(500); res.end("Isolated server error"); }
+  });
+  await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const origin = `http://127.0.0.1:${server.address().port}`;
+  const storageServer = createServer((req, res) => {
+    const pathname = new URL(req.url, origin).pathname;
+    const sha = pathname.endsWith(`/${sbPage.checksumSha256}.png`) ? sbPage.checksumSha256 : publishedManagedPageSha256;
+    if (!["GET", "HEAD"].includes(req.method) || !pathname.endsWith(`/${sha}.png`)) { res.writeHead(404); res.end(); return; }
+    const bytes = sha === sbPage.checksumSha256 ? sbBytes : publishedManagedPageBytes;
+    res.writeHead(200, { "Content-Type": "image/png", "Content-Length": bytes.length, "x-amz-meta-sha256": sha });
+    res.end(req.method === "HEAD" ? undefined : bytes);
+  });
+  await new Promise((resolve) => storageServer.listen(0, "127.0.0.1", resolve));
+  const storageOrigin = `http://127.0.0.1:${storageServer.address().port}`;
+  const env = { BOOK_ASSET_STORAGE_PROVIDER: "s3", BOOK_ASSET_S3_ENDPOINT: storageOrigin, BOOK_ASSET_S3_REGION: "auto", BOOK_ASSET_S3_ACCESS_KEY_ID: "isolated-test", BOOK_ASSET_S3_SECRET_ACCESS_KEY: "isolated-test", BOOK_ASSET_PUBLIC_BUCKET: "public-assets", BOOK_ASSET_PRIVATE_BUCKET: "private-assets", BOOK_ASSET_ARCHIVE_BUCKET: "archive-assets", BOOK_ASSET_PUBLIC_BASE_URL: `${storageOrigin}/public-assets` };
+  const previousEnv = Object.fromEntries(Object.keys(env).map((key) => [key, process.env[key]]));
+  Object.assign(process.env, env);
+  let browser;
+  try {
+    browser = await chromium.launch({ headless: true });
+    const login = async (user) => {
+      const token = randomBytes(32).toString("hex");
+      await pool.query("insert into auth_sessions(user_id,token_hash,expires_at) values($1,$2,now()+interval '1 day')", [user.id, hashToken(token)]);
+      const context = await browser.newContext({ viewport: { width: 1365, height: 900 } });
+      await context.addCookies([{ name: sessionCookieName, value: token, url: origin, httpOnly: true, sameSite: "Lax" }]);
+      return context;
+    };
+    const teacherContext = await login(teacher);
+    const catalogResponse = await teacherContext.request.get(`${origin}/.netlify/functions/book-content?action=published-books`);
+    assert.equal(catalogResponse.status(), 200, await catalogResponse.text());
+    assert.equal((await catalogResponse.json()).books.length, 2, await catalogResponse.text());
+    const page = await teacherContext.newPage();
+    page.on("pageerror", (error) => failures.push(error.message));
+    await page.goto(`${origin}/#/teacher/assignments`);
+    const picker = page.getByRole("region", { name: "Choose exercises from published pages" });
+    await expect(picker).toBeVisible();
+    await expect(picker.locator(":scope > label > select")).toBeVisible();
+    await expect.poll(() => picker.locator(".published-page > img").evaluate((image) => image.naturalWidth)).toBe(sbPage.width);
+    await picker.locator(":scope > label > select").selectOption("ultimate-b2-workbook");
+    await expect(picker.locator(".published-page > img")).toBeVisible();
+    await expect.poll(() => picker.locator(".published-page > img").evaluate((image) => image.naturalWidth)).toBe(1);
+    await expect(picker.locator(":scope > label > select option")).toHaveCount(2);
+    await picker.locator(".published-page-hotspots button").first().click();
+    await picker.getByRole("button", { name: "Preview exercise", exact: true }).click();
+    await expect(page.getByRole("dialog")).toContainText("Explain question 1.");
+    await page.getByRole("button", { name: "Close preview", exact: true }).click();
+    await picker.getByRole("button", { name: "Add exercise", exact: true }).click();
+    await expect(page.locator(".homework-selected-activities")).toContainText("Selected activities (1)");
+    await picker.getByRole("button", { name: "Next page", exact: true }).click();
+    await picker.locator(".published-page-hotspots button").first().click();
+    await picker.getByRole("button", { name: "Add exercise", exact: true }).click();
+    await expect(page.locator(".homework-selected-activities")).toContainText("Selected activities (2)");
+    await page.screenshot({ path: "/tmp/published-book-picker.png", fullPage: true });
+    // Continue through the real form; these labels are part of the product UI.
+    await page.getByLabel("Homework title", { exact: true }).fill("Browser published Homework");
+    for (const checkbox of await page.locator(".homework-creator .teacher-checkbox-panel input").all()) await checkbox.uncheck();
+    await page.getByLabel("Native assignment integration", { exact: true }).check();
+    await expect(page.getByRole("button", { name: "Create Homework", exact: true }), await page.locator(".homework-creator").innerText()).toBeEnabled();
+    await page.getByRole("button", { name: "Create Homework", exact: true }).click();
+    await expect(page.getByText("Browser published Homework", { exact: true }).first()).toBeVisible();
+    const stored = (await pool.query("select id from homeworks where teacher_id=$1 and title='Browser published Homework'", [teacher.id])).rows;
+    assert.equal(stored.length, 1);
+    const assignments = (await pool.query("select assignment.id,assignment.native_book_locator from activity_assignments assignment join homework_items item on item.id=assignment.homework_item_id where assignment.homework_id=$1 order by item.position", [stored[0].id])).rows;
+    assert.equal(assignments.length, 2);
+    assert.deepEqual(assignments.map((row) => row.native_book_locator.pageId), ["wb-page-1", "wb-page-2"]);
+    const studentContext = await login(student);
+    const studentPage = await studentContext.newPage();
+    studentPage.on("pageerror", (error) => failures.push(error.message));
+    await studentPage.goto(`${origin}/#/student/assignments/${assignments[0].id}`);
+    await expect(studentPage.locator('[data-book-mode="assigned"]')).toBeVisible();
+    await expect(studentPage.locator(".published-page-hotspots button.assigned")).toHaveCount(1);
+    await studentPage.getByRole("textbox").first().fill("Browser saved explanation");
+    await studentPage.getByRole("button", { name: "Close exercise · Return to page", exact: true }).click();
+    await studentPage.getByRole("button", { name: "Next page", exact: true }).click();
+    await studentPage.locator(".published-page-hotspots button").first().click();
+    await expect(studentPage.getByRole("dialog")).toContainText("Explain question 2.");
+    await expect(studentPage.getByRole("dialog").getByRole("textbox")).not.toBeEditable();
+    await studentPage.getByRole("button", { name: "Close preview", exact: true }).click();
+    await studentPage.getByRole("button", { name: "Return to assigned exercise", exact: true }).click();
+    await expect(studentPage.getByRole("textbox").first()).toHaveValue("Browser saved explanation");
+    await studentPage.getByRole("button", { name: "Submit assignment", exact: true }).click();
+    await studentPage.getByRole("button", { name: "Submit final answers", exact: true }).click();
+    await expect(studentPage.getByRole("button", { name: "Submit assignment", exact: true })).toHaveCount(0);
+    await studentPage.reload();
+    await expect(studentPage.getByRole("textbox").first()).toHaveValue("Browser saved explanation");
+    await expect(studentPage.getByRole("textbox").first()).not.toBeEditable();
+    const saved = (await pool.query("select response_payload,status from activity_submissions where activity_assignment_id=$1", [assignments[0].id])).rows;
+    assert.equal(saved.length, 1);
+    assert.equal(saved[0].status, "awaiting_review");
+    assert.equal(saved[0].response_payload.items[0].value, "Browser saved explanation");
+    await studentPage.screenshot({ path: "/tmp/published-book-assignment.png", fullPage: true });
+    const beforePractice = Number((await pool.query("select count(*) from activity_submissions where student_id=$1", [student.id])).rows[0].count);
+    await studentPage.goto(`${origin}/#/courses/ultimate-b2/components/ultimate-b2-workbook`);
+    try { await expect(studentPage.locator('[data-book-mode="practice"]')).toBeVisible(); }
+    catch (error) { throw new Error(`${error.message}\nStudent Books: ${await studentPage.locator("body").innerText()}`); }
+    await studentPage.locator(".published-page-hotspots button").first().click();
+    await expect(studentPage.getByRole("textbox").first()).toBeEditable();
+    await studentPage.getByRole("textbox").first().fill("Practice only");
+    await expect(studentPage.getByRole("button", { name: "Submit assignment", exact: true })).toHaveCount(0);
+    assert.equal(Number((await pool.query("select count(*) from activity_submissions where student_id=$1", [student.id])).rows[0].count), beforePractice);
+    const publicBooks = await studentContext.request.get(`${origin}/.netlify/functions/book-content?action=published-books`);
+    const workbook = (await publicBooks.json()).books.find((book) => book.componentSlug === "ultimate-b2-workbook");
+    assert.equal((await studentContext.request.get(`${origin}/.netlify/functions/book-content?${new URLSearchParams({ action: "published-native-teacher", bookSlug: workbook.bookSlug, componentSlug: workbook.componentSlug, releaseId: workbook.releaseId, activityId: workbook.activities[0].target.nativeActivityId })}`)).status(), 403);
+    await page.goto(`${origin}/#/teacher/books/ultimate-b2/components/ultimate-b2-workbook`);
+    await expect(page.getByText("Teacher Interactive", { exact: true })).toBeVisible();
+    await page.goto(`${origin}/#/teacher/books/ultimate-b2/components/students-book`);
+    await expect.poll(() => page.locator(".published-page > img").evaluate((image) => image.naturalWidth)).toBe(sbPage.width);
+    await expect(page.getByRole("button", { name: "Contents / Exercises", exact: true })).toHaveCount(0);
+    await page.goto(`${origin}/#/teacher/assignments`);
+    await picker.locator(":scope > label > select").selectOption("ultimate-b2-workbook");
+    await picker.locator(".published-page-hotspots button").first().click();
+    await picker.getByRole("button", { name: "Add exercise", exact: true }).click();
+    await page.getByLabel("Homework title", { exact: true }).fill("Browser single assignment");
+    for (const checkbox of await page.locator(".homework-creator .teacher-checkbox-panel input").all()) await checkbox.uncheck();
+    await page.getByLabel("Native assignment integration", { exact: true }).check();
+    await page.getByRole("button", { name: "Create assignment", exact: true }).click();
+    await expect(page.locator(".homework-selected-activities")).toContainText("Selected activities (0)");
+    const single = (await pool.query("select homework_id,native_book_locator from activity_assignments where teacher_id=$1 and title='Browser single assignment'", [teacher.id])).rows;
+    assert.equal(single.length, 1);
+    assert.equal(single[0].homework_id, null);
+    assert.equal(single[0].native_book_locator.pageId, "wb-page-1");
+    await studentPage.setViewportSize({ width: 390, height: 844 });
+    await studentPage.goto(`${origin}/#/student/assignments/${assignments[0].id}`);
+    await expect(studentPage.locator('[data-book-mode="assigned"]')).toBeVisible();
+    assert.ok(await studentPage.locator(".published-book-surface").evaluate((surface) => surface.getBoundingClientRect().right <= window.innerWidth + 1));
+    await studentPage.screenshot({ path: "/tmp/published-book-mobile.png", fullPage: true });
+    assert.deepEqual(failures, []);
+  } finally {
+    await browser?.close();
+    await new Promise((resolve) => storageServer.close(resolve));
+    await new Promise((resolve) => server.close(resolve));
+    setSqlForTests(null);
+    for (const [key, value] of Object.entries(previousEnv)) { if (value === undefined) delete process.env[key]; else process.env[key] = value; }
+  }
+}

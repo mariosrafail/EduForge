@@ -1,7 +1,11 @@
 import { findUltimateB2Exercise } from "../../../../data/ultimateB2DemoData.js";
 import { ultimateB2StudentsBookHotspotManifest } from "../../../../data/ultimate-b2/studentsBookHotspots.js";
+import { resolvePublishedAssignmentBookContext } from "./publishedAssignmentBookContext.js";
 
 export function resolveStudentAssignmentBookContext(assignment = {}) {
+  if (assignment.target?.kind === "published_native") {
+    return resolvePublishedAssignmentBookContext(assignment);
+  }
   const activity = assignment.activity || assignment.dbActivity || {};
   const activityKey = activity.stableActivityId || activity.demoActivityKey || activity.activityKey || assignment.demoActivityKey || activity.slug;
   const catalog = findUltimateB2Exercise(activityKey);

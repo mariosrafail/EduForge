@@ -1,6 +1,8 @@
 import { ArrowLeft, BookOpenCheck, CalendarClock, CheckCircle2, ClipboardList, MessageSquareText } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
-import { listStudentAssignments, submitStudentAssignment } from "../../../../services/assignmentsApi.js";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { submitStudentAssignment } from "../../../../services/assignmentsApi.js";
+import { getStudentAssignment } from "../../../../services/publishedBooksApi.js";
+import { PublishedBookSurface } from "../../books/PublishedBookSurface.jsx";
 import { buildStudentSectionHash } from "../../../../utils/hashRoutes.js";
 import { UltimateB2ActivityRunner } from "../../activities/UltimateB2ActivityRunner.jsx";
 import { PublishedNativeStudentActivityRunner as PublishedNativeActivityRunner } from "../../activities/ultimate-b2/PublishedNativeStudentActivityRunner.jsx";
@@ -60,33 +62,56 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, navigate
   const [submitMessage, setSubmitMessage] = useState("");
   const [nativeResponses, setNativeResponses] = useState({});
   const [submitting, setSubmitting] = useState(false);
+  const pendingRead = useRef(null);
+  const owner = `${currentUser?.id || ""}:${assignmentId || ""}`;
+  const activeOwner = useRef(owner);
+  activeOwner.current = owner;
+  const [dirty, setDirty] = useState(false);
 
-  const reload = async () => {
+  const reload = useCallback(async () => {
+    pendingRead.current?.abort();
+    const controller = new AbortController();
+    pendingRead.current = controller;
     setLoading(true);
     setError("");
     try {
-      const rows = await listStudentAssignments(currentUser?.id);
-      const match = rows.find((row) => String(row.assignmentId || row.id) === String(assignmentId));
+      const match = await getStudentAssignment(assignmentId, { signal: controller.signal });
+      if (controller.signal.aborted) return;
       if (!match) throw new Error("This assignment is not available.");
       const normalized = normalizeAssignment(match);
-      setAssignment(normalized);
+      setAssignment({ ...normalized, workspaceOwner: owner });
       setNativeResponses(restoreNativeSubmissionResponses(normalized.responsePayload));
+      setDirty(false);
     } catch (loadError) {
+      if (controller.signal.aborted) return;
       setAssignment(null);
       setError(loadError.message || "This assignment is not available.");
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) setLoading(false);
     }
-  };
+  }, [assignmentId, currentUser?.id]);
 
   useEffect(() => {
+    activeOwner.current = owner;
     if (!currentUser?.id || !assignmentId) {
+      setAssignment(null);
       setLoading(false);
       setError("This assignment is not available.");
       return;
     }
     reload();
-  }, [assignmentId, currentUser?.id]);
+    setSubmitError("");
+    setSubmitMessage("");
+    setSubmitting(false);
+    return () => { activeOwner.current = null; pendingRead.current?.abort(); };
+  }, [assignmentId, currentUser?.id, reload]);
+
+  useEffect(() => {
+    if (!dirty) return undefined;
+    const warn = (event) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
 
   const context = useMemo(() => assignment ? resolveStudentAssignmentBookContext(assignment) : null, [assignment]);
   const presentation = useMemo(() => assignment ? deriveStudentAssignmentPresentation(assignment) : null, [assignment]);
@@ -103,11 +128,13 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, navigate
     setSubmitting(true);
     try {
       const savedSubmission = await submitStudentAssignment(buildLegacyFinalSubmission({ assignmentId: assignment.assignmentId, activityId: assignment.activityId, result }));
+      if (activeOwner.current !== owner) return savedSubmission;
       setSubmitMessage("Assignment submission saved.");
       await reload();
       onAssignmentSubmitted?.();
       return savedSubmission;
     } catch (submitFailure) {
+      if (activeOwner.current !== owner) throw submitFailure;
       if (isDuplicateFinalSubmission(submitFailure)) {
         await reload();
         setSubmitMessage("Your existing final submission was loaded and locked.");
@@ -117,7 +144,7 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, navigate
       setSubmitError(submitFailure.message || "Assignment submission could not be saved.");
       throw submitFailure;
     } finally {
-      setSubmitting(false);
+      if (activeOwner.current === owner) setSubmitting(false);
     }
   };
 
@@ -128,11 +155,13 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, navigate
     setSubmitting(true);
     try {
       await submitStudentAssignment(buildNativeFinalSubmission({ assignmentId: assignment.assignmentId, target: assignment.target, responses: nativeResponses }));
+      if (activeOwner.current !== owner) return true;
       setSubmitMessage("Assignment submission saved.");
       await reload();
       onAssignmentSubmitted?.();
       return true;
     } catch (submitFailure) {
+      if (activeOwner.current !== owner) throw submitFailure;
       if (isDuplicateFinalSubmission(submitFailure)) {
         await reload();
         setSubmitMessage("Your existing final submission was loaded and locked.");
@@ -142,18 +171,18 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, navigate
       setSubmitError(submitFailure.message || "Assignment submission could not be saved.");
       throw submitFailure;
     } finally {
-      setSubmitting(false);
+      if (activeOwner.current === owner) setSubmitting(false);
     }
   };
 
   return (
     <section className="student-assignment-workspace">
-      <button className="secondary-action compact-action student-assignment-back" type="button" onClick={() => navigateTo(buildStudentSectionHash("assignments"))}>
+      <button className="secondary-action compact-action student-assignment-back" type="button" onClick={() => { if (!dirty || window.confirm("Leave this assignment? Answers have not been submitted.")) navigateTo(buildStudentSectionHash("assignments")); }}>
         <ArrowLeft size={16} /> Back to assignments
       </button>
       {loading && <Card><p>Loading assignment workspace...</p></Card>}
       {!loading && error && <Card className="student-assignment-unavailable"><h2>Assignment unavailable</h2><p>{error}</p></Card>}
-      {!loading && assignment && context && presentation && (
+      {!loading && assignment?.workspaceOwner === owner && context && presentation && (
         <>
           <Card className="student-assignment-workspace-header">
             <div>
@@ -191,13 +220,18 @@ export function StudentAssignmentWorkspace({ assignmentId, currentUser, navigate
             {({ capabilities, requestFinalSubmit }) => (
               <>
                 {!context.pageId ? <div className="student-runtime-fallback">The assigned page mapping is unavailable. The server-pinned activity is shown directly.</div> : null}
-                {assignment.targetKind === "published_native" && assignment.target ? (
+                {assignment.targetKind === "published_native" && assignment.target && assignment.book && context.pageId ? (
+                  <PublishedBookSurface key={`${assignment.assignmentId}:${assignment.target.releaseId}`} book={assignment.book} mode="assigned"
+                    initialLocator={{ pageId: context.pageId, hotspotId: context.hotspotId }} assignedTarget={assignment.target}
+                    renderAssignedActivity={() => <PublishedNativeActivityRunner entry={assignment.target.entry} publication={assignment.target.publication}
+                      responses={nativeResponses} onResponsesChange={(responses) => { setNativeResponses(responses); setDirty(true); }} readOnly={!capabilities.canEditResponses} />} />
+                ) : assignment.targetKind === "published_native" && assignment.target ? (
                   <PublishedNativeActivityRunner
                     key={`${assignment.assignmentId}:${assignment.target.releaseId}`}
                     entry={assignment.target.entry}
                     publication={assignment.target.publication}
                     responses={nativeResponses}
-                    onResponsesChange={setNativeResponses}
+                    onResponsesChange={(responses) => { setNativeResponses(responses); setDirty(true); }}
                     readOnly={!capabilities.canEditResponses}
                   />
                 ) : null}

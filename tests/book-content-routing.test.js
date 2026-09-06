@@ -45,7 +45,9 @@ const postActions = [
 ];
 
 test("book-content entry retains every explicit GET and POST action contract", async () => {
-  const entry = await readFile("netlify/functions/book-content.js", "utf8");
+  const handler = await readFile("netlify/functions/book-content.js", "utf8");
+  assert.match(handler, /const auth = await requireAuth[\s\S]*await routePublishedBookRead\(sql, currentUser, event, query\)/);
+  const entry = handler + await readFile("netlify/functions/_book-content/publication-read-routes.js", "utf8");
   for (const action of [...getActions, ...postActions]) {
     assert.match(entry, new RegExp(`query\\.action === "${action}"`), `missing action ${action}`);
   }

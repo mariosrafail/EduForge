@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { listTeacherAssignments, normalizeLinks } from "./assignment-actions.js";
 import { assembleStudentHomeworks, assembleTeacherHomeworks } from "./homework-presentation.js";
 import { classTargetPackageConflictResponse } from "./assignment-package-compatibility.js";
+import { normalizePublishedBookLocator } from "./published-book-model.js";
 import {
   NATIVE_ASSIGNMENT_TARGET_KIND,
   containsClientTeacherMaterial,
@@ -40,17 +41,21 @@ function canonicalTarget(rawItem = {}) {
     return { kind: LEGACY_TARGET_KIND, activityId: String(rawItem.activityId).toLowerCase() };
   }
   if (rawItem.kind === NATIVE_ASSIGNMENT_TARGET_KIND) {
-    if (Object.keys(rawItem).some((key) => !["kind", "releaseId", "nativeActivityId"].includes(key))) {
+    if (Object.keys(rawItem).some((key) => !["kind", "releaseId", "nativeActivityId", "locator"].includes(key))) {
       return { error: "Published-native Homework items contain unsupported fields" };
     }
     if (!isValidUuid(rawItem.releaseId)) return { error: "Homework item releaseId must be a valid UUID" };
     if (!/^[a-z0-9][a-z0-9-]{0,127}$/.test(String(rawItem.nativeActivityId || ""))) {
       return { error: "Homework item nativeActivityId is invalid" };
     }
+    let locator;
+    try { locator = normalizePublishedBookLocator(rawItem.locator); }
+    catch { return { error: "Homework item locator is invalid" }; }
     return {
       kind: NATIVE_ASSIGNMENT_TARGET_KIND,
       releaseId: String(rawItem.releaseId).toLowerCase(),
       nativeActivityId: String(rawItem.nativeActivityId),
+      ...(locator ? { locator } : {}),
     };
   }
   return { error: "Homework item kind must be legacy_activity or published_native" };
@@ -177,6 +182,7 @@ async function resolveHomeworkTeacher(sql, body, currentUser) {
 
 async function resolveHomeworkTargets(sql, currentUser, items) {
   const resolved = [];
+  const requestCache = new Map();
   for (let index = 0; index < items.length; index += 1) {
     const item = items[index];
     if (item.kind === LEGACY_TARGET_KIND) {
@@ -215,7 +221,8 @@ async function resolveHomeworkTargets(sql, currentUser, items) {
       kind: NATIVE_ASSIGNMENT_TARGET_KIND,
       releaseId: item.releaseId,
       nativeActivityId: item.nativeActivityId,
-    }, { requireActive: true });
+      ...(item.locator ? { locator: item.locator } : {}),
+    }, { requireActive: true, requestCache });
     if (target.error) return { error: json(target.statusCode || 400, { error: target.error }) };
     if (!target.capability?.assignable) return { error: forbidden("This published native activity is not assignable") };
     resolved.push({
@@ -224,6 +231,7 @@ async function resolveHomeworkTargets(sql, currentUser, items) {
       activity_id: null,
       native_release_id: target.row.id,
       native_activity_id: target.nativeActivityId,
+      native_book_locator: target.locator || null,
       book_package_id: target.row.book_package_id,
       title: target.publicEntry.document?.metadata?.title || target.nativeActivityId,
     });
@@ -287,6 +295,7 @@ export async function createHomework(sql, body, currentUser) {
         activity_id uuid,
         native_release_id uuid,
         native_activity_id text,
+        native_book_locator jsonb,
         title text
       )
     ), upserted_homework as (
@@ -304,10 +313,10 @@ export async function createHomework(sql, body, currentUser) {
       returning *
     ), upserted_items as (
       insert into homework_items (
-        homework_id, position, target_kind, activity_id, native_release_id, native_activity_id
+        homework_id, position, target_kind, activity_id, native_release_id, native_activity_id, native_book_locator
       )
       select homework.id, input.position, input.target_kind, input.activity_id,
-             input.native_release_id, input.native_activity_id
+             input.native_release_id, input.native_activity_id, input.native_book_locator
       from upserted_homework homework
       cross join item_input input
       on conflict (homework_id, position)
@@ -315,12 +324,12 @@ export async function createHomework(sql, body, currentUser) {
       returning *
     ), upserted_assignments as (
       insert into activity_assignments (
-        school_id, activity_id, target_kind, native_release_id, native_activity_id,
+        school_id, activity_id, target_kind, native_release_id, native_activity_id, native_book_locator,
         teacher_id, class_id, student_id, due_at, status, title, teacher_notes,
         worksheet_links, attached_files, idempotency_key, homework_id, homework_item_id
       )
       select homework.school_id, item.activity_id, item.target_kind,
-             item.native_release_id, item.native_activity_id, homework.teacher_id,
+             item.native_release_id, item.native_activity_id, item.native_book_locator, homework.teacher_id,
              class_id, null, homework.due_at, 'assigned', homework.title,
              homework.teacher_notes, homework.worksheet_links, '[]'::jsonb,
              'homework:' || homework.id || ':item:' || item.id || ':class:' || class_id,
@@ -385,7 +394,7 @@ export async function updateHomework(sql, body, currentUser) {
 
     const currentItems = await transactionSql`
       select item.id, item.position, item.target_kind, item.activity_id,
-             item.native_release_id, item.native_activity_id,
+             item.native_release_id, item.native_activity_id, item.native_book_locator,
              coalesce(component.book_package_id, release.book_package_id) as book_package_id
       from homework_items item
       left join activities activity on activity.id = item.activity_id
@@ -526,10 +535,10 @@ export async function updateHomework(sql, body, currentUser) {
       for (const item of finalItems.filter((candidate) => !existingByIdentity.has(candidate.identity))) {
         await transactionSql`
           insert into homework_items (
-            id, homework_id, position, target_kind, activity_id, native_release_id, native_activity_id
+            id, homework_id, position, target_kind, activity_id, native_release_id, native_activity_id, native_book_locator
           ) values (
             ${item.id}, ${input.homeworkId}, ${item.position}, ${item.target_kind}, ${item.activity_id},
-            ${item.native_release_id}, ${item.native_activity_id}
+            ${item.native_release_id}, ${item.native_activity_id}, ${item.native_book_locator ? JSON.stringify(item.native_book_locator) : null}::jsonb
           )
         `;
       }
@@ -543,12 +552,12 @@ export async function updateHomework(sql, body, currentUser) {
       if (missingAssignments.length) {
         await transactionSql`
           insert into activity_assignments (
-            school_id, activity_id, target_kind, native_release_id, native_activity_id,
+            school_id, activity_id, target_kind, native_release_id, native_activity_id, native_book_locator,
             teacher_id, class_id, student_id, due_at, status, title, teacher_notes,
             worksheet_links, attached_files, idempotency_key, homework_id, homework_item_id
           )
           select ${currentHomework.school_id}, input.activity_id, input.target_kind,
-                 input.native_release_id, input.native_activity_id, ${currentHomework.teacher_id},
+                 input.native_release_id, input.native_activity_id, input.native_book_locator, ${currentHomework.teacher_id},
                  input.class_id, null, ${input.dueAt}, 'assigned', ${input.title},
                  ${input.teacherNotes}, ${JSON.stringify(input.worksheetLinks)}::jsonb, '[]'::jsonb,
                  'homework:' || ${input.homeworkId} || ':item:' || input.item_id || ':class:' || input.class_id,
@@ -560,9 +569,10 @@ export async function updateHomework(sql, body, currentUser) {
             activity_id: item.activity_id,
             native_release_id: item.native_release_id,
             native_activity_id: item.native_activity_id,
+            native_book_locator: item.native_book_locator || null,
           })))}::jsonb) as input(
             item_id uuid, class_id uuid, target_kind text, activity_id uuid,
-            native_release_id uuid, native_activity_id text
+            native_release_id uuid, native_activity_id text, native_book_locator jsonb
           )
         `;
       }

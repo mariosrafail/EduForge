@@ -106,7 +106,7 @@ export function TeacherAssignments({
     }
   };
   const created = async (homework) => {
-    setStatus(`Homework “${homework.title}” created with ${homework.itemCount} activities.`);
+    setStatus(homework.kind === "assignment" ? `Assignment “${homework.title}” created.` : `Homework “${homework.title}” created with ${homework.itemCount} activities.`);
     await loadWork();
   };
   const openHomeworkEditor = async (homework) => {
@@ -157,10 +157,20 @@ export function TeacherAssignments({
 
   return (
     <section className="teacher-section-stack">
-      <SectionTitle eyebrow="Homework" title="Multi-activity Homework" text="Create one class Homework containing ordered book and published-native activities, then review each activity with the existing results workspace." />
+      <SectionTitle eyebrow="Class work" title="Assignments" text="Select exercises from book pages, assign them to your classes, and review your students’ work." />
       {error && <div className="inline-status error">{error}</div>}
       {catalog.warning && <div className={`inline-status ${catalog.unavailable ? "error" : "warning"}`}>{catalog.warning}</div>}
       {status && <div className="inline-status success">{status}</div>}
+
+      <HomeworkCreator
+        currentUser={currentUser}
+        classes={classes}
+        activityOptions={activityOptions}
+        catalogLoading={catalog.loading}
+        catalogUnavailable={catalog.unavailable}
+        onCreated={created}
+        onError={setError}
+      />
 
       <TeacherHomeworkList homeworks={homeworks} loading={loading} onOpenResults={openResults} onExportResults={exportResults} onEdit={openHomeworkEditor} />
 
@@ -180,7 +190,7 @@ export function TeacherAssignments({
 
       <Card>
         <div className="card-heading">
-          <div><span className="eyebrow"><ListChecks size={15} /> Standalone assignments</span><h2>Earlier single-activity work</h2></div>
+          <div><span className="eyebrow"><ListChecks size={15} /> Standalone assignments</span><h2>Single-exercise assignments</h2></div>
           <Tag tone={error ? "gold" : "green"}>{error ? "Unavailable" : "Compatible"}</Tag>
         </div>
         <div className="teacher-assignment-table">
@@ -199,16 +209,6 @@ export function TeacherAssignments({
           ))}
         </div>
       </Card>
-
-      <HomeworkCreator
-        currentUser={currentUser}
-        classes={classes}
-        activityOptions={activityOptions}
-        catalogLoading={catalog.loading}
-        catalogUnavailable={catalog.unavailable}
-        onCreated={created}
-        onError={setError}
-      />
 
       <Modal
         open={Boolean(lifecycleAction)}
