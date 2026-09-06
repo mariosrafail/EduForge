@@ -180,7 +180,9 @@ export function TeacherPortal({ initialSection = "dashboard", initialSelectedBoo
         {activeSection === "classes" && (
           <TeacherClasses
             currentUser={currentUser}
-            bookPackage={bookPackages.find((item) => (item.slug || item.id) === selectedPackageSlug) || bookPackages[0]}
+            bookPackages={bookPackages}
+            loadingBooks={!bookStateIsCurrent || teacherBooksState.loading}
+            bookLoadError={teacherBooksState.error}
             classes={teacherClasses}
             loadingClasses={loadingClasses}
             classLoadError={classLoadError}

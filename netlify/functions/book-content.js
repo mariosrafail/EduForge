@@ -49,7 +49,7 @@ export {
   scoreBookActivityRecord,
 };
 
-export async function handler(event) {
+export async function handler(event, context) {
   if (event.httpMethod === "OPTIONS") return { statusCode: 204, headers: { "Content-Type": "application/json" }, body: "" };
   const query = readQuery(event);
 
@@ -79,7 +79,7 @@ export async function handler(event) {
     }
     const currentUser = auth.currentUser;
 
-    const publicationRead = await routePublishedBookRead(sql, currentUser, event, query);
+    const publicationRead = await routePublishedBookRead(sql, currentUser, event, query, context);
     if (publicationRead) return publicationRead;
 
     if (event.httpMethod === "GET") {

@@ -3,9 +3,17 @@
 .published-book-controls select{max-width:min(26rem,65vw)}
 .published-book-surface button,.published-book-surface select,.published-book-picker button{min-height:40px;padding:.45rem .75rem;border:1px solid #a9b9c8;border-radius:8px;background:white;color:#173048}
 .published-book-surface button:focus-visible,.published-book-picker button:focus-visible{outline:3px solid #157e8c;outline-offset:3px}
-.published-page-scroll{max-height:65vh;overflow:auto;background:#e9eef3;border-radius:12px}
-.published-page{position:relative;min-width:100%;margin:auto;background:white}
-.published-page>img{display:block;width:100%;height:auto}
+.published-book-surface{min-width:0;max-width:100%}
+.published-page-scroll{height:clamp(240px,60dvh,800px);overflow:auto;display:flex;padding:12px;box-sizing:border-box;background:#e9eef3;border-radius:12px;min-width:0}
+.published-page{position:relative;flex:none;margin:auto;background:white;box-shadow:0 2px 12px #17304825}
+.published-page>img{display:block;width:100%;height:100%}
+.published-page-status{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:1rem;overflow:auto}
+.published-page-status button{position:relative;z-index:2}
+.published-book-surface:fullscreen{display:flex;flex-direction:column;box-sizing:border-box;background:#f5f8fa;padding:12px;overflow:auto;width:100%;height:100%;gap:6px}
+.published-book-surface:fullscreen>.published-page-scroll{flex:1 0 120px;height:0}
+.published-book-surface:fullscreen>.published-book-controls,.published-book-surface:fullscreen>.published-hotspot-details{margin:0;flex:none}
+.published-book-surface:fullscreen>details{max-height:20vh;overflow:auto;flex:none}
+.published-book-surface:fullscreen>.published-book-activity:not([hidden]){position:absolute;inset:70px 12px 12px;z-index:3}
 .published-page-hotspots{position:absolute;inset:0;pointer-events:none}
 .published-page-hotspots button{position:absolute;min-height:0;padding:2px;pointer-events:auto;border:2px solid #08788b;background:#08788b12;overflow:hidden;text-align:left}
 .published-page-hotspots button span{font-size:12px;background:#fff;padding:2px 4px;border-radius:3px}
@@ -17,10 +25,20 @@
 .published-book-activity[hidden]{display:none}
 .published-preview-dialog{width:min(1100px,96vw);max-height:90vh;overflow:auto;border:1px solid #b5c9d8;border-radius:14px;padding:1rem}
 .published-preview-dialog::backdrop{background:#142636aa}
+.published-preview-dialog{box-sizing:border-box;max-width:96vw}
+.published-preview-stage[data-fixed=true]{height:min(72dvh,780px);display:flex;align-items:center;justify-content:center;min-width:0}
+.published-preview-stage[data-fixed=false]{max-height:72dvh;overflow:auto}
+.published-preview-fit{flex:none;min-width:0}
+.published-preview-content{box-sizing:border-box}
+.published-book-picker fieldset{min-width:0;margin:0;padding:0;border:0}
+.homework-class-compatibility{padding:.65rem .85rem;margin:.6rem 0;border-left:3px solid #157e8c;background:#edf5f8;overflow-wrap:anywhere}
+.homework-class-compatibility ul{max-height:8rem;overflow:auto;padding-left:1.2rem;margin:.4rem 0}
+.homework-class-compatibility p{margin:.35rem 0}
+.homework-class-compatibility small{display:block;margin-top:.35rem}
 .published-book-picker{padding:1rem;border:1px solid #c3d2df;border-radius:12px;margin-bottom:1rem}
 .published-book-picker>label{display:flex;gap:.5rem;align-items:center;margin:.5rem 0}
 .published-book-picker select,.published-book-picker input{max-width:100%}
 .published-picker-list{max-height:20rem;overflow:auto;display:grid;gap:.5rem;list-style:none;padding:0}
 .published-picker-list li{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;border:1px solid #dce4eb;padding:.5rem;border-radius:8px}
 .published-picker-list li>span{flex:1;min-width:12rem}
-@media(max-width:600px){.published-book-controls{gap:.4rem}.published-page-scroll{max-height:55vh}.published-book-activity{padding:.4rem}.published-page-hotspots button span{font-size:10px}}
+@media(max-width:600px){.published-book-controls{gap:.4rem}.published-page-scroll{height:55dvh;padding:6px}.published-book-activity{padding:.4rem}.published-page-hotspots button span{font-size:10px}.published-book-picker{padding:.6rem}.published-preview-dialog{padding:.5rem}}

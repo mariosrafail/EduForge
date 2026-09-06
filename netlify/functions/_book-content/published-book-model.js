@@ -43,7 +43,7 @@ export function publishedBookReadModel(row, projection, capabilities = {}, produ
     printedLabel: page.printedLabel,
     sortOrder: page.sortOrder,
     image: componentSlug === "ultimate-b2-students-book"
-      ? { logicalKey: canonicalPageImages.get(page.id), checksumSha256: page.image.checksumSha256, width: page.image.width, height: page.image.height }
+      ? { source: "canonical-published-page", logicalKey: canonicalPageImages.get(page.id), checksumSha256: page.image.checksumSha256, width: page.image.width, height: page.image.height }
       : { ...page.image },
     hotspots: [],
   })).sort((left, right) => left.sortOrder - right.sortOrder);

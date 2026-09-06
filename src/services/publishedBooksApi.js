@@ -34,3 +34,7 @@ export async function getStudentAssignment(assignmentId, { signal } = {}) {
 export function publishedBookAssetPath(book, asset) {
   return `/.netlify/functions/book-content?${new URLSearchParams({ action: "published-release-asset", bookSlug: book.bookSlug, componentSlug: book.componentSlug, releaseId: book.releaseId, sha256: asset.sha256, extension: asset.extension })}`;
 }
+
+export function publishedPageImagePath(book, page) {
+  return `/.netlify/functions/book-content?${new URLSearchParams({ action: "published-page-image", bookSlug: book.bookSlug, componentSlug: book.componentSlug, releaseId: book.releaseId, pageId: page.id, sha256: page.image.checksumSha256 })}`;
+}

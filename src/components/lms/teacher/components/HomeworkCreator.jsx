@@ -38,9 +38,7 @@ export function HomeworkCreator({ currentUser, classes = [], activityOptions = [
   )), [assignableOptions]);
   useEffect(() => {
     setSelectedClassIds((current) => {
-      const available = new Set(classes.map((item) => item.id));
-      const valid = current.filter((id) => available.has(id));
-      return valid.length ? valid : classes[0]?.id ? [classes[0].id] : [];
+      return current.length ? current : classes[0]?.id ? [classes[0].id] : [];
     });
   }, [classes]);
 
@@ -119,7 +117,7 @@ export function HomeworkCreator({ currentUser, classes = [], activityOptions = [
           <button className="primary-action" type="submit" disabled={saving || !selectedActivities.length || catalogUnavailable || Boolean(packageIssue.conflict)}>{saving ? "Creating..." : selectedActivities.length === 1 ? "Create assignment" : "Create Homework"}</button>
         </div>
 
-        <PublishedHomeworkPicker ownerId={currentUser?.id} selected={selectedActivities} disabled={saving} onToggle={(option) => {
+        <PublishedHomeworkPicker ownerId={currentUser?.id} selected={selectedActivities} classes={classes} selectedClassIds={selectedClassIds} disabled={saving} onToggle={(option) => {
           setSelectedActivities((current) => current.some((item) => item.id === option.id) ? removeSelectedHomeworkActivity(current, option.id) : addSelectedHomeworkActivity(current, option));
           changed();
         }} />
@@ -139,7 +137,7 @@ export function HomeworkCreator({ currentUser, classes = [], activityOptions = [
               <select id="homework-activity-select" value={pickerId} disabled={catalogUnavailable || catalogLoading || Boolean(compatibleOptions.conflict)} onChange={(event) => setPickerId(event.target.value)}>
                 {assignableOptions.length
                   ? assignableOptions.map((activity) => <option key={activity.id} value={activity.id}>{activity.label}</option>)
-                  : <option value="">{catalogLoading ? "Loading activities..." : compatibleOptions.message || "No assignable activities for these classes"}</option>}
+                  : <option value="">{catalogLoading ? "Loading activities..." : compatibleOptions.message || (compatibleOptions.options.length && search ? "No search results" : "No compatible activities for these classes")}</option>}
               </select>
               <button className="secondary-action" type="button" onClick={addActivity} disabled={catalogUnavailable || catalogLoading || !pickerId || selectedActivities.some((item) => item.id === pickerId)}>
                 <Plus size={16} /> Add
@@ -150,8 +148,8 @@ export function HomeworkCreator({ currentUser, classes = [], activityOptions = [
             <strong>Classes</strong>
             {classes.map((classItem) => (
               <label key={classItem.id}>
-                <input type="checkbox" checked={selectedClassIds.includes(classItem.id)} onChange={() => toggleClass(classItem.id)} />
-                <span>{classItem.name}</span>
+                <input aria-label={classItem.name} type="checkbox" checked={selectedClassIds.includes(classItem.id)} onChange={() => toggleClass(classItem.id)} />
+                <span>{classItem.name}<small> · {classItem.bookPackageId ? classItem.bookPackageTitle || "Linked book package" : "No book package linked"}</small></span>
               </label>
             ))}
             {!classes.length && <small>No live classes yet. Create a class first.</small>}

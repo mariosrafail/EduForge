@@ -1,11 +1,17 @@
 import { json, requestsHiddenPhaseOneComponent, requireResourceRole, verifyPackageAccess } from "./shared.js";
 import { getActiveComponentRelease, getPublishedNativeTeacherAnswer, getPublishedNativeTeacherDocument, getPublishedReleaseAsset } from "./publication-actions.js";
 import { listPublishedBooks, getPublishedBookActivity, getStudentAssignmentDetail } from "./published-book-actions.js";
+import { getPublishedPageImage } from "./published-page-image.js";
 
 // Called only after requireAuth. Historical assignment detail resolves its own
 // identity and access; ordinary book discovery retains the LMS visibility gate.
-async function readPublishedBookRoute(sql, currentUser, event, query) {
+async function readPublishedBookRoute(sql, currentUser, event, query, context) {
   if (!["GET", "HEAD"].includes(event.httpMethod)) return null;
+  if (query.action === "published-page-image") {
+    if (query.bookSlug !== "ultimate-b2" || query.componentSlug !== "ultimate-b2-students-book") return json(404, { error: "Page not found" });
+    const accessError = await verifyPackageAccess(sql, currentUser, { packageSlug: query.bookSlug });
+    return accessError || getPublishedPageImage(sql, query, { assets: context?.lmsAssets, origin: context?.lmsOrigin, method: event.httpMethod });
+  }
   if (event.httpMethod === "GET") {
     if (query.action === "published-books") return listPublishedBooks(sql, currentUser);
     if (query.action === "student-assignment") return getStudentAssignmentDetail(sql, currentUser, query);
@@ -37,8 +43,8 @@ async function readPublishedBookRoute(sql, currentUser, event, query) {
   return null;
 }
 
-export async function routePublishedBookRead(sql, currentUser, event, query) {
-  const result = await readPublishedBookRoute(sql, currentUser, event, query);
+export async function routePublishedBookRead(sql, currentUser, event, query, context) {
+  const result = await readPublishedBookRoute(sql, currentUser, event, query, context);
   if (!result) return null;
   if (result instanceof Response) {
     result.headers.set("Cache-Control", "private, no-store");

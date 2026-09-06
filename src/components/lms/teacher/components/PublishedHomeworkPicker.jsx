@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { listPublishedBooks, publishedTargetKey } from "../../../../services/publishedBooksApi.js";
 import { PublishedBookSurface } from "../../books/PublishedBookSurface.jsx";
+import { HomeworkClassCompatibility } from "./HomeworkClassCompatibility.jsx";
 
 export function publishedHomeworkOption(hotspot, book, page) {
   const id = publishedTargetKey(hotspot.target);
@@ -11,7 +12,7 @@ export function publishedHomeworkOption(hotspot, book, page) {
     printedLabel: page.printedLabel, unitTitle: page.unitTitle, assignable: hotspot.assignable };
 }
 
-export function PublishedHomeworkPicker({ ownerId, selected = [], onToggle, disabled = false }) {
+export function PublishedHomeworkPicker({ ownerId, selected = [], onToggle, disabled = false, classes = [], selectedClassIds = [] }) {
   const [state, setState] = useState({ books: [], loading: true, error: "" });
   const [component, setComponent] = useState("");
   const [revision, setRevision] = useState(0);
@@ -28,6 +29,7 @@ export function PublishedHomeworkPicker({ ownerId, selected = [], onToggle, disa
   const book = state.books.find((item) => item.componentSlug === component);
   return <section className="published-book-picker" aria-label="Choose exercises from published pages">
     <h3>Choose a book and select its exercises</h3>
+    <HomeworkClassCompatibility classes={classes} selectedClassIds={selectedClassIds} selected={selected} book={book} />
     {state.loading ? <p role="status">Loading published books…</p> : null}
     {state.error ? <p role="alert">{state.error} <button type="button" onClick={() => setRevision((value) => value + 1)}>Refresh books</button> Your selected exercises are retained.</p> : null}
     {!state.loading && !state.error && !state.books.length ? <p>No published pages are available. Existing book activities remain in the alternative list.</p> : null}

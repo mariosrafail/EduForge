@@ -5,6 +5,9 @@ import { resolve, extname } from "node:path";
 import { randomBytes, createHash } from "node:crypto";
 import { Readable } from "node:stream";
 import { chromium, expect } from "@playwright/test";
+import { lmsCanonicalPageAssetPath } from "../../shared/lmsCanonicalPages.js";
+import { verifyPickerGeometry } from "./_published-picker-geometry.mjs";
+import { verifyStudentsBookWorkflow } from "./_published-students-workflow.mjs";
 import worker from "../../cloudflare/lms/worker.js";
 import { hashToken, sessionCookieName, setSqlForTests } from "../../netlify/functions/_auth-utils.js";
 import { publishedManagedPageBytes, publishedManagedPageSha256 } from "../fixtures/published-managed-book.js";
@@ -12,19 +15,19 @@ import pageAssets from "../../src/data/ultimate-b2/generated/students-book-page-
 
 // Real application, route handlers, auth cookies, and isolated PostgreSQL.
 // Only object storage is local: no staging credentials or remote writes.
-export async function verifyPublishedBookBrowser({ pool, sql, teacher, student }) {
+export async function verifyPublishedBookBrowser({ pool, sql, teacher, student, publishNewer }) {
   const root = resolve("dist");
   await readFile(resolve(root, "index.html"));
   const sbPage = pageAssets.pages[0];
   const sbBytes = await readFile(resolve(sbPage.repositoryPath));
   assert.equal(createHash("sha256").update(sbBytes).digest("hex"), sbPage.checksumSha256);
   const packageId = (await pool.query("select id from book_packages where slug='ultimate-b2'")).rows[0].id;
-  const edition = (await pool.query("insert into book_editions(book_package_id,edition_identifier,status) values($1,'browser-fixture','published') returning id", [packageId])).rows[0];
-  const importRun = (await pool.query("insert into book_asset_imports(book_package_id,edition_id,manifest_checksum_sha256,manifest_schema_version,book_version,environment,status) values($1,$2,$3,'1.0','1.0.0','test','published') returning id", [packageId, edition.id, sbPage.checksumSha256])).rows[0];
-  await pool.query("insert into book_assets(book_package_id,edition_id,import_id,stable_logical_key,asset_role,object_key,storage_profile,storage_bucket,mime_type,byte_size,checksum_sha256,edition_identifier,version,publication_status,access_level) values($1,$2,$3,$4,'page_image',$5,'private','private-assets','image/png',$6,$7,'browser-fixture','1.0.0','published','entitled')", [packageId, edition.id, importRun.id, sbPage.logicalIdentity, `publishers/hamilton-house/books/ultimate-b2/browser-fixture/${sbPage.checksumSha256}.png`, sbBytes.length, sbPage.checksumSha256]);
   const types = { ".js": "text/javascript", ".css": "text/css", ".html": "text/html", ".png": "image/png", ".svg": "image/svg+xml", ".woff2": "font/woff2" };
   const staticFetch = async (request) => {
     const path = decodeURIComponent(new URL(request.url).pathname);
+    if (path === lmsCanonicalPageAssetPath(sbPage)) return new Response(sbBytes, { headers: { "Content-Type": sbPage.mimeType } });
+    const canonical = pageAssets.pages.find((entry) => lmsCanonicalPageAssetPath(entry) === path);
+    if (canonical) return new Response(await readFile(resolve(canonical.repositoryPath)), { headers: { "Content-Type": canonical.mimeType } });
     const file = resolve(root, `.${path === "/" ? "/index.html" : path}`);
     if (!file.startsWith(`${root}/`)) return new Response("Not found", { status: 404 });
     try { return new Response(await readFile(file), { headers: { "Content-Type": types[extname(file)] || "application/octet-stream" } }); }
@@ -39,7 +42,7 @@ export async function verifyPublishedBookBrowser({ pool, sql, teacher, student }
       const response = await worker.fetch(request, { ASSETS: { fetch: staticFetch } });
       res.writeHead(response.status, Object.fromEntries(response.headers));
       if (response.body) Readable.fromWeb(response.body).pipe(res); else res.end();
-    } catch (error) { failures.push(error.message); res.writeHead(500); res.end("Isolated server error"); }
+    } catch (error) { failures.push(error.message); console.error("Isolated browser server:", error); res.writeHead(500); res.end("Isolated server error"); }
   });
   await new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
   const origin = `http://127.0.0.1:${server.address().port}`;
@@ -77,6 +80,14 @@ export async function verifyPublishedBookBrowser({ pool, sql, teacher, student }
     await expect(picker).toBeVisible();
     await expect(picker.locator(":scope > label > select")).toBeVisible();
     await expect.poll(() => picker.locator(".published-page > img").evaluate((image) => image.naturalWidth)).toBe(sbPage.width);
+    assert.equal(Number((await pool.query("select count(*) from book_assets where stable_logical_key=$1", [sbPage.logicalIdentity])).rows[0].count), 0);
+    await verifyPickerGeometry(page, picker, (await catalogResponse.json()).books);
+    await verifyStudentsBookWorkflow({ pool, page, teacherContext, login, origin, teacher, student, books: (await catalogResponse.json()).books, publishNewer });
+  const edition = (await pool.query("insert into book_editions(book_package_id,edition_identifier,status) values($1,'browser-fixture','published') returning id", [packageId])).rows[0];
+  const importRun = (await pool.query("insert into book_asset_imports(book_package_id,edition_id,manifest_checksum_sha256,manifest_schema_version,book_version,environment,status) values($1,$2,$3,'1.0','1.0.0','test','published') returning id", [packageId, edition.id, sbPage.checksumSha256])).rows[0];
+  await pool.query("insert into book_assets(book_package_id,edition_id,import_id,stable_logical_key,asset_role,object_key,storage_profile,storage_bucket,mime_type,byte_size,checksum_sha256,edition_identifier,version,publication_status,access_level) values($1,$2,$3,$4,'page_image',$5,'private','private-assets','image/png',$6,$7,'browser-fixture','1.0.0','published','entitled')", [packageId, edition.id, importRun.id, sbPage.logicalIdentity, `publishers/hamilton-house/books/ultimate-b2/browser-fixture/${sbPage.checksumSha256}.png`, sbBytes.length, sbPage.checksumSha256]);
+    const imported = await teacherContext.request.get(`${origin}/.netlify/functions/book-content?${new URLSearchParams({ action: "asset-access", logicalKey: sbPage.logicalIdentity })}`);
+    assert.equal(imported.status(), 200); assert.equal((await imported.json()).asset.checksumSha256, sbPage.checksumSha256);
     await picker.locator(":scope > label > select").selectOption("ultimate-b2-workbook");
     await expect(picker.locator(".published-page > img")).toBeVisible();
     await expect.poll(() => picker.locator(".published-page > img").evaluate((image) => image.naturalWidth)).toBe(1);
@@ -101,6 +112,39 @@ export async function verifyPublishedBookBrowser({ pool, sql, teacher, student }
     await expect(page.getByText("Browser published Homework", { exact: true }).first()).toBeVisible();
     const stored = (await pool.query("select id from homeworks where teacher_id=$1 and title='Browser published Homework'", [teacher.id])).rows;
     assert.equal(stored.length, 1);
+    const card = page.locator('.teacher-homework-card').filter({ has: page.getByText("Browser published Homework", { exact: true }) });
+    await card.getByRole("button", { name: "Edit", exact: true }).click();
+    const editor = page.locator('.homework-editor');
+    await expect(editor.locator('.homework-selected-activities')).toContainText("Selected activities (2)");
+    await editor.getByLabel("Incompatible browser QA", { exact: true }).check();
+    await expect(editor.getByRole("button", { name: "Save changes", exact: true })).toBeDisabled();
+    await expect(editor.locator('.homework-selected-activities')).toContainText("Selected activities (2)");
+    await editor.getByLabel("Incompatible browser QA", { exact: true }).uncheck();
+    await editor.locator("textarea").first().fill("Edited without losing selected locators");
+    await editor.locator('.homework-selected-activities li').first().getByRole("button", { name: "Down", exact: true }).click();
+    const updateResponse = page.waitForResponse((response) => response.url().includes("action=update-homework") && response.request().method() === "POST");
+    await editor.getByRole("button", { name: "Save changes", exact: true }).click();
+    const update = await updateResponse; assert.equal(update.status(), 200, await update.text());
+    await expect(editor).toHaveCount(0);
+    const itemPages = async () => (await pool.query("select native_book_locator from homework_items where homework_id=$1 order by position", [stored[0].id])).rows.map((row) => row.native_book_locator.pageId);
+    assert.deepEqual(await itemPages(), ["wb-page-2", "wb-page-1"]);
+    await page.reload();
+    const reopenResponse = page.waitForResponse((response) => new URL(response.url()).searchParams.get("action") === "homework");
+    await card.getByRole("button", { name: "Edit", exact: true }).click();
+    const reopened = await reopenResponse; assert.equal(reopened.status(), 200, await reopened.text());
+    await expect(editor.locator("textarea").first()).toHaveValue("Edited without losing selected locators");
+    const editPicker = editor.getByRole("region", { name: "Choose exercises from published pages" });
+    await expect.poll(() => editPicker.locator('.published-page > img').evaluate((image) => image.complete && image.naturalWidth > 1)).toBe(true);
+    await editPicker.locator('.published-page-hotspots button').filter({ hasText: "Native Open Response" }).click();
+    await editPicker.getByRole("button", { name: "Add exercise", exact: true }).click();
+    await expect(editor.locator('.homework-selected-activities')).toContainText("Selected activities (3)");
+    await editPicker.getByRole("button", { name: "Remove selection", exact: true }).click();
+    await expect(editor.locator('.homework-selected-activities')).toContainText("Selected activities (2)");
+    await editor.screenshot({ path: `${process.env.PUBLISHED_BOOK_EVIDENCE_DIR || "/tmp/published-book-evidence"}/homework-editor.png` });
+    await editor.locator('.homework-selected-activities li').last().getByRole("button", { name: "Up", exact: true }).click();
+    await editor.getByRole("button", { name: "Save changes", exact: true }).click();
+    await expect(editor).toHaveCount(0);
+    assert.deepEqual(await itemPages(), ["wb-page-1", "wb-page-2"]);
     const assignments = (await pool.query("select assignment.id,assignment.native_book_locator from activity_assignments assignment join homework_items item on item.id=assignment.homework_item_id where assignment.homework_id=$1 order by item.position", [stored[0].id])).rows;
     assert.equal(assignments.length, 2);
     assert.deepEqual(assignments.map((row) => row.native_book_locator.pageId), ["wb-page-1", "wb-page-2"]);

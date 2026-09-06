@@ -20,16 +20,18 @@ import { BookPackageBrowser, BookSubpageNavigation, findBookComponentById } from
 import { Card, Progress, SectionTitle, Tag } from "../../Shared.jsx";
 import { TeacherCourseEditor } from "../TeacherCourseEditor.jsx";
 import { ClassInviteLink } from "../ClassInviteLink.jsx";
-import { classBookOptions, classLevelOptions, teacherSections } from "../teacherPortalConfig.js";
+import { classLevelOptions, teacherSections } from "../teacherPortalConfig.js";
 import { dueDateLabel, dueDateTone } from "../teacherPortalUtils.js";
 
 import { ResultsModal } from "../components/TeacherResultsModal.jsx";
 
-export function TeacherClasses({ currentUser = null, bookPackage = null, classes = [], loadingClasses = false, classLoadError = "", selectedClassSlug: routeSelectedClassSlug = null, routeAction = null, navigateTo, onClassCreated }) {
+export function TeacherClasses({ currentUser = null, bookPackages = [], loadingBooks = false, bookLoadError = "", classes = [], loadingClasses = false, classLoadError = "", selectedClassSlug: routeSelectedClassSlug = null, routeAction = null, navigateTo, onClassCreated }) {
   const [selectedClassSlug, setSelectedClassSlug] = useState(routeSelectedClassSlug || "");
   const [newClassName, setNewClassName] = useState("");
   const [newClassLevel, setNewClassLevel] = useState("B2");
-  const [newClassBook, setNewClassBook] = useState("Ultimate B2");
+  const [newClassPackageId, setNewClassPackageId] = useState("");
+  const selectedPackage = bookPackages.find((item) => item.id === newClassPackageId);
+  const packageUnavailable = loadingBooks || Boolean(bookLoadError) || !selectedPackage;
   const [classNameError, setClassNameError] = useState("");
   const [classSaveError, setClassSaveError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -75,6 +77,7 @@ export function TeacherClasses({ currentUser = null, bookPackage = null, classes
 
   const createClass = async (event) => {
     event.preventDefault();
+    if (packageUnavailable) { setClassSaveError("Choose an available book package before creating the class."); return; }
     const trimmedName = newClassName.trim();
     if (!trimmedName) {
       setClassNameError("Enter a class name before creating the class.");
@@ -89,13 +92,12 @@ export function TeacherClasses({ currentUser = null, bookPackage = null, classes
 
     try {
       const createdClass = await createTeacherClass({
-        // TODO: make teacherId required once the full auth flow protects the teacher portal.
         teacherId: currentUser?.id || null,
         schoolId: currentUser?.school_id || currentUser?.schoolId || null,
         name: trimmedName,
         level: newClassLevel,
-        assignedBook: newClassBook,
-        bookPackageId: bookPackage?.id || null,
+        assignedBook: selectedPackage.packageTitle || selectedPackage.title,
+        bookPackageId: selectedPackage.id,
       });
 
       onClassCreated?.(createdClass);
@@ -150,11 +152,13 @@ export function TeacherClasses({ currentUser = null, bookPackage = null, classes
           </label>
           <label>
             Assigned book
-            <select value={newClassBook} onChange={(event) => setNewClassBook(event.target.value)}>
-              {classBookOptions.map((book) => <option key={book}>{book}</option>)}
+            <select value={selectedPackage ? newClassPackageId : ""} disabled={loadingBooks || Boolean(bookLoadError) || savingClass} onChange={(event) => setNewClassPackageId(event.target.value)}>
+              <option value="">{loadingBooks ? "Loading book packages…" : "Choose a book package"}</option>
+              {bookPackages.map((book) => <option key={book.id} value={book.id}>{book.packageTitle || book.title}</option>)}
             </select>
+            {bookLoadError ? <span role="alert">Book packages are unavailable. Refresh the page and try again.</span> : !loadingBooks && !bookPackages.length ? <span>No authorized book packages are available.</span> : newClassPackageId && !selectedPackage ? <span role="alert">The selected package is no longer available. Choose again.</span> : null}
           </label>
-          <button className="primary-action" type="submit" disabled={savingClass} data-sound-click="submit">
+          <button className="primary-action" type="submit" disabled={savingClass || packageUnavailable} data-sound-click="submit">
             {savingClass ? "Saving..." : "Create class"}
           </button>
         </form>

@@ -20,6 +20,7 @@ export function normalizeClassRow(row = {}) {
     schoolId: row.school_id,
     assignedBook: row.assigned_book || "Ultimate B2",
     bookPackageId: row.book_package_id,
+    bookPackageTitle: row.book_package_title || null,
     inviteCode: row.invite_code,
     students: Number(row.students || 0),
     completion: Number(row.completion || 0),
@@ -115,7 +116,7 @@ export async function ensureUniqueInviteCode(sql) {
 
 export async function fetchClassById(sql, classId) {
   const rows = await sql`
-    select c.*,
+    select c.*, (select title from book_packages where id=c.book_package_id) as book_package_title,
            u.full_name as teacher_name,
            count(cs.id)::int as students,
            coalesce((
@@ -141,7 +142,7 @@ export async function fetchClassById(sql, classId) {
 export async function listTeacherClasses(sql, teacherId = "", schoolId = "") {
   const rows = teacherId
     ? await sql`
-        select c.*,
+        select c.*, (select title from book_packages where id=c.book_package_id) as book_package_title,
                u.full_name as teacher_name,
                count(cs.id)::int as students,
                coalesce((
@@ -163,7 +164,7 @@ export async function listTeacherClasses(sql, teacherId = "", schoolId = "") {
         order by c.created_at desc
       `
     : await sql`
-        select c.*,
+        select c.*, (select title from book_packages where id=c.book_package_id) as book_package_title,
                u.full_name as teacher_name,
                count(cs.id)::int as students,
                coalesce((
@@ -231,7 +232,7 @@ export async function findClassByInviteCode(sql, inviteCode, { activeOnly = true
   const normalizedCode = normalizeInviteCode(inviteCode);
   if (!isValidInviteCode(normalizedCode)) return null;
   const rows = await sql`
-    select c.*, u.full_name as teacher_name, count(cs.id)::int as students
+    select c.*, (select title from book_packages where id=c.book_package_id) as book_package_title, u.full_name as teacher_name, count(cs.id)::int as students
     from classes c
     left join app_users u on u.id = c.teacher_id
     left join class_students cs on cs.class_id = c.id and coalesce(cs.status, 'active') = 'active'

@@ -25,7 +25,7 @@ async function activeReleaseRow(sql, { bookSlug, componentSlug }) {
   return rows[0] || null;
 }
 
-async function publishedReleaseRow(sql, { bookSlug, componentSlug, releaseId }) {
+export async function publishedReleaseRow(sql, { bookSlug, componentSlug, releaseId }) {
   const rows = await sql`
     select release.*
     from book_component_releases release

@@ -130,6 +130,17 @@ test("published native assignment remains release-pinned through submit, review,
   await publishRelease(pool, { packageId: scope.package_id, componentId: scope.component_id, releaseId: releaseA.releaseId, revision: 1, builderId });
 
   const sql = tagged(pool);
+  sql.homeworkMutationTransaction = async (homeworkId, callback) => {
+    const client = await pool.connect();
+    try {
+      await client.query("begin");
+      await client.query("select pg_advisory_xact_lock(hashtextextended($1,0))", [`homework:${homeworkId}`]);
+      const result = await callback(tagged(client));
+      await client.query("commit");
+      return result;
+    } catch (error) { await client.query("rollback"); throw error; }
+    finally { client.release(); }
+  };
   sql.assignmentLifecycleTransaction = async (assignmentId, callback) => {
     const client = await pool.connect();
     try {
@@ -417,7 +428,10 @@ test("published native assignment remains release-pinned through submit, review,
   `, [teacher.school_id, assignment.id, student.id]), /activity_submissions_response_envelope_check/);
   if (process.env.PUBLISHED_BOOK_BROWSER === "1") {
     const { verifyPublishedBookBrowser } = await import("./_published-book-browser.mjs");
-    await verifyPublishedBookBrowser({ pool, sql, teacher: teacherUser, student: studentUser });
+    await verifyPublishedBookBrowser({ pool, sql, teacher: teacherUser, student: studentUser, publishNewer: async () => {
+      const newer = await insertRelease(pool, { packageId: scope.package_id, componentId: scope.component_id, builderId, releaseNumber: 110, fixture: { prompt: "Newer browser publication" } });
+      await publishRelease(pool, { packageId: scope.package_id, componentId: scope.component_id, releaseId: newer.releaseId, previousReleaseId: releaseB.releaseId, revision: 3, builderId });
+    } });
   }
   await t.test("historical Unit Extras endpoints verify unchanged hashes and remain pinned after newer releases", async () => {
     const { verifyHistoricalUnitExtrasPersistence } = await import("./_historical-unit-extras.mjs");

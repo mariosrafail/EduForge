@@ -93,7 +93,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const route = resolveLmsRoute(url.pathname);
-    if (route) return invokeNetlifyHandler(route.handler, request);
+    if (route) return invokeNetlifyHandler(route.handler, request, { context: { lmsAssets: env.ASSETS, lmsOrigin: url.origin } });
     if (url.pathname.startsWith("/.netlify/functions/")) return notFound();
 
     if (url.pathname.startsWith("/platform-admin/")) {

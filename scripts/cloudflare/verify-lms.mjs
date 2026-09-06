@@ -8,6 +8,8 @@ import path from "node:path";
 
 import { scanWebBundle } from "../verify-web-bundle-safety.mjs";
 import { LMS_PUBLIC_HANDLER_NAMES } from "../../cloudflare/lms/worker.js";
+import { verifyLmsPageAssets } from "./lms-page-assets.mjs";
+import { verifyLmsPageRouting } from "./lms-page-routing.mjs";
 
 const root = path.resolve("dist-cloudflare/lms");
 const configSource = await readFile(path.resolve("cloudflare/lms/wrangler.jsonc"), "utf8");
@@ -29,7 +31,9 @@ await Promise.all([
   stat(path.join(root, "index.html")),
   stat(path.join(root, "platform-admin/index.html")),
 ]);
-await scanWebBundle(root);
+const webBundle = await scanWebBundle(root);
+assert.deepEqual(webBundle.findings, [], "LMS static bundle contains prohibited content");
+const canonicalPageCount = await verifyLmsPageAssets(root);
 
 const files = [];
 async function visit(directory) {
@@ -61,6 +65,7 @@ try {
   const normalizedInputs = Object.keys(metafile.inputs || {}).map((input) => input.replaceAll("\\", "/"));
   const forbiddenInput = normalizedInputs.find((input) => /(?:^|\/)sharp(?:\/|$)|detect-libc|\.node$/.test(input));
   assert.equal(forbiddenInput, undefined, `Forbidden native/runtime dependency in LMS Worker graph: ${forbiddenInput}`);
+  assert.equal(normalizedInputs.find((input) => /\.(png|jpe?g|webp)$/i.test(input)), undefined, "Page binaries belong in ASSETS, not the Worker module");
 
   // Nodemailer's CommonJS entrypoint eagerly references every transport. Its
   // unused sendmail transport is therefore bundled even though LMS dispatches
@@ -100,6 +105,7 @@ try {
     workerCompressedBytes,
     metafileInputCount: normalizedInputs.length,
     staticAssetCount: files.length,
+    canonicalPageCount,
     largestStaticAsset: {
       path: path.relative(root, files[0].absolute).replaceAll("\\", "/"),
       bytes: files[0].size,
@@ -108,3 +114,4 @@ try {
 } finally {
   await rm(temporaryOutput, { recursive: true, force: true });
 }
+console.log(JSON.stringify(await verifyLmsPageRouting()));

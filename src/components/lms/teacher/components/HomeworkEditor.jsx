@@ -106,7 +106,7 @@ export function HomeworkEditor({ homework, classes = [], activityOptions = [], c
 
         {structureLocked && <div className="inline-status">Learner work already exists. Exercises, activity order, and classes are read-only to protect submissions and results.</div>}
 
-        {!structureLocked && <PublishedHomeworkPicker ownerId={homework.teacherId} selected={selectedActivities} disabled={saving} onToggle={(option) => setSelectedActivities((current) => current.some((item) => item.id === option.id) ? removeSelectedHomeworkActivity(current, option.id) : addSelectedHomeworkActivity(current, option))} />}
+        {!structureLocked && <PublishedHomeworkPicker ownerId={homework.teacherId} selected={selectedActivities} classes={classes} selectedClassIds={selectedClassIds} disabled={saving} onToggle={(option) => setSelectedActivities((current) => current.some((item) => item.id === option.id) ? removeSelectedHomeworkActivity(current, option.id) : addSelectedHomeworkActivity(current, option))} />}
 
         <div className="teacher-book-assign-grid">
           <label>Homework title<input type="text" maxLength={240} required value={title} onChange={(event) => setTitle(event.target.value)} /></label>
@@ -126,8 +126,8 @@ export function HomeworkEditor({ homework, classes = [], activityOptions = [], c
             <strong>Classes</strong>
             {classes.map((classItem) => (
               <label key={classItem.id}>
-                <input type="checkbox" disabled={structureLocked} checked={selectedClassIds.includes(classItem.id)} onChange={() => toggleClass(classItem.id)} />
-                <span>{classItem.name}</span>
+                <input aria-label={classItem.name} type="checkbox" disabled={structureLocked} checked={selectedClassIds.includes(classItem.id)} onChange={() => toggleClass(classItem.id)} />
+                <span>{classItem.name}<small> · {classItem.bookPackageId ? classItem.bookPackageTitle || "Linked book package" : "No book package linked"}</small></span>
               </label>
             ))}
           </div>
